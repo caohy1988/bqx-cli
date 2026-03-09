@@ -19,10 +19,14 @@ async fn main() {
 
     // Auth commands don't need project/dataset config
     if let Command::Auth { ref command } = cli.command {
+        let auth_opts = auth::AuthOptions {
+            token: cli.token.clone(),
+            credentials_file: cli.credentials_file.clone(),
+        };
         let result = match command {
             AuthCommand::Login => auth::login::run_login().await,
             AuthCommand::Logout => auth::login::run_logout(),
-            AuthCommand::Status => auth::login::run_status().await,
+            AuthCommand::Status => auth::login::run_status(&auth_opts).await,
         };
         if let Err(e) = result {
             eprintln!("{}", json!({"error": e.to_string()}));

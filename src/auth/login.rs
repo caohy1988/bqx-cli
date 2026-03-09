@@ -2,6 +2,9 @@ use std::io::{BufRead, Write};
 use std::net::TcpListener;
 
 use anyhow::{bail, Result};
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine;
+use sha2::{Digest, Sha256};
 use url::Url;
 
 use super::store::{AuthStore, StoredToken};
@@ -18,7 +21,7 @@ const DEFAULT_CLIENT_ID: &str =
     "764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com";
 const DEFAULT_CLIENT_SECRET: &str = "d-FL95Q19q7MQmFpd7hHD0Ty";
 
-/// Run the interactive login flow.
+/// Run the interactive login flow with PKCE and state protection.
 pub async fn run_login() -> Result<()> {
     let client_id = std::env::var("BQX_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.into());
     let client_secret =
@@ -29,6 +32,16 @@ pub async fn run_login() -> Result<()> {
     let port = listener.local_addr()?.port();
     let redirect_uri = format!("http://localhost:{port}");
 
+    // Generate PKCE code_verifier and code_challenge (S256)
+    let code_verifier = generate_random_string(64);
+    let code_challenge = {
+        let hash = Sha256::digest(code_verifier.as_bytes());
+        URL_SAFE_NO_PAD.encode(hash)
+    };
+
+    // Generate state parameter for CSRF protection
+    let state = generate_random_string(32);
+
     // Build the authorization URL
     let auth_url = format!(
         "{GOOGLE_AUTH_URL}?\
@@ -37,7 +50,10 @@ pub async fn run_login() -> Result<()> {
          &response_type=code\
          &scope={}\
          &access_type=offline\
-         &prompt=consent",
+         &prompt=consent\
+         &state={state}\
+         &code_challenge={code_challenge}\
+         &code_challenge_method=S256",
         urlencoding(&SCOPES.replace(' ', "+"))
     );
 
@@ -52,9 +68,9 @@ pub async fn run_login() -> Result<()> {
 
     // Wait for the OAuth callback
     eprintln!("Waiting for authentication...");
-    let auth_code = wait_for_callback(listener)?;
+    let auth_code = wait_for_callback(listener, &state)?;
 
-    // Exchange code for tokens
+    // Exchange code for tokens (with PKCE code_verifier)
     eprintln!("Exchanging authorization code for tokens...");
     let http = reqwest::Client::new();
     let token_resp = http
@@ -65,6 +81,7 @@ pub async fn run_login() -> Result<()> {
             ("client_secret", client_secret.as_str()),
             ("redirect_uri", redirect_uri.as_str()),
             ("grant_type", "authorization_code"),
+            ("code_verifier", code_verifier.as_str()),
         ])
         .send()
         .await?;
@@ -84,11 +101,13 @@ pub async fn run_login() -> Result<()> {
     // Get user email
     let account = fetch_user_email(&http, &access_token).await.ok();
 
-    // Store credentials
+    // Store credentials (including client_id/secret for refresh)
     let store = AuthStore::new();
     let stored = StoredToken {
         access_token,
         refresh_token,
+        client_id: Some(client_id),
+        client_secret: Some(client_secret),
         account: account.clone(),
     };
     store.save_token(&stored)?;
@@ -113,16 +132,10 @@ pub fn run_logout() -> Result<()> {
 }
 
 /// Show current auth status.
-pub async fn run_status() -> Result<()> {
-    use super::resolver::{self, AuthOptions, AuthSource};
+pub async fn run_status(opts: &super::AuthOptions) -> Result<()> {
+    use super::resolver::{self, AuthSource};
 
-    // Check what the resolver would pick
-    let opts = AuthOptions {
-        token: std::env::var("BQX_TOKEN").ok(),
-        credentials_file: std::env::var("BQX_CREDENTIALS_FILE").ok(),
-    };
-
-    match resolver::resolve(&opts).await {
+    match resolver::resolve(opts).await {
         Ok(resolved) => {
             eprintln!("Active credential source: {}", resolved.source);
             match &resolved.source {
@@ -139,8 +152,11 @@ pub async fn run_status() -> Result<()> {
                         eprintln!("  logged in: {}", meta.created_at);
                     }
                 }
-                AuthSource::ApplicationDefault => {
-                    eprintln!("  via: gcloud auth application-default login");
+                AuthSource::GoogleApplicationCredentials(path) => {
+                    eprintln!("  via: GOOGLE_APPLICATION_CREDENTIALS={path}");
+                }
+                AuthSource::DefaultAdc => {
+                    eprintln!("  via: gcloud auth application-default login or metadata server");
                 }
             }
 
@@ -164,24 +180,20 @@ pub async fn run_status() -> Result<()> {
     Ok(())
 }
 
-/// Wait for the OAuth redirect callback and extract the authorization code.
-fn wait_for_callback(listener: TcpListener) -> Result<String> {
+/// Wait for the OAuth redirect callback, validate state, and extract the authorization code.
+fn wait_for_callback(listener: TcpListener, expected_state: &str) -> Result<String> {
     let (mut stream, _) = listener.accept()?;
     let mut reader = std::io::BufReader::new(&stream);
     let mut request_line = String::new();
     reader.read_line(&mut request_line)?;
 
-    // Parse: GET /?code=xxx&scope=... HTTP/1.1
+    // Parse: GET /?code=xxx&state=yyy&scope=... HTTP/1.1
     let path = request_line
         .split_whitespace()
         .nth(1)
         .ok_or_else(|| anyhow::anyhow!("Invalid HTTP request from callback"))?;
 
     let url = Url::parse(&format!("http://localhost{path}"))?;
-    let code = url
-        .query_pairs()
-        .find(|(k, _)| k == "code")
-        .map(|(_, v)| v.to_string());
 
     // Check for error
     let error = url
@@ -189,8 +201,23 @@ fn wait_for_callback(listener: TcpListener) -> Result<String> {
         .find(|(k, _)| k == "error")
         .map(|(_, v)| v.to_string());
 
+    let code = url
+        .query_pairs()
+        .find(|(k, _)| k == "code")
+        .map(|(_, v)| v.to_string());
+
+    let returned_state = url
+        .query_pairs()
+        .find(|(k, _)| k == "state")
+        .map(|(_, v)| v.to_string());
+
     // Send response to browser
-    let (status, body) = if code.is_some() {
+    let (status, body) = if error.is_some() {
+        (
+            "400 Bad Request",
+            "Authentication failed. Please check the terminal for details.",
+        )
+    } else if code.is_some() {
         (
             "200 OK",
             "Authentication successful! You can close this tab and return to the terminal.",
@@ -198,7 +225,7 @@ fn wait_for_callback(listener: TcpListener) -> Result<String> {
     } else {
         (
             "400 Bad Request",
-            "Authentication failed. Please check the terminal for details.",
+            "Authentication failed. No authorization code received.",
         )
     };
 
@@ -211,6 +238,15 @@ fn wait_for_callback(listener: TcpListener) -> Result<String> {
 
     if let Some(err) = error {
         bail!("Authentication failed: {err}");
+    }
+
+    // Validate state to prevent CSRF
+    match returned_state {
+        Some(ref s) if s == expected_state => {}
+        Some(s) => {
+            bail!("OAuth state mismatch (possible CSRF). Expected: {expected_state}, got: {s}")
+        }
+        None => bail!("OAuth callback missing state parameter"),
     }
 
     code.ok_or_else(|| anyhow::anyhow!("No authorization code received in callback"))
@@ -234,4 +270,13 @@ async fn fetch_user_email(http: &reqwest::Client, access_token: &str) -> Result<
 /// Minimal URL encoding for scope string (spaces already replaced with +).
 fn urlencoding(s: &str) -> String {
     s.replace(':', "%3A").replace('/', "%2F")
+}
+
+/// Generate a cryptographically random URL-safe string (cross-platform).
+fn generate_random_string(len: usize) -> String {
+    use rand::RngExt;
+    let mut bytes = vec![0u8; len];
+    rand::rng().fill(&mut bytes[..]);
+    let encoded = URL_SAFE_NO_PAD.encode(&bytes);
+    encoded[..len].to_string()
 }
