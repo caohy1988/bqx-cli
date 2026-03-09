@@ -399,7 +399,7 @@ tool-use loop.
 | Flag | Env Var | Default | Description |
 |------|---------|---------|-------------|
 | `--project-id` | `BQX_PROJECT` | (required) | GCP project ID |
-| `--dataset-id` | `BQX_DATASET` | (required) | BigQuery dataset |
+| `--dataset-id` | `BQX_DATASET` | — | BigQuery dataset (required for `analytics` commands) |
 | `--location` | `BQX_LOCATION` | `US` | BigQuery location |
 | `--table` | — | `agent_events` | Table name |
 | `--format` | — | `json` | Output format: `json` or `table` |
