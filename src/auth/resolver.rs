@@ -56,6 +56,7 @@ struct RefreshableToken {
     client_id: String,
     client_secret: String,
     refresh_token: String,
+    token_url: String,
 }
 
 impl ResolvedAuth {
@@ -64,7 +65,13 @@ impl ResolvedAuth {
         match &self.inner {
             AuthInner::StaticToken(t) => Ok(t.clone()),
             AuthInner::Refreshable(r) => {
-                refresh_access_token(&r.client_id, &r.client_secret, &r.refresh_token).await
+                refresh_access_token(
+                    &r.token_url,
+                    &r.client_id,
+                    &r.client_secret,
+                    &r.refresh_token,
+                )
+                .await
             }
             AuthInner::GcpProvider(p) => {
                 let tok = p
@@ -123,6 +130,7 @@ pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
                             client_id: client_id.clone(),
                             client_secret: client_secret.clone(),
                             refresh_token: refresh_token.clone(),
+                            token_url: GOOGLE_TOKEN_URL.to_string(),
                         }),
                     });
                 }
@@ -210,6 +218,7 @@ async fn resolve_credentials_file(path: &str) -> Result<ResolvedAuth> {
                     client_id: client_id.to_string(),
                     client_secret: client_secret.to_string(),
                     refresh_token: refresh_token.to_string(),
+                    token_url: GOOGLE_TOKEN_URL.to_string(),
                 }),
             })
         }
@@ -235,6 +244,7 @@ pub(crate) fn make_refreshable(
     client_id: String,
     client_secret: String,
     refresh_token: String,
+    token_url: String,
 ) -> ResolvedAuth {
     ResolvedAuth {
         source,
@@ -242,19 +252,21 @@ pub(crate) fn make_refreshable(
             client_id,
             client_secret,
             refresh_token,
+            token_url,
         }),
     }
 }
 
 /// Exchange a refresh token for an access token.
 async fn refresh_access_token(
+    token_url: &str,
     client_id: &str,
     client_secret: &str,
     refresh_token: &str,
 ) -> Result<String> {
     let http = reqwest::Client::new();
     let resp = http
-        .post(GOOGLE_TOKEN_URL)
+        .post(token_url)
         .form(&[
             ("client_id", client_id),
             ("client_secret", client_secret),
@@ -279,25 +291,64 @@ async fn refresh_access_token(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use wiremock::matchers::{body_string_contains, method};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    /// Verify the Refreshable path actually calls Google's token endpoint.
-    /// With fake credentials, Google returns an error — proving the refresh
-    /// code path is exercised (not short-circuited to a static token).
+    /// Verify the Refreshable path exchanges a refresh token for an access token.
     #[tokio::test]
-    async fn refreshable_token_attempts_real_refresh() {
+    async fn refreshable_token_exchanges_via_token_endpoint() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(body_string_contains("grant_type=refresh_token"))
+            .and(body_string_contains("refresh_token=test-refresh"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"access_token": "fresh-token"})),
+            )
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
         let auth = make_refreshable(
             AuthSource::StoredLogin("test@example.com".into()),
-            "fake-client-id".into(),
-            "fake-client-secret".into(),
-            "fake-refresh-token".into(),
+            "test-client-id".into(),
+            "test-client-secret".into(),
+            "test-refresh".into(),
+            mock_server.uri(),
+        );
+
+        let token = auth.token().await.unwrap();
+        assert_eq!(token, "fresh-token");
+    }
+
+    /// Verify the Refreshable path surfaces token endpoint errors.
+    #[tokio::test]
+    async fn refreshable_token_surfaces_endpoint_error() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .respond_with(
+                ResponseTemplate::new(401).set_body_string(r#"{"error":"invalid_grant"}"#),
+            )
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let auth = make_refreshable(
+            AuthSource::StoredLogin("test@example.com".into()),
+            "bad-id".into(),
+            "bad-secret".into(),
+            "bad-refresh".into(),
+            mock_server.uri(),
         );
 
         let result = auth.token().await;
-        assert!(result.is_err(), "Expected refresh to fail with fake creds");
+        assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(
             err.contains("Token refresh failed"),
-            "Expected 'Token refresh failed' error, got: {err}"
+            "Expected 'Token refresh failed', got: {err}"
         );
     }
 
