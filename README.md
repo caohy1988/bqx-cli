@@ -21,14 +21,18 @@ CLI tooling (`bq`) was designed in 2012 for human operators. It is:
   functions, or agent evaluation workflows
 
 Meanwhile, AI agents are becoming the primary consumers of CLI tools.
-Community benchmarks show CLIs achieve **35x token efficiency** over MCP
-schemas and **28% higher task completion** for identical tasks. But agents
-need CLIs designed for them: structured output, progressive disclosure,
-and discoverable skills.
+Early benchmarks suggest CLIs can be significantly more token-efficient
+than MCP schemas and achieve higher task completion rates for identical
+tasks ([CLI vs MCP benchmarks](https://github.com/anthropics/claude-code/wiki/cli-vs-mcp-benchmarks)).
+But agents need CLIs designed for them: structured output, progressive
+disclosure, and discoverable skills.
 
-The Google Workspace CLI (`gws`) has proven this model works — 100+ skills,
-dynamic command generation, JSON-first output, and adoption across Claude
-Code, Gemini CLI, Cursor, and others. BigQuery needs the same.
+The Google Workspace CLI ([`gws`](https://github.com/googleworkspace/cli))
+has proven this model works for a different Google domain — it dynamically
+generates commands from Workspace API Discovery Documents, ships 100+
+declarative skills, defaults to JSON output, and has been adopted by
+Claude Code, Gemini CLI, Cursor, and others. BigQuery needs the same
+agent-first treatment.
 
 ---
 
@@ -38,34 +42,35 @@ A new agent-native CLI for BigQuery that combines:
 
 1. **Dynamic command generation** from BigQuery APIs (like `gws`)
 2. **Agent Skills** for discoverability (SKILL.md format)
-3. **Conversational Analytics** integration (natural language queries)
+3. **Conversational Analytics** integration (natural language queries) —
+   *depends on the CA API reaching GA; see [Open Questions](#9-open-questions)*
 4. **BigQuery Agent Analytics SDK** capabilities (evaluation, traces, drift)
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         bqx CLI                                     │
-│                                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
-│  │  BigQuery     │  │  Agent       │  │  Conversational│              │
-│  │  API          │  │  Analytics   │  │  Analytics    │              │
-│  │  (dynamic)    │  │  SDK         │  │  API          │              │
-│  │              │  │              │  │              │              │
-│  │  query, mk,  │  │  evaluate,   │  │  ask,         │              │
-│  │  ls, load,   │  │  get-trace,  │  │  create-agent,│              │
-│  │  show, rm    │  │  drift,      │  │  list-agents  │              │
-│  │              │  │  insights    │  │              │              │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘              │
-│         │                 │                 │                       │
-│  ┌──────┴─────────────────┴─────────────────┴───────┐              │
-│  │              Shared Core                          │              │
-│  │  Auth · JSON output · Model Armor · Pagination    │              │
-│  └───────────────────────────────────────────────────┘              │
-│                                                                     │
-│  ┌──────────────────────────────────────────────────┐              │
-│  │              Skills (SKILL.md)                     │              │
-│  │  89 skills: service · helper · persona · recipe   │              │
-│  └──────────────────────────────────────────────────┘              │
-└─────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                           bqx CLI                             │
+│                                                               │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────────┐  │
+│  │ BigQuery API   │  │ Agent         │  │ Conversational    │  │
+│  │ (dynamic)      │  │ Analytics SDK │  │ Analytics API     │  │
+│  │                │  │               │  │                   │  │
+│  │ query, mk,    │  │ evaluate,     │  │ ask,              │  │
+│  │ ls, load,     │  │ get-trace,    │  │ create-agent,     │  │
+│  │ show, rm      │  │ drift,        │  │ list-agents       │  │
+│  │                │  │ insights      │  │                   │  │
+│  └───────┬───────┘  └───────┬───────┘  └─────────┬─────────┘  │
+│          │                  │                     │            │
+│  ┌───────┴──────────────────┴─────────────────────┴─────────┐  │
+│  │                     Shared Core                           │  │
+│  │  Auth · JSON output · Model Armor · Pagination            │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                               │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                    Skills (SKILL.md)                       │  │
+│  │  27+ skills: service · helper · persona · recipe          │  │
+│  │  (more auto-generated from Discovery Document)            │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ### Why `bqx`, not extending `bq`
@@ -312,7 +317,8 @@ skills/
 ├── bqx-ca-ask/SKILL.md                       # Helper: ask questions in NL
 ├── bqx-ca-create-agent/SKILL.md              # Helper: create data agents
 │
-├── bqx-query/SKILL.md                        # Helper: shortcut for bqx jobs query
+├── bqx-query/SKILL.md                        # Helper: shortcut for `bqx jobs query`
+│                                              #   (convenience alias for the most common API call)
 ├── bqx-schema/SKILL.md                       # Helper: inspect table schemas
 │
 ├── persona-agent-developer/SKILL.md          # Persona: agent developer workflows
@@ -518,7 +524,9 @@ drops below thresholds.
 
 ## Steps
 
-1. Install `bqx` in CI:
+1. Install `bqx` in CI (distributed as platform-specific binaries via npm,
+   similar to [`esbuild`](https://github.com/evanw/esbuild) and
+   [`turbo`](https://github.com/vercel/turbo)):
    `npm install -g @bigquery/bqx`
 
 2. Authenticate with Workload Identity Federation:
@@ -754,21 +762,22 @@ bqx jobs query --query="
 
 ## 7. Implementation Roadmap
 
-### Phase 1: Core CLI + Analytics (v0.1) — 4 weeks
+### Phase 1: Core CLI + Analytics (v0.1)
 
 - [ ] Rust CLI scaffold with `clap` (auth, global flags, `--format`)
 - [ ] `bqx analytics` commands: `doctor`, `evaluate`, `get-trace`
 - [ ] `--exit-code` for CI/CD
 - [ ] JSON/table/text output formatting
 - [ ] Auth: ADC + service account + `bqx auth login`
-- [ ] npm distribution (`npx bqx`)
+- [ ] npm distribution (`npx bqx`) — platform-specific binaries via
+  optional dependencies (same approach as `esbuild`, `turbo`)
 - [ ] 5 core skills: `bqx-shared`, `bqx-analytics`, `bqx-analytics-evaluate`,
   `bqx-analytics-trace`, `bqx-query`
 
 **Exit criteria:** `npx bqx analytics evaluate --last=1h --exit-code` works
 in GitHub Actions; 5 skills installable via `npx skills add`.
 
-### Phase 2: Dynamic BigQuery API + Skills (v0.2) — 4 weeks
+### Phase 2: Dynamic BigQuery API + Skills (v0.2)
 
 - [ ] Discovery Document fetching + caching
 - [ ] Dynamic `clap::Command` tree generation for BigQuery v2 API
@@ -781,7 +790,11 @@ in GitHub Actions; 5 skills installable via `npx skills add`.
 definition; `bqx generate-skills` produces valid SKILL.md files;
 `gemini extensions install` succeeds.
 
-### Phase 3: Conversational Analytics + Polish (v0.3) — 3 weeks
+### Phase 3: Conversational Analytics + Polish (v0.3)
+
+> **Note:** This phase depends on the Conversational Analytics API reaching
+> sufficient stability (currently in preview). Phase 1-2 deliver value
+> independently.
 
 - [ ] `bqx ca ask` — natural language query via CA API
 - [ ] `bqx ca create-agent` — create data agents
@@ -795,6 +808,16 @@ definition; `bqx generate-skills` produces valid SKILL.md files;
 **Exit criteria:** `bqx ca ask "error rate for support_bot?"` returns
 structured JSON with SQL and results; all analytics commands pass
 integration tests.
+
+### Testing Strategy
+
+- **Unit tests:** Core parsing, auth resolution, output formatting
+- **Integration tests:** Golden-file tests comparing CLI output against
+  expected JSON/table snapshots
+- **API mocking:** Record/replay via [`wiremock`](https://crates.io/crates/wiremock)
+  for BigQuery API calls; no live GCP dependency in CI
+- **End-to-end:** Optional `--live` test suite against a dedicated GCP
+  project for pre-release validation
 
 ---
 
@@ -827,7 +850,8 @@ integration tests.
    value independently.
 
 5. **Relationship to `bq-agent-sdk` CLI in current PRD:**
-   **Recommendation:** The current PRD's Python CLI (§4) becomes a
-   stepping-stone. v1.0 ships as `bq-agent-sdk` (Python/typer); once `bqx`
-   reaches v0.2, analytics commands migrate to `bqx analytics` and the
-   Python CLI is deprecated.
+   **Recommendation:** The current PRD's Python CLI (§4) ships as
+   `bq-agent-sdk` (Python/typer) in a preview release. Once `bqx`
+   reaches v0.2 with feature parity, analytics commands migrate to
+   `bqx analytics` and the Python CLI is sunset. The Python SDK
+   *library* continues to be maintained independently.
