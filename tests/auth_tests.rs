@@ -206,6 +206,90 @@ fn auth_logout_succeeds() {
     assert!(stderr.contains("Stored credentials cleared"));
 }
 
+// ── CLI flag passthrough tests (Fix 1) ──
+
+#[test]
+fn auth_status_respects_token_cli_flag() {
+    // --token flag should be passed through to auth status (not just env var)
+    let output = run_bqx(&["--token", "cli-flag-token", "auth", "status"]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("BQX_TOKEN / --token"),
+        "Expected --token flag recognized, got: {stderr}"
+    );
+    assert!(
+        stderr.contains("Token: valid"),
+        "Expected token valid, got: {stderr}"
+    );
+}
+
+#[test]
+fn auth_status_respects_credentials_file_cli_flag() {
+    let dir = tempfile::tempdir().unwrap();
+    let creds_path = dir.path().join("flag-creds.json");
+    let mut f = std::fs::File::create(&creds_path).unwrap();
+    writeln!(
+        f,
+        r#"{{
+            "type": "authorized_user",
+            "client_id": "flag-id",
+            "client_secret": "flag-secret",
+            "refresh_token": "flag-refresh"
+        }}"#
+    )
+    .unwrap();
+
+    let output = run_bqx(&[
+        "--credentials-file",
+        creds_path.to_str().unwrap(),
+        "auth",
+        "status",
+    ]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("credentials file"),
+        "Expected --credentials-file flag recognized, got: {stderr}"
+    );
+}
+
+// ── Cross-platform random generation test (Fix 3) ──
+
+#[test]
+fn login_generate_random_produces_valid_output() {
+    // Verify that `bqx auth login` starts without crashing (tests the random generation path).
+    // We can't complete the OAuth flow, but we can verify it gets far enough to print the URL.
+    // Use a timeout via the process to avoid hanging on the listener.
+    let bin = cargo_bin();
+    let child = std::process::Command::new(&bin)
+        .args(["auth", "login"])
+        .env_remove("BQX_TOKEN")
+        .env_remove("BQX_CREDENTIALS_FILE")
+        .env_remove("GOOGLE_APPLICATION_CREDENTIALS")
+        .env("BQX_PROJECT", "test-project")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("Failed to start bqx auth login");
+
+    // Give it a moment to start and print the URL
+    std::thread::sleep(std::time::Duration::from_secs(2));
+
+    // Kill the process (it's waiting for the OAuth callback)
+    let output = {
+        let mut child = child;
+        // On Unix, we can kill directly
+        let _ = child.kill();
+        child.wait_with_output().expect("Failed to wait for child")
+    };
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    // If random generation works, it should get to printing the auth URL
+    assert!(
+        stderr.contains("accounts.google.com") || stderr.contains("Opening browser"),
+        "Expected auth URL or browser message (random gen works), got: {stderr}"
+    );
+}
+
 // ── Dry run still works without auth ──
 
 #[test]

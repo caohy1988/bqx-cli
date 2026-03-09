@@ -1,4 +1,4 @@
-use std::io::{BufRead, Read, Write};
+use std::io::{BufRead, Write};
 use std::net::TcpListener;
 
 use anyhow::{bail, Result};
@@ -132,16 +132,10 @@ pub fn run_logout() -> Result<()> {
 }
 
 /// Show current auth status.
-pub async fn run_status() -> Result<()> {
-    use super::resolver::{self, AuthOptions, AuthSource};
+pub async fn run_status(opts: &super::AuthOptions) -> Result<()> {
+    use super::resolver::{self, AuthSource};
 
-    // Check what the resolver would pick
-    let opts = AuthOptions {
-        token: std::env::var("BQX_TOKEN").ok(),
-        credentials_file: std::env::var("BQX_CREDENTIALS_FILE").ok(),
-    };
-
-    match resolver::resolve(&opts).await {
+    match resolver::resolve(opts).await {
         Ok(resolved) => {
             eprintln!("Active credential source: {}", resolved.source);
             match &resolved.source {
@@ -278,12 +272,11 @@ fn urlencoding(s: &str) -> String {
     s.replace(':', "%3A").replace('/', "%2F")
 }
 
-/// Generate a cryptographically random URL-safe string.
+/// Generate a cryptographically random URL-safe string (cross-platform).
 fn generate_random_string(len: usize) -> String {
+    use rand::RngExt;
     let mut bytes = vec![0u8; len];
-    let mut rng = std::fs::File::open("/dev/urandom").expect("Cannot open /dev/urandom");
-    rng.read_exact(&mut bytes)
-        .expect("Cannot read random bytes");
+    rand::rng().fill(&mut bytes[..]);
     let encoded = URL_SAFE_NO_PAD.encode(&bytes);
     encoded[..len].to_string()
 }

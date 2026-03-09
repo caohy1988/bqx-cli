@@ -108,21 +108,33 @@ pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
     let store = AuthStore::new();
     if let Ok(Some(stored)) = store.load_token() {
         if let Some(ref account) = stored.account {
-            if let Some(ref refresh_token) = stored.refresh_token {
-                return Ok(ResolvedAuth {
-                    source: AuthSource::StoredLogin(account.clone()),
-                    inner: AuthInner::Refreshable(RefreshableToken {
-                        client_id: stored.client_id.clone().unwrap_or_default(),
-                        client_secret: stored.client_secret.clone().unwrap_or_default(),
-                        refresh_token: refresh_token.clone(),
-                    }),
-                });
+            // Only use refreshable path if we have all three: refresh_token + client_id + client_secret
+            match (
+                &stored.refresh_token,
+                &stored.client_id,
+                &stored.client_secret,
+            ) {
+                (Some(refresh_token), Some(client_id), Some(client_secret))
+                    if !client_id.is_empty() && !client_secret.is_empty() =>
+                {
+                    return Ok(ResolvedAuth {
+                        source: AuthSource::StoredLogin(account.clone()),
+                        inner: AuthInner::Refreshable(RefreshableToken {
+                            client_id: client_id.clone(),
+                            client_secret: client_secret.clone(),
+                            refresh_token: refresh_token.clone(),
+                        }),
+                    });
+                }
+                _ => {
+                    // Legacy stored token or missing client credentials — use access_token
+                    // as static fallback. User should re-login for durable auth.
+                    return Ok(ResolvedAuth {
+                        source: AuthSource::StoredLogin(account.clone()),
+                        inner: AuthInner::StaticToken(stored.access_token),
+                    });
+                }
             }
-            // Fallback: no refresh_token, use access_token as static (legacy)
-            return Ok(ResolvedAuth {
-                source: AuthSource::StoredLogin(account.clone()),
-                inner: AuthInner::StaticToken(stored.access_token),
-            });
         }
     }
 
