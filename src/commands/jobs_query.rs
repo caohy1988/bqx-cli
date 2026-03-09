@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::Serialize;
 
-use crate::bigquery::client::{QueryRequest, BigQueryClient};
+use crate::bigquery::client::{BigQueryClient, QueryRequest};
 use crate::config::Config;
 use crate::output;
 

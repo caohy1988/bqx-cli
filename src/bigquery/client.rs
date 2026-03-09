@@ -202,10 +202,7 @@ impl BigQueryClient {
                 .http
                 .get(&url)
                 .bearer_auth(token.as_str())
-                .query(&[
-                    ("location", location),
-                    ("timeoutMs", "30000"),
-                ])
+                .query(&[("location", location), ("timeoutMs", "30000")])
                 .send()
                 .await?
                 .json()
