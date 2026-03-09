@@ -3,6 +3,7 @@ use serde::Serialize;
 
 use crate::auth::{self, AuthOptions};
 use crate::bigquery::client::{BigQueryClient, QueryRequest};
+use crate::cli::OutputFormat;
 use crate::config::Config;
 use crate::output;
 
@@ -36,12 +37,19 @@ pub async fn run(
     config: &Config,
 ) -> Result<()> {
     if dry_run {
+        let url = format!(
+            "https://bigquery.googleapis.com/bigquery/v2/projects/{}/queries",
+            config.project_id
+        );
+
+        if config.format == OutputFormat::Text {
+            output::text::render_query_dry_run(&url, &query, use_legacy_sql, &config.location);
+            return Ok(());
+        }
+
         let output = DryRunOutput {
             dry_run: true,
-            url: format!(
-                "https://bigquery.googleapis.com/bigquery/v2/projects/{}/queries",
-                config.project_id
-            ),
+            url,
             method: "POST".into(),
             body: DryRunBody {
                 query,
@@ -64,6 +72,34 @@ pub async fn run(
     };
 
     let result = client.query(&config.project_id, req).await?;
+
+    if config.format == OutputFormat::Text {
+        let columns: Vec<String> = result
+            .rows
+            .first()
+            .map(|r| r.keys().cloned().collect())
+            .unwrap_or_default();
+        let rows: Vec<Vec<String>> = result
+            .rows
+            .iter()
+            .map(|row| {
+                columns
+                    .iter()
+                    .map(|col| {
+                        row.get(col)
+                            .map(|v| match v {
+                                serde_json::Value::String(s) => s.clone(),
+                                serde_json::Value::Null => "null".into(),
+                                other => other.to_string(),
+                            })
+                            .unwrap_or_default()
+                    })
+                    .collect()
+            })
+            .collect();
+        output::text::render_query(result.total_rows, &columns, &rows);
+        return Ok(());
+    }
 
     let output = QueryOutput {
         total_rows: result.total_rows,

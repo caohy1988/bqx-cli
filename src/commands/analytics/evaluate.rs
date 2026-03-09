@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use crate::auth::{self, AuthOptions};
 use crate::bigquery::client::{BigQueryClient, QueryRequest};
-use crate::cli::EvaluatorType;
+use crate::cli::{EvaluatorType, OutputFormat};
 use crate::config::{self, Config};
 use crate::models::BqxError;
 use crate::output;
@@ -202,7 +202,11 @@ pub async fn run(
         sessions,
     };
 
-    output::render(&eval_result, &config.format)?;
+    if config.format == OutputFormat::Text {
+        output::text::render_evaluate(&eval_result);
+    } else {
+        output::render(&eval_result, &config.format)?;
+    }
 
     if exit_code && failed_count > 0 {
         return Err(BqxError::EvalFailed { exit_code: 1 }.into());

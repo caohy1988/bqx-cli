@@ -3,6 +3,7 @@ use serde::Serialize;
 
 use crate::auth::{self, AuthOptions};
 use crate::bigquery::client::{BigQueryClient, QueryRequest};
+use crate::cli::OutputFormat;
 use crate::config::Config;
 use crate::output;
 
@@ -121,8 +122,7 @@ pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
                 missing_required.join(", ")
             )],
         };
-        output::render(&report, &config.format)?;
-        return Ok(());
+        return render_report(&report, &config.format);
     }
 
     // Query stats
@@ -230,6 +230,13 @@ pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
         warnings,
     };
 
-    output::render(&report, &config.format)?;
-    Ok(())
+    render_report(&report, &config.format)
+}
+
+fn render_report(report: &DoctorReport, format: &OutputFormat) -> Result<()> {
+    if *format == OutputFormat::Text {
+        output::text::render_doctor(report);
+        return Ok(());
+    }
+    output::render(report, format)
 }

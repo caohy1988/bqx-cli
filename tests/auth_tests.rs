@@ -295,7 +295,7 @@ fn login_generate_random_produces_valid_output() {
 // in src/auth/resolver.rs unit tests. Integration tests here only verify
 // source identification without depending on live Google endpoints.
 
-// ── Dry run still works without auth ──
+// ── Dry run and output format tests ──
 
 #[test]
 fn dry_run_does_not_require_auth() {
@@ -306,4 +306,81 @@ fn dry_run_does_not_require_auth() {
     );
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("dry_run"));
+}
+
+#[test]
+fn dry_run_json_format() {
+    let output = run_bqx(&[
+        "jobs",
+        "query",
+        "--query",
+        "SELECT 1",
+        "--dry-run",
+        "--format",
+        "json",
+    ]);
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"dry_run\""));
+    assert!(stdout.contains("\"method\""));
+}
+
+#[test]
+fn dry_run_table_format() {
+    let output = run_bqx(&[
+        "jobs",
+        "query",
+        "--query",
+        "SELECT 1",
+        "--dry-run",
+        "--format",
+        "table",
+    ]);
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Table format renders as key-value table with Field/Value headers
+    assert!(
+        stdout.contains("dry_run") || stdout.contains("Field"),
+        "Expected table output, got: {stdout}"
+    );
+}
+
+#[test]
+fn dry_run_text_format() {
+    let output = run_bqx(&[
+        "jobs",
+        "query",
+        "--query",
+        "SELECT 1",
+        "--dry-run",
+        "--format",
+        "text",
+    ]);
+    assert!(
+        output.status.success(),
+        "text format should work for dry-run"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Dry run: POST"),
+        "Expected text dry run header, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("Query: SELECT 1"),
+        "Expected query in text output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("Location: US"),
+        "Expected location in text output, got: {stdout}"
+    );
+}
+
+#[test]
+fn format_text_is_accepted_by_help() {
+    let output = run_bqx(&["--help"]);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("text"),
+        "Expected 'text' in --format help, got: {stdout}"
+    );
 }
