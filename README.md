@@ -67,8 +67,8 @@ A new agent-native CLI for BigQuery that combines:
 │                                                               │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │                    Skills (SKILL.md)                       │  │
-│  │  27+ skills: service · helper · persona · recipe          │  │
-│  │  (more auto-generated from Discovery Document)            │  │
+│  │  26 curated skills (see §4.1 for full listing)             │  │
+│  │  1 shared · 8 service · 8 helper · 3 persona · 6 recipe  │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └───────────────────────────────────────────────────────────────┘
 ```
@@ -98,6 +98,14 @@ Like `gws`, `bqx` uses two-phase argument parsing:
 2. For BigQuery API commands, fetch the
    [BigQuery Discovery Document](https://www.googleapis.com/discovery/v1/apis/bigquery/v2/rest),
    cache it (24h TTL), and build a `clap::Command` tree dynamically
+
+**Offline / CI resilience:** The binary ships with a pinned copy of the
+Discovery Document (committed at build time). The runtime fetch is
+best-effort: if it fails (network-restricted CI, air-gapped environments),
+`bqx` falls back to the bundled version and logs a warning. A
+`--discovery=bundled|fetch|<path>` flag lets users force a specific
+source. The bundled document is updated on each `bqx` release and its
+version is printed by `bqx --version`.
 
 ```bash
 # Dynamic commands (generated from BigQuery REST API Discovery Document)
@@ -267,7 +275,10 @@ Five methods, same priority model as `gws`:
 # Quick start (uses existing gcloud credentials)
 bqx datasets list --project-id=myproject
 
-# Explicit login with scope selection
+# Explicit login (default: BigQuery-only scopes)
+bqx auth login
+
+# Explicit login with additional scopes (only when needed, e.g., cross-service workflows)
 bqx auth login -s bigquery,cloud-platform
 
 # Service account (CI/CD)
@@ -284,7 +295,8 @@ bqx analytics evaluate --evaluator=latency --last=24h --exit-code
   flag or interactive confirmation. Skill generator blocks destructive
   methods by default.
 - **Least-privilege defaults:** `bqx auth login` requests only BigQuery
-  scopes, not broad cloud-platform.
+  scopes by default. The broader `cloud-platform` scope is available via
+  `-s cloud-platform` but is never added implicitly.
 
 ---
 
@@ -782,7 +794,8 @@ in GitHub Actions; 5 skills installable via `npx skills add`.
 - [ ] Discovery Document fetching + caching
 - [ ] Dynamic `clap::Command` tree generation for BigQuery v2 API
 - [ ] `bqx generate-skills` command
-- [ ] Full skill set: 6 service, 6 helper, 3 persona, 5 recipe skills
+- [ ] Remaining curated skills to reach the full set listed in §4.1
+  (1 shared, 8 service, 8 helper, 3 persona, 6 recipe — 26 total)
 - [ ] Model Armor integration (`--sanitize`)
 - [ ] Gemini CLI extension registration
 
@@ -828,7 +841,7 @@ integration tests.
 | `bq` CLI | Legacy BigQuery CLI | `bqx` is a successor, not a wrapper. Coexists — users can migrate gradually. |
 | `gcloud` | Google Cloud CLI | `bqx` handles BigQuery-specific workflows; delegates to `gcloud` for IAM, projects. |
 | `gws` CLI | Google Workspace CLI | Architectural template. Same skills format, same output patterns, different domain. |
-| `bq-agent-sdk` (from PRD) | Python CLI from current PRD | `bqx analytics` subsumes this. The Python SDK remains as a library; the CLI moves to Rust. |
+| `bq-agent-sdk` (from PRD) | Python CLI from current PRD | Ships first as a preview CLI. Once `bqx analytics` reaches feature parity (v0.2), the Python CLI is sunset; the Python SDK *library* continues independently. |
 | BigQuery Console | Web UI | `bqx ca ask` brings CA to terminal; `bqx analytics` brings SDK to terminal. |
 
 ---
