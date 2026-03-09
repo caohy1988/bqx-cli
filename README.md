@@ -278,7 +278,7 @@ bqx datasets list --project-id=myproject
 # Explicit login (default: BigQuery-only scopes)
 bqx auth login
 
-# Explicit login with additional scopes (only when needed, e.g., cross-service workflows)
+# Override scopes (-s replaces the default scope set, not additive)
 bqx auth login -s bigquery,cloud-platform
 
 # Service account (CI/CD)
@@ -295,8 +295,9 @@ bqx analytics evaluate --evaluator=latency --last=24h --exit-code
   flag or interactive confirmation. Skill generator blocks destructive
   methods by default.
 - **Least-privilege defaults:** `bqx auth login` requests only BigQuery
-  scopes by default. The broader `cloud-platform` scope is available via
-  `-s cloud-platform` but is never added implicitly.
+  scopes by default. `-s` *replaces* the default scope set (it does not
+  append), so users must opt in explicitly to broader scopes like
+  `cloud-platform`.
 
 ---
 
@@ -794,8 +795,9 @@ in GitHub Actions; 5 skills installable via `npx skills add`.
 - [ ] Discovery Document fetching + caching
 - [ ] Dynamic `clap::Command` tree generation for BigQuery v2 API
 - [ ] `bqx generate-skills` command
-- [ ] Remaining curated skills to reach the full set listed in §4.1
-  (1 shared, 8 service, 8 helper, 3 persona, 6 recipe — 26 total)
+- [ ] Non-CA curated skills: 1 shared, 6 BigQuery API service, 4
+  analytics helpers, 2 generic helpers, 3 personas, 4 non-CA recipes
+  (20 of 26 skills in §4.1; CA skills ship in Phase 3)
 - [ ] Model Armor integration (`--sanitize`)
 - [ ] Gemini CLI extension registration
 
@@ -813,6 +815,10 @@ definition; `bqx generate-skills` produces valid SKILL.md files;
 - [ ] `bqx ca create-agent` — create data agents
 - [ ] `bqx ca add-verified-query` — add verified queries
 - [ ] Ship `deploy/ca/verified_queries.yaml` with SDK
+- [ ] Remaining CA skills: `bqx-ca`, `bqx-ca-ask`, `bqx-ca-create-agent`,
+  `recipe-ca-data-agent-setup`, `recipe-error-alerting` (5 of 26;
+  dependent on CA commands existing), plus `recipe-self-diagnostic-agent`
+  (composes CA + analytics)
 - [ ] Remaining analytics commands: `insights`, `drift`, `distribution`,
   `views`, `hitl-metrics`, `list-traces`
 - [ ] Completion scripts (bash, zsh, fish)
