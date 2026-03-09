@@ -227,6 +227,25 @@ async fn resolve_credentials_file(path: &str) -> Result<ResolvedAuth> {
     }
 }
 
+/// Construct a `ResolvedAuth` that will refresh using the given credentials.
+/// Exposed for testing only.
+#[cfg(test)]
+pub(crate) fn make_refreshable(
+    source: AuthSource,
+    client_id: String,
+    client_secret: String,
+    refresh_token: String,
+) -> ResolvedAuth {
+    ResolvedAuth {
+        source,
+        inner: AuthInner::Refreshable(RefreshableToken {
+            client_id,
+            client_secret,
+            refresh_token,
+        }),
+    }
+}
+
 /// Exchange a refresh token for an access token.
 async fn refresh_access_token(
     client_id: &str,
@@ -255,4 +274,42 @@ async fn refresh_access_token(
         .as_str()
         .map(|s| s.to_string())
         .ok_or_else(|| anyhow::anyhow!("No access_token in refresh response"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verify the Refreshable path actually calls Google's token endpoint.
+    /// With fake credentials, Google returns an error — proving the refresh
+    /// code path is exercised (not short-circuited to a static token).
+    #[tokio::test]
+    async fn refreshable_token_attempts_real_refresh() {
+        let auth = make_refreshable(
+            AuthSource::StoredLogin("test@example.com".into()),
+            "fake-client-id".into(),
+            "fake-client-secret".into(),
+            "fake-refresh-token".into(),
+        );
+
+        let result = auth.token().await;
+        assert!(result.is_err(), "Expected refresh to fail with fake creds");
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Token refresh failed"),
+            "Expected 'Token refresh failed' error, got: {err}"
+        );
+    }
+
+    /// Verify static token path returns the token directly without network.
+    #[tokio::test]
+    async fn static_token_returns_immediately() {
+        let auth = ResolvedAuth {
+            source: AuthSource::ExplicitToken,
+            inner: AuthInner::StaticToken("my-bearer-token".into()),
+        };
+
+        let token = auth.token().await.unwrap();
+        assert_eq!(token, "my-bearer-token");
+    }
 }

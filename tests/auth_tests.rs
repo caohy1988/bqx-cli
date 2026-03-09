@@ -290,6 +290,44 @@ fn login_generate_random_produces_valid_output() {
     );
 }
 
+// ── Refresh path integration test ──
+
+#[test]
+fn credentials_file_refresh_path_is_exercised() {
+    // An authorized_user credentials file should go through the Refreshable path.
+    // With fake credentials, the refresh will fail — but the error message from
+    // Google's token endpoint proves that refresh_access_token() was actually called.
+    let dir = tempfile::tempdir().unwrap();
+    let creds_path = dir.path().join("refresh-test.json");
+    let mut f = std::fs::File::create(&creds_path).unwrap();
+    writeln!(
+        f,
+        r#"{{
+            "type": "authorized_user",
+            "client_id": "fake-client-id",
+            "client_secret": "fake-client-secret",
+            "refresh_token": "fake-refresh-token"
+        }}"#
+    )
+    .unwrap();
+
+    let output = run_bqx_with_env(
+        &["auth", "status"],
+        &[("BQX_CREDENTIALS_FILE", creds_path.to_str().unwrap())],
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    // Should identify source correctly
+    assert!(
+        stderr.contains("credentials file"),
+        "Expected credentials file source, got: {stderr}"
+    );
+    // Token verification should attempt refresh and fail (proving refresh path ran)
+    assert!(
+        stderr.contains("Token: error") && stderr.contains("Token refresh failed"),
+        "Expected refresh failure error proving refresh path was called, got: {stderr}"
+    );
+}
+
 // ── Dry run still works without auth ──
 
 #[test]
