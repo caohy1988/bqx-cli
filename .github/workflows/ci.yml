@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --check
+
+  clippy:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets -- -D warnings
+
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release
+      - run: cargo test
+
+  version-check:
+    name: Version Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check version matches between Cargo.toml and CLI
+        run: |
+          CARGO_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "Cargo.toml version: $CARGO_VERSION"
+
+          # Verify the version string is valid semver
+          if ! echo "$CARGO_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "::error::Version '$CARGO_VERSION' in Cargo.toml is not valid semver"
+            exit 1
+          fi
+
+          echo "Version $CARGO_VERSION is valid semver"
+
+      - name: Check version was bumped (if src/ changed)
+        run: |
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          # Check if any source files changed
+          if git diff --name-only "origin/$BASE_REF"...HEAD | grep -qE '^(src/|Cargo\.toml)'; then
+            CURRENT=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+            BASE=$(git show "origin/$BASE_REF:Cargo.toml" 2>/dev/null | grep '^version' | head -1 | sed 's/.*"\(.*\)".*/\1/' || echo "0.0.0")
+            if [ "$CURRENT" = "$BASE" ]; then
+              echo "::warning::Source files changed but version was not bumped ($CURRENT). Consider updating the version in Cargo.toml."
+            else
+              echo "Version bumped: $BASE → $CURRENT"
+            fi
+          else
+            echo "No source changes — version check skipped"
+          fi

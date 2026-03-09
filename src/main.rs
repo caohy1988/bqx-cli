@@ -26,11 +26,12 @@ async fn main() {
 
     let result = match cli.command {
         Command::Jobs {
-            command: JobsCommand::Query {
-                query,
-                use_legacy_sql,
-                dry_run,
-            },
+            command:
+                JobsCommand::Query {
+                    query,
+                    use_legacy_sql,
+                    dry_run,
+                },
         } => commands::jobs_query::run(query, use_legacy_sql, dry_run, &config).await,
         Command::Analytics { command } => match command {
             AnalyticsCommand::Doctor => commands::analytics::doctor::run(&config).await,

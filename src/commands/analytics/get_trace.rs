@@ -139,8 +139,10 @@ pub async fn run(session_id: String, config: &Config) -> Result<()> {
     match config.format {
         OutputFormat::Table => {
             // Print summary header, then a focused event table
-            println!("Session: {}  Agent: {}  Events: {}  Errors: {}",
-                trace.session_id, trace.agent, trace.event_count, trace.has_errors);
+            println!(
+                "Session: {}  Agent: {}  Events: {}  Errors: {}",
+                trace.session_id, trace.agent, trace.event_count, trace.has_errors
+            );
             if let (Some(ref start), Some(ref end)) = (&trace.started_at, &trace.ended_at) {
                 println!("Time:    {} → {}", start, end);
             }
@@ -159,8 +161,7 @@ pub async fn run(session_id: String, config: &Config) -> Result<()> {
                 .map(|e| {
                     let latency = e.latency_ms.as_ref().map_or("-".into(), |v| {
                         if let Some(obj) = v.as_object() {
-                            obj.get("total_ms")
-                                .map_or("-".into(), |ms| ms.to_string())
+                            obj.get("total_ms").map_or("-".into(), |ms| ms.to_string())
                         } else {
                             v.to_string()
                         }

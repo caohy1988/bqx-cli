@@ -155,9 +155,7 @@ pub async fn run(config: &Config) -> Result<()> {
     };
 
     let get_str = |key: &str| -> Option<String> {
-        row.get(key)
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
+        row.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
     };
 
     let get_i64 = |key: &str| -> Option<i64> {
@@ -174,13 +172,19 @@ pub async fn run(config: &Config) -> Result<()> {
         warnings.push("Table is empty — no events found.".into());
     }
     if get_u64("null_session_ids") > 0 {
-        warnings.push(format!("{} rows have NULL session_id.", get_u64("null_session_ids")));
+        warnings.push(format!(
+            "{} rows have NULL session_id.",
+            get_u64("null_session_ids")
+        ));
     }
     if get_u64("null_agents") > 0 {
         warnings.push(format!("{} rows have NULL agent.", get_u64("null_agents")));
     }
     if get_u64("null_event_types") > 0 {
-        warnings.push(format!("{} rows have NULL event_type.", get_u64("null_event_types")));
+        warnings.push(format!(
+            "{} rows have NULL event_type.",
+            get_u64("null_event_types")
+        ));
     }
     if let Some(mins) = minutes_since {
         if mins > 60 {
@@ -197,7 +201,7 @@ pub async fn run(config: &Config) -> Result<()> {
         || get_u64("null_timestamps") > 0
     {
         "error"
-    } else if minutes_since.map_or(false, |m| m > 60) || !warnings.is_empty() {
+    } else if minutes_since.is_some_and(|m| m > 60) || !warnings.is_empty() {
         "warning"
     } else {
         "healthy"

@@ -15,9 +15,9 @@ pub struct Config {
 impl Config {
     /// The dataset_id, or an error if it was not provided.
     pub fn require_dataset_id(&self) -> Result<&str> {
-        self.dataset_id
-            .as_deref()
-            .ok_or_else(|| anyhow::anyhow!("--dataset-id or BQX_DATASET is required for this command"))
+        self.dataset_id.as_deref().ok_or_else(|| {
+            anyhow::anyhow!("--dataset-id or BQX_DATASET is required for this command")
+        })
     }
 }
 
@@ -78,7 +78,9 @@ pub fn validate_identifier(s: &str, name: &str) -> Result<()> {
 pub fn validate_session_id(s: &str) -> Result<()> {
     let re = Regex::new(r"^[a-zA-Z0-9_.\-]+$").unwrap();
     if !re.is_match(s) {
-        bail!("Invalid session_id: '{s}'. Must be alphanumeric with underscores, dots, and hyphens.");
+        bail!(
+            "Invalid session_id: '{s}'. Must be alphanumeric with underscores, dots, and hyphens."
+        );
     }
     Ok(())
 }
