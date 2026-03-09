@@ -36,21 +36,18 @@ fn render_value_as_table(value: &serde_json::Value) -> Result<()> {
             // Check if there is a list field we should render as a table
             for key in ["sessions", "events", "rows", "results"] {
                 if let Some(serde_json::Value::Array(arr)) = map.get(key) {
-                    if let Some(first) = arr.first() {
-                        if let serde_json::Value::Object(first_map) = first {
-                            let columns: Vec<String> =
-                                first_map.keys().cloned().collect();
-                            let rows: Vec<Vec<String>> = arr
-                                .iter()
-                                .map(|item| {
-                                    columns
-                                        .iter()
-                                        .map(|col| format_cell(item.get(col)))
-                                        .collect()
-                                })
-                                .collect();
-                            return render_rows_as_table(&columns, &rows);
-                        }
+                    if let Some(serde_json::Value::Object(first_map)) = arr.first() {
+                        let columns: Vec<String> = first_map.keys().cloned().collect();
+                        let rows: Vec<Vec<String>> = arr
+                            .iter()
+                            .map(|item| {
+                                columns
+                                    .iter()
+                                    .map(|col| format_cell(item.get(col)))
+                                    .collect()
+                            })
+                            .collect();
+                        return render_rows_as_table(&columns, &rows);
                     }
                 }
             }
