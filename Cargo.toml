@@ -1,0 +1,23 @@
+[package]
+name = "bqx"
+version = "0.0.1"
+edition = "2021"
+description = "Agent-native BigQuery CLI"
+license = "Apache-2.0"
+
+[[bin]]
+name = "bqx"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive", "env"] }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+gcp_auth = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+comfy-table = "7"
+thiserror = "2"
+anyhow = "1"
+regex = "1.12.3"
