@@ -9,19 +9,40 @@ mod output;
 use clap::Parser;
 use serde_json::json;
 
-use cli::{AnalyticsCommand, Cli, Command, JobsCommand};
+use cli::{AnalyticsCommand, AuthCommand, Cli, Command, JobsCommand};
 use config::Config;
 use models::BqxError;
 
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
+
+    // Auth commands don't need project/dataset config
+    if let Command::Auth { ref command } = cli.command {
+        let result = match command {
+            AuthCommand::Login => auth::login::run_login().await,
+            AuthCommand::Logout => auth::login::run_logout(),
+            AuthCommand::Status => auth::login::run_status().await,
+        };
+        if let Err(e) = result {
+            eprintln!("{}", json!({"error": e.to_string()}));
+            std::process::exit(1);
+        }
+        return;
+    }
+
     let config = match Config::from_cli(&cli) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("{}", json!({"error": e.to_string()}));
             std::process::exit(1);
         }
+    };
+
+    // Resolve auth for data commands
+    let auth_opts = auth::AuthOptions {
+        token: cli.token.clone(),
+        credentials_file: cli.credentials_file.clone(),
     };
 
     let result = match cli.command {
@@ -32,9 +53,9 @@ async fn main() {
                     use_legacy_sql,
                     dry_run,
                 },
-        } => commands::jobs_query::run(query, use_legacy_sql, dry_run, &config).await,
+        } => commands::jobs_query::run(query, use_legacy_sql, dry_run, &auth_opts, &config).await,
         Command::Analytics { command } => match command {
-            AnalyticsCommand::Doctor => commands::analytics::doctor::run(&config).await,
+            AnalyticsCommand::Doctor => commands::analytics::doctor::run(&auth_opts, &config).await,
             AnalyticsCommand::Evaluate {
                 evaluator,
                 threshold,
@@ -43,14 +64,15 @@ async fn main() {
                 exit_code,
             } => {
                 commands::analytics::evaluate::run(
-                    evaluator, threshold, last, agent_id, exit_code, &config,
+                    evaluator, threshold, last, agent_id, exit_code, &auth_opts, &config,
                 )
                 .await
             }
             AnalyticsCommand::GetTrace { session_id } => {
-                commands::analytics::get_trace::run(session_id, &config).await
+                commands::analytics::get_trace::run(session_id, &auth_opts, &config).await
             }
         },
+        Command::Auth { .. } => unreachable!(),
     };
 
     if let Err(e) = result {

@@ -1,6 +1,7 @@
 use anyhow::Result;
 use serde::Serialize;
 
+use crate::auth::{self, AuthOptions};
 use crate::bigquery::client::{BigQueryClient, QueryRequest};
 use crate::config::Config;
 use crate::output;
@@ -55,9 +56,10 @@ pub struct NullChecks {
 
 const REQUIRED_COLUMNS: &[&str] = &["session_id", "agent", "event_type", "timestamp"];
 
-pub async fn run(config: &Config) -> Result<()> {
+pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
     let dataset_id = config.require_dataset_id()?;
-    let client = BigQueryClient::new().await?;
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved);
     let full_table = format!("{}.{}.{}", config.project_id, dataset_id, config.table);
 
     // Query columns from INFORMATION_SCHEMA

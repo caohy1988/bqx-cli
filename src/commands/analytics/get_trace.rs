@@ -1,6 +1,7 @@
 use anyhow::Result;
 use serde::Serialize;
 
+use crate::auth::{self, AuthOptions};
 use crate::bigquery::client::{BigQueryClient, QueryRequest};
 use crate::cli::OutputFormat;
 use crate::config::{self, Config};
@@ -46,7 +47,7 @@ pub struct TraceEvent {
     pub content: Option<serde_json::Value>,
 }
 
-pub async fn run(session_id: String, config: &Config) -> Result<()> {
+pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
     config::validate_session_id(&session_id)?;
 
     let dataset_id = config.require_dataset_id()?;
@@ -57,7 +58,8 @@ pub async fn run(session_id: String, config: &Config) -> Result<()> {
         .replace("{table}", &config.table)
         .replace("{session_id}", &session_id);
 
-    let client = BigQueryClient::new().await?;
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved);
     let result = client
         .query(
             &config.project_id,

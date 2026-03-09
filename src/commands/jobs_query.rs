@@ -1,6 +1,7 @@
 use anyhow::Result;
 use serde::Serialize;
 
+use crate::auth::{self, AuthOptions};
 use crate::bigquery::client::{BigQueryClient, QueryRequest};
 use crate::config::Config;
 use crate::output;
@@ -31,6 +32,7 @@ pub async fn run(
     query: String,
     use_legacy_sql: bool,
     dry_run: bool,
+    auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
     if dry_run {
@@ -51,7 +53,8 @@ pub async fn run(
         return Ok(());
     }
 
-    let client = BigQueryClient::new().await?;
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved);
     let req = QueryRequest {
         query,
         use_legacy_sql,
