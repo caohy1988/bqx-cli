@@ -6,6 +6,7 @@ use gcp_auth::TokenProvider;
 use super::store::AuthStore;
 
 const BQ_SCOPE: &str = "https://www.googleapis.com/auth/bigquery";
+const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 
 /// The credential source that was used to obtain a token.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,8 +17,10 @@ pub enum AuthSource {
     CredentialsFile(String),
     /// Stored credentials from `bqx auth login`
     StoredLogin(String),
-    /// GOOGLE_APPLICATION_CREDENTIALS or default ADC
-    ApplicationDefault,
+    /// GOOGLE_APPLICATION_CREDENTIALS env var
+    GoogleApplicationCredentials(String),
+    /// Default ADC (gcloud auth application-default login or metadata server)
+    DefaultAdc,
 }
 
 impl std::fmt::Display for AuthSource {
@@ -26,7 +29,12 @@ impl std::fmt::Display for AuthSource {
             AuthSource::ExplicitToken => write!(f, "BQX_TOKEN / --token"),
             AuthSource::CredentialsFile(path) => write!(f, "credentials file: {path}"),
             AuthSource::StoredLogin(account) => write!(f, "bqx auth login ({account})"),
-            AuthSource::ApplicationDefault => write!(f, "application default credentials (ADC)"),
+            AuthSource::GoogleApplicationCredentials(path) => {
+                write!(f, "GOOGLE_APPLICATION_CREDENTIALS: {path}")
+            }
+            AuthSource::DefaultAdc => {
+                write!(f, "application default credentials (gcloud ADC)")
+            }
         }
     }
 }
@@ -39,7 +47,15 @@ pub struct ResolvedAuth {
 
 enum AuthInner {
     StaticToken(String),
+    Refreshable(RefreshableToken),
     GcpProvider(Arc<dyn TokenProvider>),
+}
+
+/// A token that can be refreshed using a stored refresh_token.
+struct RefreshableToken {
+    client_id: String,
+    client_secret: String,
+    refresh_token: String,
 }
 
 impl ResolvedAuth {
@@ -47,6 +63,9 @@ impl ResolvedAuth {
     pub async fn token(&self) -> Result<String> {
         match &self.inner {
             AuthInner::StaticToken(t) => Ok(t.clone()),
+            AuthInner::Refreshable(r) => {
+                refresh_access_token(&r.client_id, &r.client_secret, &r.refresh_token).await
+            }
             AuthInner::GcpProvider(p) => {
                 let tok = p
                     .token(&[BQ_SCOPE])
@@ -68,8 +87,9 @@ pub struct AuthOptions {
 ///
 /// 1. `BQX_TOKEN` env var / `--token` flag
 /// 2. `BQX_CREDENTIALS_FILE` env var / `--credentials-file` flag
-/// 3. Stored `bqx auth login` credentials
-/// 4. `GOOGLE_APPLICATION_CREDENTIALS` / default ADC
+/// 3. Stored `bqx auth login` credentials (uses refresh_token)
+/// 4. `GOOGLE_APPLICATION_CREDENTIALS`
+/// 5. Default ADC / `gcloud auth application-default`
 pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
     // 1. Explicit token
     if let Some(ref token) = opts.token {
@@ -81,15 +101,24 @@ pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
 
     // 2. Credentials file (supports both service account and authorized user JSON)
     if let Some(ref path) = opts.credentials_file {
-        let resolved = resolve_credentials_file(path).await?;
-        return Ok(resolved);
+        return resolve_credentials_file(path).await;
     }
 
-    // 3. Stored login credentials
+    // 3. Stored login credentials — use refresh_token for durable auth
     let store = AuthStore::new();
     if let Ok(Some(stored)) = store.load_token() {
         if let Some(ref account) = stored.account {
-            // Verify the stored token is still usable
+            if let Some(ref refresh_token) = stored.refresh_token {
+                return Ok(ResolvedAuth {
+                    source: AuthSource::StoredLogin(account.clone()),
+                    inner: AuthInner::Refreshable(RefreshableToken {
+                        client_id: stored.client_id.clone().unwrap_or_default(),
+                        client_secret: stored.client_secret.clone().unwrap_or_default(),
+                        refresh_token: refresh_token.clone(),
+                    }),
+                });
+            }
+            // Fallback: no refresh_token, use access_token as static (legacy)
             return Ok(ResolvedAuth {
                 source: AuthSource::StoredLogin(account.clone()),
                 inner: AuthInner::StaticToken(stored.access_token),
@@ -97,7 +126,20 @@ pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
         }
     }
 
-    // 4. ADC fallback (covers GOOGLE_APPLICATION_CREDENTIALS and gcloud ADC)
+    // 4. GOOGLE_APPLICATION_CREDENTIALS (explicit env var)
+    if let Ok(gac_path) = std::env::var("GOOGLE_APPLICATION_CREDENTIALS") {
+        let provider = gcp_auth::provider().await.map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to load credentials from GOOGLE_APPLICATION_CREDENTIALS='{gac_path}': {e}"
+            )
+        })?;
+        return Ok(ResolvedAuth {
+            source: AuthSource::GoogleApplicationCredentials(gac_path),
+            inner: AuthInner::GcpProvider(provider),
+        });
+    }
+
+    // 5. Default ADC fallback (gcloud ADC or metadata server)
     let provider = gcp_auth::provider().await.map_err(|e| {
         anyhow::anyhow!(
             "No credentials found. Options:\n\
@@ -110,7 +152,7 @@ pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
     })?;
 
     Ok(ResolvedAuth {
-        source: AuthSource::ApplicationDefault,
+        source: AuthSource::DefaultAdc,
         inner: AuthInner::GcpProvider(provider),
     })
 }
@@ -139,7 +181,7 @@ async fn resolve_credentials_file(path: &str) -> Result<ResolvedAuth> {
             })
         }
         "authorized_user" => {
-            // Authorized user: exchange refresh_token for access_token
+            // Authorized user: use refresh_token to get fresh access tokens
             let client_id = json["client_id"]
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("Missing client_id in '{path}'"))?;
@@ -150,10 +192,13 @@ async fn resolve_credentials_file(path: &str) -> Result<ResolvedAuth> {
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("Missing refresh_token in '{path}'"))?;
 
-            let token = refresh_access_token(client_id, client_secret, refresh_token).await?;
             Ok(ResolvedAuth {
                 source: AuthSource::CredentialsFile(path.to_string()),
-                inner: AuthInner::StaticToken(token),
+                inner: AuthInner::Refreshable(RefreshableToken {
+                    client_id: client_id.to_string(),
+                    client_secret: client_secret.to_string(),
+                    refresh_token: refresh_token.to_string(),
+                }),
             })
         }
         _ => {
@@ -169,8 +214,6 @@ async fn resolve_credentials_file(path: &str) -> Result<ResolvedAuth> {
         }
     }
 }
-
-const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 
 /// Exchange a refresh token for an access token.
 async fn refresh_access_token(

@@ -17,6 +17,8 @@ pub struct StoredAuthMetadata {
 pub struct StoredToken {
     pub access_token: String,
     pub refresh_token: Option<String>,
+    pub client_id: Option<String>,
+    pub client_secret: Option<String>,
     pub account: Option<String>,
 }
 
