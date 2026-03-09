@@ -13,11 +13,11 @@ WITH session_latency AS (
     session_id,
     agent,
     MAX(CAST(JSON_VALUE(latency_ms, '$.total_ms') AS FLOAT64)) AS max_latency_ms,
-    AVG(CAST(JSON_VALUE(latency_ms, '$.total_ms') AS FLOAT64)) AS avg_latency_ms
+    AVG(CAST(JSON_VALUE(latency_ms, '$.total_ms') AS FLOAT64)) AS avg_latency_ms,
+    COUNTIF(latency_ms IS NOT NULL) AS has_latency_count
   FROM `{project}.{dataset}.{table}`
   WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), {interval})
     {agent_filter}
-    AND latency_ms IS NOT NULL
   GROUP BY session_id, agent
 )
 SELECT
@@ -25,9 +25,14 @@ SELECT
   agent,
   max_latency_ms,
   avg_latency_ms,
-  CASE WHEN max_latency_ms <= {threshold} THEN true ELSE false END AS passed
+  has_latency_count = 0 AS no_latency_data,
+  CASE
+    WHEN has_latency_count = 0 THEN false
+    WHEN max_latency_ms <= {threshold} THEN true
+    ELSE false
+  END AS passed
 FROM session_latency
-ORDER BY max_latency_ms DESC
+ORDER BY max_latency_ms DESC NULLS LAST
 "#;
 
 const ERROR_RATE_EVAL_SQL: &str = r#"
@@ -76,6 +81,8 @@ pub struct SessionEval {
     pub agent: String,
     pub passed: bool,
     pub score: f64,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub no_latency_data: bool,
 }
 
 pub async fn run(
@@ -102,9 +109,11 @@ pub async fn run(
         EvaluatorType::ErrorRate => (ERROR_RATE_EVAL_SQL, "error_rate"),
     };
 
+    let dataset_id = config.require_dataset_id()?;
+
     let sql = sql_template
         .replace("{project}", &config.project_id)
-        .replace("{dataset}", &config.dataset_id)
+        .replace("{dataset}", dataset_id)
         .replace("{table}", &config.table)
         .replace("{interval}", &duration.interval_sql)
         .replace("{threshold}", &threshold.to_string())
@@ -145,6 +154,11 @@ pub async fn run(
                 .and_then(|v| v.as_str())
                 .map(|s| s == "true")
                 .unwrap_or(false);
+            let no_latency_data = row
+                .get("no_latency_data")
+                .and_then(|v| v.as_str())
+                .map(|s| s == "true")
+                .unwrap_or(false);
 
             SessionEval {
                 session_id: row
@@ -159,6 +173,7 @@ pub async fn run(
                     .to_string(),
                 passed,
                 score,
+                no_latency_data,
             }
         })
         .collect();

@@ -49,9 +49,11 @@ pub struct TraceEvent {
 pub async fn run(session_id: String, config: &Config) -> Result<()> {
     config::validate_session_id(&session_id)?;
 
+    let dataset_id = config.require_dataset_id()?;
+
     let sql = GET_TRACE_SQL
         .replace("{project}", &config.project_id)
-        .replace("{dataset}", &config.dataset_id)
+        .replace("{dataset}", dataset_id)
         .replace("{table}", &config.table)
         .replace("{session_id}", &session_id);
 

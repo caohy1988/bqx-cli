@@ -56,13 +56,14 @@ pub struct NullChecks {
 const REQUIRED_COLUMNS: &[&str] = &["session_id", "agent", "event_type", "timestamp"];
 
 pub async fn run(config: &Config) -> Result<()> {
+    let dataset_id = config.require_dataset_id()?;
     let client = BigQueryClient::new().await?;
-    let full_table = format!("{}.{}.{}", config.project_id, config.dataset_id, config.table);
+    let full_table = format!("{}.{}.{}", config.project_id, dataset_id, config.table);
 
     // Query columns from INFORMATION_SCHEMA
     let columns_sql = COLUMNS_SQL
         .replace("{project}", &config.project_id)
-        .replace("{dataset}", &config.dataset_id)
+        .replace("{dataset}", dataset_id)
         .replace("{table}", &config.table);
 
     let columns_result = client
@@ -125,7 +126,7 @@ pub async fn run(config: &Config) -> Result<()> {
     // Query stats
     let stats_sql = DOCTOR_SQL
         .replace("{project}", &config.project_id)
-        .replace("{dataset}", &config.dataset_id)
+        .replace("{dataset}", dataset_id)
         .replace("{table}", &config.table);
 
     let stats_result = client
@@ -191,6 +192,7 @@ pub async fn run(config: &Config) -> Result<()> {
 
     let status = if total_rows == 0
         || get_u64("null_session_ids") > 0
+        || get_u64("null_agents") > 0
         || get_u64("null_event_types") > 0
         || get_u64("null_timestamps") > 0
     {

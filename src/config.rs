@@ -6,10 +6,19 @@ use crate::cli::OutputFormat;
 
 pub struct Config {
     pub project_id: String,
-    pub dataset_id: String,
+    pub dataset_id: Option<String>,
     pub location: String,
     pub table: String,
     pub format: OutputFormat,
+}
+
+impl Config {
+    /// The dataset_id, or an error if it was not provided.
+    pub fn require_dataset_id(&self) -> Result<&str> {
+        self.dataset_id
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("--dataset-id or BQX_DATASET is required for this command"))
+    }
 }
 
 pub struct ParsedDuration {
@@ -22,18 +31,16 @@ impl Config {
             .project_id
             .clone()
             .ok_or_else(|| anyhow::anyhow!("--project-id or BQX_PROJECT is required"))?;
-        let dataset_id = cli
-            .dataset_id
-            .clone()
-            .ok_or_else(|| anyhow::anyhow!("--dataset-id or BQX_DATASET is required"))?;
 
         validate_identifier(&project_id, "project_id")?;
-        validate_identifier(&dataset_id, "dataset_id")?;
+        if let Some(ref dataset_id) = cli.dataset_id {
+            validate_identifier(dataset_id, "dataset_id")?;
+        }
         validate_identifier(&cli.table, "table")?;
 
         Ok(Config {
             project_id,
-            dataset_id,
+            dataset_id: cli.dataset_id.clone(),
             location: cli.location.clone(),
             table: cli.table.clone(),
             format: cli.format.clone(),
