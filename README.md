@@ -796,8 +796,9 @@ in GitHub Actions; 5 skills installable via `npx skills add`.
 - [ ] Dynamic `clap::Command` tree generation for BigQuery v2 API
 - [ ] `bqx generate-skills` command
 - [ ] Non-CA curated skills: 1 shared, 6 BigQuery API service, 4
-  analytics helpers, 2 generic helpers, 3 personas, 4 non-CA recipes
-  (20 of 26 skills in §4.1; CA skills ship in Phase 3)
+  analytics helpers, 2 generic helpers, 2 CA-independent personas
+  (`persona-agent-developer`, `persona-data-analyst`), 4 non-CA recipes
+  (19 of 26 skills in §4.1; CA-dependent skills ship in Phase 3)
 - [ ] Model Armor integration (`--sanitize`)
 - [ ] Gemini CLI extension registration
 
@@ -815,10 +816,10 @@ definition; `bqx generate-skills` produces valid SKILL.md files;
 - [ ] `bqx ca create-agent` — create data agents
 - [ ] `bqx ca add-verified-query` — add verified queries
 - [ ] Ship `deploy/ca/verified_queries.yaml` with SDK
-- [ ] Remaining CA skills: `bqx-ca`, `bqx-ca-ask`, `bqx-ca-create-agent`,
-  `recipe-ca-data-agent-setup`, `recipe-error-alerting` (5 of 26;
-  dependent on CA commands existing), plus `recipe-self-diagnostic-agent`
-  (composes CA + analytics)
+- [ ] Remaining CA-dependent skills (7 of 26): `bqx-ca`, `bqx-ca-ask`,
+  `bqx-ca-create-agent`, `persona-sre` (requires `bqx-ca`),
+  `recipe-ca-data-agent-setup`, `recipe-error-alerting`,
+  `recipe-self-diagnostic-agent`
 - [ ] Remaining analytics commands: `insights`, `drift`, `distribution`,
   `views`, `hitl-metrics`, `list-traces`
 - [ ] Completion scripts (bash, zsh, fish)
