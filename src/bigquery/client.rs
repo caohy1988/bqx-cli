@@ -1,13 +1,13 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::auth::AuthProvider;
+use crate::auth::ResolvedAuth;
 
 const BQ_BASE_URL: &str = "https://bigquery.googleapis.com/bigquery/v2";
 
 pub struct BigQueryClient {
     http: reqwest::Client,
-    auth: AuthProvider,
+    auth: ResolvedAuth,
 }
 
 #[derive(Serialize)]
@@ -87,10 +87,9 @@ struct BqErrorDetail {
 }
 
 impl BigQueryClient {
-    pub async fn new() -> Result<Self> {
-        let auth = AuthProvider::new().await?;
+    pub fn new(auth: ResolvedAuth) -> Self {
         let http = reqwest::Client::new();
-        Ok(Self { http, auth })
+        Self { http, auth }
     }
 
     pub async fn query(&self, project: &str, req: QueryRequest) -> Result<QueryResult> {
@@ -100,7 +99,7 @@ impl BigQueryClient {
         let resp = self
             .http
             .post(&url)
-            .bearer_auth(token.as_str())
+            .bearer_auth(&token)
             .json(&req)
             .send()
             .await?;
@@ -153,7 +152,7 @@ impl BigQueryClient {
                 let page_resp: QueryResponse = self
                     .http
                     .get(&url)
-                    .bearer_auth(tkn.as_str())
+                    .bearer_auth(&tkn)
                     .query(&[("location", &location), ("pageToken", token)])
                     .send()
                     .await?
@@ -201,7 +200,7 @@ impl BigQueryClient {
             let resp: QueryResponse = self
                 .http
                 .get(&url)
-                .bearer_auth(token.as_str())
+                .bearer_auth(&token)
                 .query(&[("location", location), ("timeoutMs", "30000")])
                 .send()
                 .await?

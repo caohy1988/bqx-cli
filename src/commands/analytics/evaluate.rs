@@ -1,6 +1,7 @@
 use anyhow::Result;
 use serde::Serialize;
 
+use crate::auth::{self, AuthOptions};
 use crate::bigquery::client::{BigQueryClient, QueryRequest};
 use crate::cli::EvaluatorType;
 use crate::config::{self, Config};
@@ -91,6 +92,7 @@ pub async fn run(
     last: String,
     agent_id: Option<String>,
     exit_code: bool,
+    auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
     if let Some(ref id) = agent_id {
@@ -119,7 +121,8 @@ pub async fn run(
         .replace("{threshold}", &threshold.to_string())
         .replace("{agent_filter}", &agent_filter);
 
-    let client = BigQueryClient::new().await?;
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved);
     let result = client
         .query(
             &config.project_id,

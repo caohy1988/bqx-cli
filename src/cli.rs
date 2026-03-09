@@ -25,6 +25,14 @@ pub struct Cli {
     /// Output format
     #[arg(long, global = true, default_value = "json")]
     pub format: OutputFormat,
+
+    /// Bearer token for authentication (overrides all other auth methods)
+    #[arg(long, global = true, env = "BQX_TOKEN", hide = true)]
+    pub token: Option<String>,
+
+    /// Path to service account credentials JSON file
+    #[arg(long, global = true, env = "BQX_CREDENTIALS_FILE")]
+    pub credentials_file: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -38,6 +46,11 @@ pub enum Command {
     Analytics {
         #[command(subcommand)]
         command: AnalyticsCommand,
+    },
+    /// Authentication management
+    Auth {
+        #[command(subcommand)]
+        command: AuthCommand,
     },
 }
 
@@ -93,6 +106,16 @@ pub enum AnalyticsCommand {
         #[arg(long)]
         session_id: String,
     },
+}
+
+#[derive(Subcommand)]
+pub enum AuthCommand {
+    /// Authenticate with Google OAuth (opens browser)
+    Login,
+    /// Show current authentication status
+    Status,
+    /// Clear stored credentials
+    Logout,
 }
 
 #[derive(Clone, ValueEnum)]
