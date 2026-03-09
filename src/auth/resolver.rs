@@ -79,17 +79,10 @@ pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
         });
     }
 
-    // 2. Credentials file
+    // 2. Credentials file (supports both service account and authorized user JSON)
     if let Some(ref path) = opts.credentials_file {
-        // Set GOOGLE_APPLICATION_CREDENTIALS so gcp_auth picks it up
-        std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", path);
-        let provider = gcp_auth::provider()
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to load credentials from '{path}': {e}"))?;
-        return Ok(ResolvedAuth {
-            source: AuthSource::CredentialsFile(path.clone()),
-            inner: AuthInner::GcpProvider(provider),
-        });
+        let resolved = resolve_credentials_file(path).await?;
+        return Ok(resolved);
     }
 
     // 3. Stored login credentials
@@ -120,4 +113,91 @@ pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
         source: AuthSource::ApplicationDefault,
         inner: AuthInner::GcpProvider(provider),
     })
+}
+
+/// Load credentials from a JSON file. Detects whether it's a service account
+/// (has `private_key`) or an authorized user (has `client_id` + `refresh_token`)
+/// and handles each appropriately.
+async fn resolve_credentials_file(path: &str) -> Result<ResolvedAuth> {
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| anyhow::anyhow!("Cannot read credentials file '{path}': {e}"))?;
+    let json: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| anyhow::anyhow!("Invalid JSON in credentials file '{path}': {e}"))?;
+
+    let cred_type = json.get("type").and_then(|v| v.as_str()).unwrap_or("");
+
+    match cred_type {
+        "service_account" => {
+            // Service account: use gcp_auth via GOOGLE_APPLICATION_CREDENTIALS
+            std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", path);
+            let provider = gcp_auth::provider().await.map_err(|e| {
+                anyhow::anyhow!("Failed to load service account from '{path}': {e}")
+            })?;
+            Ok(ResolvedAuth {
+                source: AuthSource::CredentialsFile(path.to_string()),
+                inner: AuthInner::GcpProvider(provider),
+            })
+        }
+        "authorized_user" => {
+            // Authorized user: exchange refresh_token for access_token
+            let client_id = json["client_id"]
+                .as_str()
+                .ok_or_else(|| anyhow::anyhow!("Missing client_id in '{path}'"))?;
+            let client_secret = json["client_secret"]
+                .as_str()
+                .ok_or_else(|| anyhow::anyhow!("Missing client_secret in '{path}'"))?;
+            let refresh_token = json["refresh_token"]
+                .as_str()
+                .ok_or_else(|| anyhow::anyhow!("Missing refresh_token in '{path}'"))?;
+
+            let token = refresh_access_token(client_id, client_secret, refresh_token).await?;
+            Ok(ResolvedAuth {
+                source: AuthSource::CredentialsFile(path.to_string()),
+                inner: AuthInner::StaticToken(token),
+            })
+        }
+        _ => {
+            anyhow::bail!(
+                "Unsupported credential type '{}' in '{path}'. \
+                 Expected 'service_account' or 'authorized_user'.",
+                if cred_type.is_empty() {
+                    "(missing)"
+                } else {
+                    cred_type
+                }
+            );
+        }
+    }
+}
+
+const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+
+/// Exchange a refresh token for an access token.
+async fn refresh_access_token(
+    client_id: &str,
+    client_secret: &str,
+    refresh_token: &str,
+) -> Result<String> {
+    let http = reqwest::Client::new();
+    let resp = http
+        .post(GOOGLE_TOKEN_URL)
+        .form(&[
+            ("client_id", client_id),
+            ("client_secret", client_secret),
+            ("refresh_token", refresh_token),
+            ("grant_type", "refresh_token"),
+        ])
+        .send()
+        .await?;
+
+    if !resp.status().is_success() {
+        let body = resp.text().await?;
+        anyhow::bail!("Token refresh failed: {body}");
+    }
+
+    let data: serde_json::Value = resp.json().await?;
+    data["access_token"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| anyhow::anyhow!("No access_token in refresh response"))
 }
