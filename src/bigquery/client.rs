@@ -233,9 +233,32 @@ fn convert_rows(
                     .get(i)
                     .and_then(|cell| cell.v.clone())
                     .unwrap_or(serde_json::Value::Null);
+                let value = coerce_value(&field.field_type, value);
                 map.insert(field.name.clone(), value);
             }
             map
         })
         .collect()
+}
+
+/// Convert BigQuery REST API values to more useful representations.
+/// TIMESTAMP comes as epoch seconds (float); convert to ISO 8601.
+fn coerce_value(field_type: &str, value: serde_json::Value) -> serde_json::Value {
+    match field_type {
+        "TIMESTAMP" => {
+            if let Some(s) = value.as_str() {
+                if let Ok(epoch) = s.parse::<f64>() {
+                    let secs = epoch as i64;
+                    let nanos = ((epoch - secs as f64) * 1_000_000_000.0) as u32;
+                    if let Some(dt) = chrono::DateTime::from_timestamp(secs, nanos) {
+                        return serde_json::Value::String(
+                            dt.format("%Y-%m-%d %H:%M:%S%.3f UTC").to_string(),
+                        );
+                    }
+                }
+            }
+            value
+        }
+        _ => value,
+    }
 }

@@ -2,6 +2,7 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::bigquery::client::{BigQueryClient, QueryRequest};
+use crate::cli::OutputFormat;
 use crate::config::{self, Config};
 use crate::output;
 
@@ -133,6 +134,49 @@ pub async fn run(session_id: String, config: &Config) -> Result<()> {
         events,
     };
 
-    output::render(&trace, &config.format)?;
+    match config.format {
+        OutputFormat::Table => {
+            // Print summary header, then a focused event table
+            println!("Session: {}  Agent: {}  Events: {}  Errors: {}",
+                trace.session_id, trace.agent, trace.event_count, trace.has_errors);
+            if let (Some(ref start), Some(ref end)) = (&trace.started_at, &trace.ended_at) {
+                println!("Time:    {} → {}", start, end);
+            }
+            println!();
+
+            let columns = vec![
+                "timestamp".into(),
+                "event_type".into(),
+                "status".into(),
+                "latency_ms".into(),
+                "error_message".into(),
+            ];
+            let rows: Vec<Vec<String>> = trace
+                .events
+                .iter()
+                .map(|e| {
+                    let latency = e.latency_ms.as_ref().map_or("-".into(), |v| {
+                        if let Some(obj) = v.as_object() {
+                            obj.get("total_ms")
+                                .map_or("-".into(), |ms| ms.to_string())
+                        } else {
+                            v.to_string()
+                        }
+                    });
+                    vec![
+                        e.timestamp.clone(),
+                        e.event_type.clone(),
+                        e.status.clone().unwrap_or("-".into()),
+                        latency,
+                        e.error_message.clone().unwrap_or("-".into()),
+                    ]
+                })
+                .collect();
+            output::render_rows_as_table(&columns, &rows)?;
+        }
+        OutputFormat::Json => {
+            output::render(&trace, &config.format)?;
+        }
+    }
     Ok(())
 }
