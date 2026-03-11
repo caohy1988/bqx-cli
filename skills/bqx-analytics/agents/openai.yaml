@@ -1,13 +1,7 @@
-name: bqx-analytics
-description: >
-  Top-level routing for bqx agent analytics workflows. Use this when the user
-  wants to check agent health, evaluate sessions, or debug agent behavior in
-  BigQuery, and you need to decide which analytics subcommand to use.
-triggers:
-  - "use bqx to check agent analytics"
-  - "find bad sessions"
-  - "debug agent behavior in BigQuery"
-  - "what analytics commands are available"
-  - "how do I monitor agents with bqx"
-  - "check my agent health"
-tools: []
+interface:
+  display_name: "bqx Analytics"
+  short_description: "Route to doctor, evaluate, or get-trace"
+  default_prompt: "Use $bqx-analytics to check agent health and find failing sessions in BigQuery."
+
+policy:
+  allow_implicit_invocation: true

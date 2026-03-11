@@ -61,7 +61,7 @@ bqx analytics evaluate \
 - Add `--agent-id` to scope evaluation to a single agent
 - Add `--exit-code` in CI pipelines to fail the build on threshold violations
 - Use `--format text` for interactive review; `--format json` for automation
-- Sessions with no latency data are flagged but not automatically failed
+- Sessions with no latency data are marked as failed by the latency evaluator
 
 ## Examples
 

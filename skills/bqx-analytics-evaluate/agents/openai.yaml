@@ -1,12 +1,7 @@
-name: bqx-analytics-evaluate
-description: >
-  Use bqx to evaluate agent sessions against latency or error-rate thresholds.
-  Use this when the user wants to check session quality, gate CI on agent
-  performance, or find failing sessions.
-triggers:
-  - "check latency for the last 24h"
-  - "fail CI if error rate is too high"
-  - "evaluate agent sessions"
-  - "which sessions are too slow"
-  - "set a latency threshold for agents"
-tools: []
+interface:
+  display_name: "bqx Evaluate"
+  short_description: "Evaluate sessions against thresholds"
+  default_prompt: "Use $bqx-analytics-evaluate to check agent session latency or error rates against a threshold."
+
+policy:
+  allow_implicit_invocation: true
