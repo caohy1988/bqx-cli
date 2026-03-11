@@ -1,0 +1,22 @@
+{
+  "name": "bqx-cli",
+  "version": "0.0.1",
+  "description": "Agent-native BigQuery CLI",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/haiyuancao/bqx-cli.git"
+  },
+  "bin": {
+    "bqx": "bin/bqx.js"
+  },
+  "files": [
+    "bin/bqx.js"
+  ],
+  "optionalDependencies": {
+    "@bqx-cli/darwin-arm64": "0.0.1",
+    "@bqx-cli/darwin-x64": "0.0.1",
+    "@bqx-cli/linux-x64": "0.0.1",
+    "@bqx-cli/linux-arm64": "0.0.1"
+  }
+}
