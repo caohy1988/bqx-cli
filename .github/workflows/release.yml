@@ -7,9 +7,12 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/release.yml"
+      - ".github/workflows/smoke-install.yml"
+      - ".github/workflows/publish-npm.yml"
       - "scripts/package-npm.sh"
       - "scripts/check-version-sync.sh"
       - "npm/**"
+      - "docs/github-actions.md"
 
 permissions:
   contents: write

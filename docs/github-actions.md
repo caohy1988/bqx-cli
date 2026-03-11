@@ -25,11 +25,17 @@ bqx picks up the generated credentials automatically via Application Default Cre
 ### Option B: Service account key
 
 ```yaml
-env:
-  BQX_CREDENTIALS_FILE: ${{ secrets.GCP_SA_KEY_PATH }}
+- name: Write credentials file
+  run: echo '${{ secrets.GCP_SA_KEY_JSON }}' > /tmp/sa-key.json
+  env:
+    # Store the full service account JSON as a repository secret
+    GCP_SA_KEY_JSON: ${{ secrets.GCP_SA_KEY_JSON }}
+
+- name: Configure bqx credentials
+  run: echo "BQX_CREDENTIALS_FILE=/tmp/sa-key.json" >> "$GITHUB_ENV"
 ```
 
-Store the service account JSON as a secret, write it to a temp file, and point `BQX_CREDENTIALS_FILE` at it.
+`BQX_CREDENTIALS_FILE` must point to a file path on disk, not the JSON content itself.
 
 ## CI quality gate with `analytics evaluate --exit-code`
 

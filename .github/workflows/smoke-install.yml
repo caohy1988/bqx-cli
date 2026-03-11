@@ -5,6 +5,11 @@ on:
     workflows: [Release]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      release_run_id:
+        description: "Run ID of the Release workflow that produced the tarballs"
+        required: true
+        type: string
 
 jobs:
   smoke-test:
@@ -32,7 +37,7 @@ jobs:
           name: npm-tarballs
           path: tarballs
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id || github.run_id }}
+          run-id: ${{ github.event.workflow_run.id || inputs.release_run_id }}
 
       - name: List tarballs
         shell: bash
