@@ -1,0 +1,12 @@
+name: bqx-query
+description: >
+  Use the bqx CLI to run raw BigQuery SQL queries, including dry-run checks
+  and json/table/text output. Use this when the user wants direct SQL execution
+  through bqx rather than analytics workflows.
+triggers:
+  - "run this SQL through bqx"
+  - "dry-run this BigQuery query"
+  - "query BigQuery directly"
+  - "execute a SQL query with bqx"
+  - "check what a query would send"
+tools: []

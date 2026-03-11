@@ -1,0 +1,13 @@
+name: bqx-shared
+description: >
+  Common setup, authentication, global flags, output formats, and dataset
+  requirements for the bqx CLI. Use this when the user asks about bqx auth,
+  flags, environment variables, or output format choices.
+triggers:
+  - "how do I authenticate bqx"
+  - "what flags does bqx need"
+  - "why is dataset-id required"
+  - "show me bqx output formats"
+  - "set up bqx for my project"
+  - "what environment variables does bqx use"
+tools: []

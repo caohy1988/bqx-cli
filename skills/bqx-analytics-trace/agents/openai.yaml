@@ -1,0 +1,12 @@
+name: bqx-analytics-trace
+description: >
+  Use bqx to retrieve and inspect the event trace for a specific agent session.
+  Use this when the user wants to debug a failed session, inspect event ordering,
+  or understand what happened during a session.
+triggers:
+  - "show me the trace for this session"
+  - "inspect session adcp-a20d176b82af"
+  - "debug a failed session"
+  - "what happened in session X"
+  - "show me the events for a session"
+tools: []
