@@ -118,10 +118,11 @@ pub enum AuthCommand {
     Logout,
 }
 
-#[derive(Clone, ValueEnum)]
+#[derive(Clone, PartialEq, Eq, ValueEnum)]
 pub enum OutputFormat {
     Json,
     Table,
+    Text,
 }
 
 #[derive(Clone, ValueEnum)]

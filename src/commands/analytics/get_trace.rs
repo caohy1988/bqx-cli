@@ -139,6 +139,9 @@ pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -
     };
 
     match config.format {
+        OutputFormat::Text => {
+            output::text::render_trace(&trace);
+        }
         OutputFormat::Table => {
             // Print summary header, then a focused event table
             println!(
