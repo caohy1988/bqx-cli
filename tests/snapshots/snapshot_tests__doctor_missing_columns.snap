@@ -1,0 +1,33 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 97
+expression: report
+---
+{
+  "status": "error",
+  "table": "proj.ds.agent_events",
+  "total_rows": 0,
+  "distinct_sessions": 0,
+  "distinct_agents": 0,
+  "earliest_event": null,
+  "latest_event": null,
+  "minutes_since_last_event": null,
+  "null_checks": {
+    "session_id": 0,
+    "agent": 0,
+    "event_type": 0,
+    "timestamp": 0
+  },
+  "distinct_event_types": 0,
+  "columns": [
+    "session_id",
+    "timestamp"
+  ],
+  "missing_required_columns": [
+    "agent",
+    "event_type"
+  ],
+  "warnings": [
+    "Missing required columns: agent, event_type"
+  ]
+}

@@ -1,0 +1,29 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 177
+expression: eval
+---
+{
+  "evaluator": "error_rate",
+  "threshold": 0.1,
+  "time_window": "24h",
+  "agent_id": "agent_a",
+  "total_sessions": 2,
+  "passed": 2,
+  "failed": 0,
+  "pass_rate": 1.0,
+  "sessions": [
+    {
+      "session_id": "s1",
+      "agent": "agent_a",
+      "passed": true,
+      "score": 0.0
+    },
+    {
+      "session_id": "s2",
+      "agent": "agent_a",
+      "passed": true,
+      "score": 0.0667
+    }
+  ]
+}

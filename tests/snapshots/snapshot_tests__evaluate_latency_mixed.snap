@@ -1,0 +1,35 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 143
+expression: eval
+---
+{
+  "evaluator": "latency",
+  "threshold": 5000.0,
+  "time_window": "7d",
+  "agent_id": null,
+  "total_sessions": 3,
+  "passed": 1,
+  "failed": 2,
+  "pass_rate": 0.3333333333333333,
+  "sessions": [
+    {
+      "session_id": "adcp-a20d176b82af",
+      "agent": "sales_agent",
+      "passed": false,
+      "score": 32135.0
+    },
+    {
+      "session_id": "adcp-affa9b3c1234",
+      "agent": "sales_agent",
+      "passed": true,
+      "score": 1200.0
+    },
+    {
+      "session_id": "adcp-bbb0deadbeef",
+      "agent": "support_agent",
+      "passed": false,
+      "score": 26848.0
+    }
+  ]
+}

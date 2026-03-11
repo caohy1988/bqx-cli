@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 434
+expression: buf
+---
+Query complete: 2 rows
+Columns: session_id, agent, event_type
+Row 1: s1 | agent_a | LLM_REQUEST
+Row 2: s2 | agent_b | TOOL_CALL

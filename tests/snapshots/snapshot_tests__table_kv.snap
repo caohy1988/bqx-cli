@@ -1,0 +1,13 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 451
+expression: table
+---
+┌───────────────────┬──────────────────────┐
+│ Field             ┆ Value                │
+╞═══════════════════╪══════════════════════╡
+│ distinct_sessions ┆ 12                   │
+│ status            ┆ healthy              │
+│ table             ┆ proj.ds.agent_events │
+│ total_rows        ┆ 296                  │
+└───────────────────┴──────────────────────┘

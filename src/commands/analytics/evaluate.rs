@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::auth::{self, AuthOptions};
-use crate::bigquery::client::{BigQueryClient, QueryRequest};
+use crate::bigquery::client::{BigQueryClient, QueryExecutor, QueryRequest, QueryResult};
 use crate::cli::{EvaluatorType, OutputFormat};
 use crate::config::{self, Config};
 use crate::models::BqxError;
@@ -86,55 +86,49 @@ pub struct SessionEval {
     pub no_latency_data: bool,
 }
 
-pub async fn run(
-    evaluator: EvaluatorType,
+// ── SQL builder ──
+
+pub fn build_evaluate_query(
+    evaluator: &EvaluatorType,
+    project: &str,
+    dataset: &str,
+    table: &str,
+    interval_sql: &str,
     threshold: f64,
-    last: String,
-    agent_id: Option<String>,
-    exit_code: bool,
-    auth_opts: &AuthOptions,
-    config: &Config,
-) -> Result<()> {
-    if let Some(ref id) = agent_id {
-        config::validate_agent_id(id)?;
-    }
-
-    let duration = config::parse_duration(&last)?;
-
-    let agent_filter = match &agent_id {
+    agent_id: Option<&str>,
+) -> String {
+    let agent_filter = match agent_id {
         Some(id) => format!("AND agent = '{id}'"),
         None => String::new(),
     };
 
-    let (sql_template, evaluator_name) = match evaluator {
-        EvaluatorType::Latency => (LATENCY_EVAL_SQL, "latency"),
-        EvaluatorType::ErrorRate => (ERROR_RATE_EVAL_SQL, "error_rate"),
+    let sql_template = match evaluator {
+        EvaluatorType::Latency => LATENCY_EVAL_SQL,
+        EvaluatorType::ErrorRate => ERROR_RATE_EVAL_SQL,
     };
 
-    let dataset_id = config.require_dataset_id()?;
-
-    let sql = sql_template
-        .replace("{project}", &config.project_id)
-        .replace("{dataset}", dataset_id)
-        .replace("{table}", &config.table)
-        .replace("{interval}", &duration.interval_sql)
+    sql_template
+        .replace("{project}", project)
+        .replace("{dataset}", dataset)
+        .replace("{table}", table)
+        .replace("{interval}", interval_sql)
         .replace("{threshold}", &threshold.to_string())
-        .replace("{agent_filter}", &agent_filter);
+        .replace("{agent_filter}", &agent_filter)
+}
 
-    let resolved = auth::resolve(auth_opts).await?;
-    let client = BigQueryClient::new(resolved);
-    let result = client
-        .query(
-            &config.project_id,
-            QueryRequest {
-                query: sql,
-                use_legacy_sql: false,
-                location: config.location.clone(),
-                max_results: None,
-                timeout_ms: Some(30000),
-            },
-        )
-        .await?;
+// ── Result mapper ──
+
+pub fn eval_result_from_rows(
+    evaluator: &EvaluatorType,
+    threshold: f64,
+    time_window: String,
+    agent_id: Option<String>,
+    result: &QueryResult,
+) -> EvalResult {
+    let evaluator_name = match evaluator {
+        EvaluatorType::Latency => "latency",
+        EvaluatorType::ErrorRate => "error_rate",
+    };
 
     let sessions: Vec<SessionEval> = result
         .rows
@@ -190,17 +184,86 @@ pub async fn run(
         1.0
     };
 
-    let eval_result = EvalResult {
+    EvalResult {
         evaluator: evaluator_name.into(),
         threshold,
-        time_window: last,
+        time_window,
         agent_id,
         total_sessions: total,
         passed: passed_count,
         failed: failed_count,
         pass_rate,
         sessions,
-    };
+    }
+}
+
+// ── Entry points ──
+
+pub async fn run(
+    evaluator: EvaluatorType,
+    threshold: f64,
+    last: String,
+    agent_id: Option<String>,
+    exit_code: bool,
+    auth_opts: &AuthOptions,
+    config: &Config,
+) -> Result<()> {
+    // Validate inputs before resolving auth so users get fast feedback
+    if let Some(ref id) = agent_id {
+        config::validate_agent_id(id)?;
+    }
+    config::parse_duration(&last)?;
+    config.require_dataset_id()?;
+
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved);
+    run_with_executor(
+        &client, evaluator, threshold, last, agent_id, exit_code, config,
+    )
+    .await
+}
+
+pub async fn run_with_executor(
+    executor: &dyn QueryExecutor,
+    evaluator: EvaluatorType,
+    threshold: f64,
+    last: String,
+    agent_id: Option<String>,
+    exit_code: bool,
+    config: &Config,
+) -> Result<()> {
+    if let Some(ref id) = agent_id {
+        config::validate_agent_id(id)?;
+    }
+
+    let duration = config::parse_duration(&last)?;
+    let dataset_id = config.require_dataset_id()?;
+
+    let sql = build_evaluate_query(
+        &evaluator,
+        &config.project_id,
+        dataset_id,
+        &config.table,
+        &duration.interval_sql,
+        threshold,
+        agent_id.as_deref(),
+    );
+
+    let result = executor
+        .query(
+            &config.project_id,
+            QueryRequest {
+                query: sql,
+                use_legacy_sql: false,
+                location: config.location.clone(),
+                max_results: None,
+                timeout_ms: Some(30000),
+            },
+        )
+        .await?;
+
+    let eval_result = eval_result_from_rows(&evaluator, threshold, last, agent_id, &result);
+    let failed_count = eval_result.failed;
 
     if config.format == OutputFormat::Text {
         output::text::render_evaluate(&eval_result);

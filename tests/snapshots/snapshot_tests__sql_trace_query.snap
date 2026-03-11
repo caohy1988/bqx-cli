@@ -1,0 +1,18 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 270
+expression: sql
+---
+
+SELECT
+  session_id,
+  agent,
+  event_type,
+  timestamp,
+  status,
+  error_message,
+  latency_ms,
+  content
+FROM `my-project.analytics_ds.agent_events`
+WHERE session_id = 'session-abc-123'
+ORDER BY timestamp ASC
