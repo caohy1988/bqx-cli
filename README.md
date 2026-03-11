@@ -7,6 +7,9 @@
 [BigQuery Conversational Analytics](https://cloud.google.com/bigquery/docs/conversational-analytics),
 [BigQuery Agent Analytics SDK](https://github.com/haiyuan-eng-google/BigQuery-Agent-Analytics-SDK)
 
+For a detailed technical comparison with the standard `bq` CLI, including
+demoable workflow examples, see [BQX vs BQ](docs/bqx-vs-bq.md).
+
 ---
 
 ## Quick Start
