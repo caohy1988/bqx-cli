@@ -10,7 +10,7 @@ agent-native BigQuery workflows require a new architecture.
 | Capability | `bq` CLI | `bqx` CLI |
 |---|---|---|
 | **Output format** | Mixed text/JSON; `--format=json` behavior varies by command | JSON by default on every command; `--format json\|table\|text` consistent everywhere |
-| **Error output** | Free-text stderr, no structured error codes | Typed error variants (`BqxError`); JSON errors parseable by agents |
+| **Error output** | Free-text stderr, no structured error codes | All errors emitted as `{"error":"..."}` JSON on stderr; `--exit-code` distinguishes eval failure (exit 1) from other errors |
 | **Input validation** | Errors surface after API call | Validates inputs before authentication or network calls |
 | **Startup time** | ~300-500ms (Python interpreter) | ~5-10ms (compiled Rust binary) |
 | **Distribution** | Bundled with gcloud SDK (~1GB) | `npx bqx` — standalone 10MB binary, 6 platforms |
@@ -84,10 +84,12 @@ BigQuery error in query operation: Error processing job ...: Unrecognized name: 
 ```bash
 $ bqx --project-id myproject --dataset-id analytics jobs query \
     --query "SELECT bad_column FROM analytics.agent_events"
+{"error":"...Unrecognized name: bad_column..."}
 ```
-Returns a structured HTTP error with the BigQuery API error body, including
-error reason, location, and message — all in JSON that the agent can branch on
-programmatically.
+Errors are always JSON (`{"error":"<message>"}`) on stderr, so agents can
+parse them without regex. The message is currently a string (not a structured
+object with BigQuery reason/location fields), but the JSON envelope means
+agents can reliably detect and extract errors.
 
 Additionally, `bqx` validates inputs *before* making any API call:
 ```bash
@@ -117,9 +119,11 @@ bqx analytics evaluate --evaluator latency --threshold 5000 --last 1h
 bqx analytics get-trace --session-id sess-042
 ```
 
-The `--project-id`, `--dataset-id`, `--table`, and `--location` flags all read
-from environment variables (`BQX_PROJECT`, `BQX_DATASET`, `BQX_LOCATION`),
-allowing a session to maintain implicit state across commands.
+The `--project-id`, `--dataset-id`, and `--location` flags read from
+environment variables (`BQX_PROJECT`, `BQX_DATASET`, `BQX_LOCATION`).
+`--table` defaults to `agent_events` and is set via CLI flag only.
+This allows a session to maintain implicit state across commands without
+repeating project and dataset on every invocation.
 
 ## 2. Sample Workflow Gallery
 
@@ -376,20 +380,27 @@ in the evaluate output.
 commands and sometimes between versions. A skill that wraps `bq` would need
 a translation layer for every command — at which point you've built a new CLI.
 
-**Status:** Available now (Phase 1). Five skills ship in `skills/`.
+**Status:** Skills are defined on the `skills-m6` branch (PR #10) and will
+ship in `skills/` once merged. The output contracts they reference are
+available now in Phase 1.
 
-### Reason 2: Skills require typed error semantics
+### Reason 2: Skills require predictable error semantics
 
 When a skill tells an agent "run `bqx analytics evaluate --exit-code`", the
 agent needs to know:
 - Exit code 0 = all sessions passed
 - Exit code 1 = evaluation failure (sessions exceeded threshold)
-- Other errors = structured JSON with error type
+- All errors emit `{"error":"<message>"}` JSON on stderr
 
 `bq` returns exit code 1 for all errors (auth failure, query syntax error,
-permission denied). An agent wrapping `bq` cannot distinguish "the evaluation
-found failures" from "the query was malformed." `bqx` makes this a first-class
-contract via `BqxError::EvalFailed`.
+permission denied) with free-text stderr. An agent wrapping `bq` cannot
+distinguish "the evaluation found failures" from "the query was malformed."
+`bqx` separates eval failure (exit 1 via `--exit-code`) from other errors
+(exit 1 with JSON error message), and always uses JSON-formatted stderr
+so agents can parse errors without regex.
+
+Note: the current error contract is a JSON string envelope, not structured
+error objects with typed codes. Richer error typing is a future improvement.
 
 **Status:** Available now (Phase 1). `--exit-code` works on `evaluate`.
 
@@ -413,23 +424,24 @@ schema, the latency field JSON structure, and the error detection logic.
 
 ### Reason 4: Skills require a distributable binary
 
-Skills declare `requires.bins: ["bqx"]` in their metadata. The agent runtime
-checks that the binary is available before activating the skill. `bqx`
-distributes via `npx bqx` (npm platform packages for 6 targets), making it
-installable in any CI environment in seconds.
+The SKILL.md format supports declaring binary dependencies (e.g.,
+`requires.bins: ["bqx"]`), which agent runtimes check before activating a
+skill. `bqx` distributes via `npx bqx` (npm platform packages for 6
+targets), making it installable in any CI environment in seconds.
 
 `bq` requires the full gcloud SDK (~1GB install). In CI environments where
 `gcloud` isn't pre-installed, adding it takes minutes and requires manual
 auth configuration.
 
-**Status:** Available now (Phase 1). `npx bqx --help` works on macOS, Linux,
-and Windows.
+**Status:** npm distribution available now (Phase 1, PR #11). `npx bqx --help`
+works on macOS, Linux, and Windows. Skills with binary dependency declarations
+are on the `skills-m6` branch (PR #10).
 
 ### Phase roadmap for deeper integration
 
 | Phase | What it adds | Why it can't be bq |
 |---|---|---|
-| Phase 1 (current) | `evaluate`, `get-trace`, `doctor`, 5 skills, npm distribution | `bq` has no analytics commands or skill format |
+| Phase 1 (current) | `evaluate`, `get-trace`, `doctor`, npm distribution, 5 skills (pending merge) | `bq` has no analytics commands or skill format |
 | Phase 2 (planned) | Dynamic BigQuery API commands from Discovery Document, `generate-skills` | `bq` commands are static Python; cannot generate skills from API metadata |
 | Phase 3 (planned) | Conversational Analytics (`bqx ca ask`), natural language → SQL | `bq` has no CA integration; requires a new command domain |
 
