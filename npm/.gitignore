@@ -3,3 +3,5 @@ bqx-darwin-arm64/bqx
 bqx-darwin-x64/bqx
 bqx-linux-x64/bqx
 bqx-linux-arm64/bqx
+bqx-win32-x64/bqx.exe
+bqx-win32-arm64/bqx.exe

@@ -1,5 +1,5 @@
 {
-  "name": "bqx-cli",
+  "name": "bqx",
   "version": "0.0.1",
   "description": "Agent-native BigQuery CLI",
   "license": "Apache-2.0",
@@ -17,6 +17,8 @@
     "@bqx-cli/darwin-arm64": "0.0.1",
     "@bqx-cli/darwin-x64": "0.0.1",
     "@bqx-cli/linux-x64": "0.0.1",
-    "@bqx-cli/linux-arm64": "0.0.1"
+    "@bqx-cli/linux-arm64": "0.0.1",
+    "@bqx-cli/win32-x64": "0.0.1",
+    "@bqx-cli/win32-arm64": "0.0.1"
   }
 }

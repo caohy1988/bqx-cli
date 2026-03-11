@@ -11,6 +11,8 @@ const PLATFORM_PACKAGES = {
   "darwin-x64": "@bqx-cli/darwin-x64",
   "linux-x64": "@bqx-cli/linux-x64",
   "linux-arm64": "@bqx-cli/linux-arm64",
+  "win32-x64": "@bqx-cli/win32-x64",
+  "win32-arm64": "@bqx-cli/win32-arm64",
 };
 
 function getBinaryPath() {
@@ -24,11 +26,12 @@ function getBinaryPath() {
 
   try {
     const pkgDir = path.dirname(require.resolve(`${pkg}/package.json`));
-    return path.join(pkgDir, "bqx");
+    const ext = os.platform() === "win32" ? ".exe" : "";
+    return path.join(pkgDir, `bqx${ext}`);
   } catch {
     throw new Error(
       `Could not find the bqx binary. The platform package ${pkg} may not be installed.\n` +
-        `Try reinstalling with: npm install bqx-cli`
+        `Try reinstalling with: npm install bqx`
     );
   }
 }

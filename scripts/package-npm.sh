@@ -18,6 +18,8 @@ declare -A TARGETS=(
   [bqx-darwin-x64]=x86_64-apple-darwin
   [bqx-linux-x64]=x86_64-unknown-linux-gnu
   [bqx-linux-arm64]=aarch64-unknown-linux-gnu
+  [bqx-win32-x64]=x86_64-pc-windows-msvc
+  [bqx-win32-arm64]=aarch64-pc-windows-msvc
 )
 
 LOCAL_ONLY=false
@@ -46,14 +48,19 @@ build_and_stage() {
   echo ">>> Building for $target ..."
   cargo build --release --target "$target"
 
-  local bin_path="$REPO_ROOT/target/$target/release/bqx"
+  local ext=""
+  if [[ "$target" == *windows* ]]; then
+    ext=".exe"
+  fi
+
+  local bin_path="$REPO_ROOT/target/$target/release/bqx${ext}"
   if [[ ! -f "$bin_path" ]]; then
     echo "ERROR: binary not found at $bin_path" >&2
     exit 1
   fi
 
-  cp "$bin_path" "$NPM_DIR/$pkg_dir/bqx"
-  chmod +x "$NPM_DIR/$pkg_dir/bqx"
+  cp "$bin_path" "$NPM_DIR/$pkg_dir/bqx${ext}"
+  chmod +x "$NPM_DIR/$pkg_dir/bqx${ext}"
   echo "    Staged binary into npm/$pkg_dir/"
 }
 
@@ -91,8 +98,10 @@ fi
 
 echo ""
 echo "Done. To publish:"
-echo "  npm publish dist/bqx-cli-*.tgz"
+echo "  npm publish dist/bqx-*.tgz"
 echo "  npm publish dist/bqx-cli-darwin-arm64-*.tgz"
 echo "  npm publish dist/bqx-cli-darwin-x64-*.tgz"
 echo "  npm publish dist/bqx-cli-linux-x64-*.tgz"
 echo "  npm publish dist/bqx-cli-linux-arm64-*.tgz"
+echo "  npm publish dist/bqx-cli-win32-x64-*.tgz"
+echo "  npm publish dist/bqx-cli-win32-arm64-*.tgz"
