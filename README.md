@@ -9,6 +9,47 @@
 
 ---
 
+## Quick Start
+
+### Install via npm
+
+```bash
+npx bqx --help
+```
+
+Or install globally:
+
+```bash
+npm install -g bqx
+bqx --help
+```
+
+### Supported Platforms
+
+| Platform | Package |
+|---|---|
+| macOS ARM64 (Apple Silicon) | `@bqx-cli/darwin-arm64` |
+| macOS x64 (Intel) | `@bqx-cli/darwin-x64` |
+| Linux x64 | `@bqx-cli/linux-x64` |
+| Linux ARM64 | `@bqx-cli/linux-arm64` |
+| Windows x64 | `@bqx-cli/win32-x64` |
+| Windows ARM64 | `@bqx-cli/win32-arm64` |
+
+### GitHub Actions
+
+```yaml
+- run: npm install -g bqx
+- run: bqx analytics evaluate --evaluator latency --threshold 5000 --last 1h --exit-code
+```
+
+See [docs/github-actions.md](docs/github-actions.md) for full CI examples.
+
+### Release
+
+Tag `vX.Y.Z` on `main` triggers CI to build binaries, run smoke tests, and publish npm packages.
+
+---
+
 ## 1. Problem Statement
 
 BigQuery is the most common data platform for AI agent analytics, but its

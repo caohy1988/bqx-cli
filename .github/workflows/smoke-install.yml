@@ -1,0 +1,92 @@
+name: Smoke Install
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      release_run_id:
+        description: "Run ID of the Release workflow that produced the tarballs"
+        required: true
+        type: string
+
+jobs:
+  smoke-test:
+    name: Install & Verify (${{ matrix.os }})
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: macos-latest
+            platform: darwin-arm64
+          - os: windows-latest
+            platform: win32-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Download npm tarballs
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-tarballs
+          path: tarballs
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id || inputs.release_run_id }}
+
+      - name: List tarballs
+        shell: bash
+        run: ls -la tarballs/
+
+      - name: Install from tarballs
+        shell: bash
+        run: |
+          mkdir test-install && cd test-install
+          npm init -y
+
+          # Install root + matching platform tarball
+          ROOT_TGZ=$(ls ../tarballs/bqx-0.*.tgz 2>/dev/null | head -1)
+          PLATFORM_TGZ=$(ls ../tarballs/bqx-cli-${{ matrix.platform }}-*.tgz 2>/dev/null | head -1)
+
+          if [[ -z "$ROOT_TGZ" ]]; then
+            echo "ERROR: root tarball not found"
+            ls ../tarballs/
+            exit 1
+          fi
+
+          if [[ -z "$PLATFORM_TGZ" ]]; then
+            echo "ERROR: platform tarball for ${{ matrix.platform }} not found"
+            ls ../tarballs/
+            exit 1
+          fi
+
+          echo "Installing: $ROOT_TGZ + $PLATFORM_TGZ"
+          npm install "$ROOT_TGZ" "$PLATFORM_TGZ"
+
+      - name: Verify bqx --help
+        shell: bash
+        run: |
+          cd test-install
+          OUTPUT=$(npx bqx --help 2>&1)
+          echo "$OUTPUT"
+
+          # Assert expected content
+          echo "$OUTPUT" | grep -q "Agent-native BigQuery CLI" || { echo "FAIL: missing description"; exit 1; }
+          echo "$OUTPUT" | grep -q "analytics" || { echo "FAIL: missing analytics command"; exit 1; }
+          echo "$OUTPUT" | grep -q "jobs" || { echo "FAIL: missing jobs command"; exit 1; }
+          echo "$OUTPUT" | grep -q "auth" || { echo "FAIL: missing auth command"; exit 1; }
+          echo "PASS: all expected strings found in --help output"
+
+      - name: Verify bqx --version
+        shell: bash
+        run: |
+          cd test-install
+          VERSION=$(npx bqx --version 2>&1)
+          echo "bqx version: $VERSION"
+          echo "$VERSION" | grep -qE '^bqx [0-9]+\.[0-9]+\.[0-9]+' || { echo "FAIL: unexpected version format"; exit 1; }
+          echo "PASS: version format OK"
