@@ -1,0 +1,36 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 223
+expression: trace
+---
+{
+  "session_id": "adcp-a20d176b82af",
+  "agent": "yahoo_sales_agent",
+  "event_count": 3,
+  "started_at": "2026-03-05 09:26:59.270 UTC",
+  "ended_at": "2026-03-05 09:27:17.494 UTC",
+  "has_errors": false,
+  "events": [
+    {
+      "event_type": "LLM_REQUEST",
+      "timestamp": "2026-03-05 09:26:59.270 UTC",
+      "status": "OK"
+    },
+    {
+      "event_type": "LLM_RESPONSE",
+      "timestamp": "2026-03-05 09:27:03.208 UTC",
+      "status": "OK",
+      "latency_ms": {
+        "total_ms": 3938
+      }
+    },
+    {
+      "event_type": "INVOCATION_COMPLETED",
+      "timestamp": "2026-03-05 09:27:17.494 UTC",
+      "status": "OK",
+      "latency_ms": {
+        "total_ms": 32135
+      }
+    }
+  ]
+}

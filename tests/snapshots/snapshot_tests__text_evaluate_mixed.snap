@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 384
+expression: buf
+---
+Evaluator: latency  Threshold: 5000  Window: 24h
+Sessions: 2  Passed: 1  Failed: 1  Pass rate: 0.50
+Worst sessions:
+- s-slow  agent_a  score=32135.0

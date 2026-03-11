@@ -1,0 +1,19 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 311
+expression: sql
+---
+
+SELECT
+  COUNT(*) AS total_rows,
+  COUNT(DISTINCT session_id) AS distinct_sessions,
+  COUNT(DISTINCT agent) AS distinct_agents,
+  MIN(timestamp) AS earliest_event,
+  MAX(timestamp) AS latest_event,
+  TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(timestamp), MINUTE) AS minutes_since_last_event,
+  COUNTIF(session_id IS NULL) AS null_session_ids,
+  COUNTIF(agent IS NULL) AS null_agents,
+  COUNTIF(event_type IS NULL) AS null_event_types,
+  COUNTIF(timestamp IS NULL) AS null_timestamps,
+  COUNT(DISTINCT event_type) AS distinct_event_types
+FROM `proj.ds.agent_events`

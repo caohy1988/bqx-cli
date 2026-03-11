@@ -1,0 +1,26 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 255
+expression: trace
+---
+{
+  "session_id": "err-session-001",
+  "agent": "support_agent",
+  "event_count": 2,
+  "started_at": "2026-03-05 10:00:00.000 UTC",
+  "ended_at": "2026-03-05 10:00:05.000 UTC",
+  "has_errors": true,
+  "events": [
+    {
+      "event_type": "TOOL_CALL",
+      "timestamp": "2026-03-05 10:00:00.000 UTC",
+      "status": "OK"
+    },
+    {
+      "event_type": "TOOL_ERROR",
+      "timestamp": "2026-03-05 10:00:05.000 UTC",
+      "status": "ERROR",
+      "error_message": "Connection refused to external API"
+    }
+  ]
+}

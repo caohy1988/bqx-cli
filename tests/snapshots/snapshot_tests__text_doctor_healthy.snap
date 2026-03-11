@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 347
+expression: buf
+---
+Status: healthy
+Table: proj.ds.agent_events
+Rows: 296  Sessions: 12  Agents: 2
+Latest event: 2026-03-10 08:30:00.000 UTC

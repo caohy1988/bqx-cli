@@ -1,0 +1,10 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 305
+expression: sql
+---
+
+SELECT column_name
+FROM `proj.ds.INFORMATION_SCHEMA.COLUMNS`
+WHERE table_name = 'agent_events'
+ORDER BY ordinal_position

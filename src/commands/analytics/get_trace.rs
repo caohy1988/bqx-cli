@@ -129,6 +129,10 @@ pub fn trace_result_from_rows(session_id: String, result: &QueryResult) -> Resul
 // ── Entry points ──
 
 pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
+    // Validate inputs before resolving auth so users get fast feedback
+    config::validate_session_id(&session_id)?;
+    config.require_dataset_id()?;
+
     let resolved = auth::resolve(auth_opts).await?;
     let client = BigQueryClient::new(resolved);
     run_with_executor(&client, session_id, config).await

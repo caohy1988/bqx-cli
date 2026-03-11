@@ -190,6 +190,9 @@ pub fn doctor_report_from_rows(
 // ── Entry points ──
 
 pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
+    // Validate inputs before resolving auth so users get fast feedback
+    config.require_dataset_id()?;
+
     let resolved = auth::resolve(auth_opts).await?;
     let client = BigQueryClient::new(resolved);
     run_with_executor(&client, config).await

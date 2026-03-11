@@ -1,0 +1,10 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 418
+expression: buf
+---
+Session: adcp-a20d176b82af
+Agent: yahoo_sales_agent
+Events: 2  Errors: false
+2026-03-05 09:26:59.270 UTC  LLM_REQUEST             OK
+2026-03-05 09:27:03.208 UTC  LLM_RESPONSE            OK latency=3938

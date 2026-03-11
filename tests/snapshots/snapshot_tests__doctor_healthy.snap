@@ -1,0 +1,31 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 48
+expression: report
+---
+{
+  "status": "healthy",
+  "table": "proj.ds.agent_events",
+  "total_rows": 296,
+  "distinct_sessions": 12,
+  "distinct_agents": 2,
+  "earliest_event": "2026-03-01 00:00:00.000 UTC",
+  "latest_event": "2026-03-10 08:30:00.000 UTC",
+  "minutes_since_last_event": 15,
+  "null_checks": {
+    "session_id": 0,
+    "agent": 0,
+    "event_type": 0,
+    "timestamp": 0
+  },
+  "distinct_event_types": 5,
+  "columns": [
+    "session_id",
+    "agent",
+    "event_type",
+    "timestamp",
+    "status"
+  ],
+  "missing_required_columns": [],
+  "warnings": []
+}

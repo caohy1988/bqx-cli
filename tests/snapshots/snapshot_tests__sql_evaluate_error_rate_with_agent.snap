@@ -1,0 +1,30 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 298
+expression: sql
+---
+
+WITH session_errors AS (
+  SELECT
+    session_id,
+    agent,
+    COUNT(*) AS total_events,
+    COUNTIF(
+      ENDS_WITH(event_type, '_ERROR')
+      OR error_message IS NOT NULL
+      OR status = 'ERROR'
+    ) AS error_events
+  FROM `my-project.analytics_ds.agent_events`
+  WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+    AND agent = 'sales_agent'
+  GROUP BY session_id, agent
+)
+SELECT
+  session_id,
+  agent,
+  total_events,
+  error_events,
+  SAFE_DIVIDE(error_events, total_events) AS error_rate,
+  CASE WHEN SAFE_DIVIDE(error_events, total_events) <= 0.1 THEN true ELSE false END AS passed
+FROM session_errors
+ORDER BY error_rate DESC

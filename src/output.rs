@@ -147,7 +147,7 @@ pub mod text {
 
     // ── Formatting functions (write to any fmt::Write) ──
 
-    pub(crate) fn fmt_query_dry_run(
+    pub fn fmt_query_dry_run(
         w: &mut dyn Write,
         url: &str,
         query: &str,
@@ -160,12 +160,7 @@ pub mod text {
         let _ = writeln!(w, "Location: {location}");
     }
 
-    pub(crate) fn fmt_query(
-        w: &mut dyn Write,
-        total_rows: u64,
-        columns: &[String],
-        rows: &[Vec<String>],
-    ) {
+    pub fn fmt_query(w: &mut dyn Write, total_rows: u64, columns: &[String], rows: &[Vec<String>]) {
         let _ = writeln!(w, "Query complete: {total_rows} rows");
         if columns.is_empty() {
             return;
@@ -176,7 +171,7 @@ pub mod text {
         }
     }
 
-    pub(crate) fn fmt_doctor(w: &mut dyn Write, report: &DoctorReport) {
+    pub fn fmt_doctor(w: &mut dyn Write, report: &DoctorReport) {
         let _ = writeln!(w, "Status: {}", report.status);
         let _ = writeln!(w, "Table: {}", report.table);
         let _ = writeln!(
@@ -199,7 +194,7 @@ pub mod text {
         }
     }
 
-    pub(crate) fn fmt_evaluate(w: &mut dyn Write, result: &EvalResult) {
+    pub fn fmt_evaluate(w: &mut dyn Write, result: &EvalResult) {
         let _ = writeln!(
             w,
             "Evaluator: {}  Threshold: {}  Window: {}",
@@ -219,7 +214,7 @@ pub mod text {
         }
     }
 
-    pub(crate) fn fmt_trace(w: &mut dyn Write, trace: &TraceResult) {
+    pub fn fmt_trace(w: &mut dyn Write, trace: &TraceResult) {
         let _ = writeln!(w, "Session: {}", trace.session_id);
         let _ = writeln!(w, "Agent: {}", trace.agent);
         let _ = writeln!(

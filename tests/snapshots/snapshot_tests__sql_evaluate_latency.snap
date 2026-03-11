@@ -1,0 +1,31 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 284
+expression: sql
+---
+
+WITH session_latency AS (
+  SELECT
+    session_id,
+    agent,
+    MAX(CAST(JSON_VALUE(latency_ms, '$.total_ms') AS FLOAT64)) AS max_latency_ms,
+    AVG(CAST(JSON_VALUE(latency_ms, '$.total_ms') AS FLOAT64)) AS avg_latency_ms,
+    COUNTIF(latency_ms IS NOT NULL) AS has_latency_count
+  FROM `my-project.analytics_ds.agent_events`
+  WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
+    
+  GROUP BY session_id, agent
+)
+SELECT
+  session_id,
+  agent,
+  max_latency_ms,
+  avg_latency_ms,
+  has_latency_count = 0 AS no_latency_data,
+  CASE
+    WHEN has_latency_count = 0 THEN false
+    WHEN max_latency_ms <= 5000 THEN true
+    ELSE false
+  END AS passed
+FROM session_latency
+ORDER BY max_latency_ms DESC NULLS LAST
