@@ -1,0 +1,11 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 440
+expression: table
+---
+┌───────────────────┬───────────────┬─────────────┐
+│ session_id        ┆ agent         ┆ event_type  │
+╞═══════════════════╪═══════════════╪═════════════╡
+│ adcp-a20d176b82af ┆ sales_agent   ┆ LLM_REQUEST │
+│ adcp-affa9b3c1234 ┆ support_agent ┆ TOOL_CALL   │
+└───────────────────┴───────────────┴─────────────┘

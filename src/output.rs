@@ -25,17 +25,26 @@ pub fn render<T: Serialize>(value: &T, format: &OutputFormat) -> Result<()> {
 }
 
 pub fn render_rows_as_table(columns: &[String], rows: &[Vec<String>]) -> Result<()> {
+    println!("{}", fmt_rows_as_table(columns, rows));
+    Ok(())
+}
+
+pub fn fmt_rows_as_table(columns: &[String], rows: &[Vec<String>]) -> String {
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
     table.set_header(columns);
     for row in rows {
         table.add_row(row);
     }
-    println!("{table}");
-    Ok(())
+    table.to_string()
 }
 
 fn render_value_as_table(value: &serde_json::Value) -> Result<()> {
+    println!("{}", fmt_value_as_table(value)?);
+    Ok(())
+}
+
+pub fn fmt_value_as_table(value: &serde_json::Value) -> Result<String> {
     match value {
         serde_json::Value::Object(map) => {
             for key in ["sessions", "events", "rows", "results"] {
@@ -51,11 +60,11 @@ fn render_value_as_table(value: &serde_json::Value) -> Result<()> {
                                     .collect()
                             })
                             .collect();
-                        return render_rows_as_table(&columns, &rows);
+                        return Ok(fmt_rows_as_table(&columns, &rows));
                     }
                 }
             }
-            render_kv_table(map)
+            Ok(fmt_kv_table(map))
         }
         serde_json::Value::Array(arr) => {
             if let Some(serde_json::Value::Object(first)) = arr.first() {
@@ -69,28 +78,23 @@ fn render_value_as_table(value: &serde_json::Value) -> Result<()> {
                             .collect()
                     })
                     .collect();
-                render_rows_as_table(&columns, &rows)
+                Ok(fmt_rows_as_table(&columns, &rows))
             } else {
-                println!("{}", serde_json::to_string_pretty(&arr)?);
-                Ok(())
+                Ok(serde_json::to_string_pretty(&arr)?)
             }
         }
-        _ => {
-            println!("{}", serde_json::to_string_pretty(value)?);
-            Ok(())
-        }
+        _ => Ok(serde_json::to_string_pretty(value)?),
     }
 }
 
-fn render_kv_table(map: &serde_json::Map<String, serde_json::Value>) -> Result<()> {
+pub fn fmt_kv_table(map: &serde_json::Map<String, serde_json::Value>) -> String {
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
     table.set_header(vec!["Field", "Value"]);
     for (key, value) in map {
         table.add_row(vec![key.clone(), format_cell(Some(value))]);
     }
-    println!("{table}");
-    Ok(())
+    table.to_string()
 }
 
 fn format_cell(value: Option<&serde_json::Value>) -> String {

@@ -416,3 +416,151 @@ fn snapshot_text_query() {
     bqx::output::text::fmt_query(&mut buf, 2, &columns, &rows);
     insta::assert_snapshot!("text_query", buf);
 }
+
+// ═══════════════════════════════════════════════
+// Table output snapshots
+// ═══════════════════════════════════════════════
+
+#[test]
+fn snapshot_table_rows() {
+    let columns = vec!["session_id".into(), "agent".into(), "event_type".into()];
+    let rows = vec![
+        vec![
+            "adcp-a20d176b82af".into(),
+            "sales_agent".into(),
+            "LLM_REQUEST".into(),
+        ],
+        vec![
+            "adcp-affa9b3c1234".into(),
+            "support_agent".into(),
+            "TOOL_CALL".into(),
+        ],
+    ];
+    let table = bqx::output::fmt_rows_as_table(&columns, &rows);
+    insta::assert_snapshot!("table_rows", table);
+}
+
+#[test]
+fn snapshot_table_kv() {
+    let mut map = serde_json::Map::new();
+    map.insert("status".into(), json!("healthy"));
+    map.insert("table".into(), json!("proj.ds.agent_events"));
+    map.insert("total_rows".into(), json!(296));
+    map.insert("distinct_sessions".into(), json!(12));
+    let table = bqx::output::fmt_kv_table(&map);
+    insta::assert_snapshot!("table_kv", table);
+}
+
+#[test]
+fn snapshot_table_doctor_report() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![make_row(vec![
+            ("total_rows", json!("296")),
+            ("distinct_sessions", json!("12")),
+            ("distinct_agents", json!("2")),
+            ("earliest_event", json!("2026-03-01 00:00:00.000 UTC")),
+            ("latest_event", json!("2026-03-10 08:30:00.000 UTC")),
+            ("minutes_since_last_event", json!("15")),
+            ("null_session_ids", json!("0")),
+            ("null_agents", json!("0")),
+            ("null_event_types", json!("0")),
+            ("null_timestamps", json!("0")),
+            ("distinct_event_types", json!("5")),
+        ])],
+        total_rows: 1,
+    };
+    let columns = vec![
+        "session_id".into(),
+        "agent".into(),
+        "event_type".into(),
+        "timestamp".into(),
+    ];
+    let report = doctor_report_from_rows("proj.ds.agent_events", columns, &result).unwrap();
+    let value = serde_json::to_value(&report).unwrap();
+    let table = bqx::output::fmt_value_as_table(&value).unwrap();
+    insta::assert_snapshot!("table_doctor_report", table);
+}
+
+#[test]
+fn snapshot_table_evaluate_result() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![
+            make_row(vec![
+                ("session_id", json!("s-fast")),
+                ("agent", json!("agent_a")),
+                ("max_latency_ms", json!("1200")),
+                ("avg_latency_ms", json!("800")),
+                ("no_latency_data", json!("false")),
+                ("passed", json!("true")),
+            ]),
+            make_row(vec![
+                ("session_id", json!("s-slow")),
+                ("agent", json!("agent_a")),
+                ("max_latency_ms", json!("32135")),
+                ("avg_latency_ms", json!("15000")),
+                ("no_latency_data", json!("false")),
+                ("passed", json!("false")),
+            ]),
+        ],
+        total_rows: 2,
+    };
+    let eval = eval_result_from_rows(
+        &bqx::cli::EvaluatorType::Latency,
+        5000.0,
+        "24h".into(),
+        None,
+        &result,
+    );
+    let value = serde_json::to_value(&eval).unwrap();
+    let table = bqx::output::fmt_value_as_table(&value).unwrap();
+    insta::assert_snapshot!("table_evaluate_result", table);
+}
+
+#[test]
+fn snapshot_table_trace_events() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![
+            make_row(vec![
+                ("session_id", json!("s1")),
+                ("agent", json!("agent_a")),
+                ("event_type", json!("LLM_REQUEST")),
+                ("timestamp", json!("2026-03-05 09:26:59.270 UTC")),
+                ("status", json!("OK")),
+                ("error_message", serde_json::Value::Null),
+                ("latency_ms", serde_json::Value::Null),
+                ("content", serde_json::Value::Null),
+            ]),
+            make_row(vec![
+                ("session_id", json!("s1")),
+                ("agent", json!("agent_a")),
+                ("event_type", json!("LLM_RESPONSE")),
+                ("timestamp", json!("2026-03-05 09:27:03.208 UTC")),
+                ("status", json!("OK")),
+                ("error_message", serde_json::Value::Null),
+                ("latency_ms", json!("{\"total_ms\": 3938}")),
+                ("content", serde_json::Value::Null),
+            ]),
+        ],
+        total_rows: 2,
+    };
+    let trace = trace_result_from_rows("s1".into(), &result).unwrap();
+    let value = serde_json::to_value(&trace).unwrap();
+    let table = bqx::output::fmt_value_as_table(&value).unwrap();
+    insta::assert_snapshot!("table_trace_events", table);
+}
+
+#[test]
+fn snapshot_table_query_rows() {
+    let value = json!({
+        "total_rows": 2,
+        "rows": [
+            {"session_id": "s1", "agent": "agent_a", "event_type": "LLM_REQUEST"},
+            {"session_id": "s2", "agent": "agent_b", "event_type": "TOOL_CALL"}
+        ]
+    });
+    let table = bqx::output::fmt_value_as_table(&value).unwrap();
+    insta::assert_snapshot!("table_query_rows", table);
+}
