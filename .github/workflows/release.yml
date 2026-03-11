@@ -272,3 +272,64 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
           files: release-assets/*
+
+  publish-npm:
+    name: Publish npm
+    needs: [verify-version, package-npm, checksums, github-release]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download npm tarballs
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-tarballs
+          path: tarballs
+
+      - name: List tarballs
+        run: ls -la tarballs/
+
+      - name: Publish platform packages first
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          FAILED=0
+          for platform in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64 win32-arm64; do
+            TGZ=$(ls tarballs/bqx-cli-${platform}-*.tgz 2>/dev/null | head -1)
+            if [[ -z "$TGZ" ]]; then
+              echo "ERROR: tarball not found for $platform"
+              FAILED=$((FAILED + 1))
+              continue
+            fi
+            echo ">>> Publishing $TGZ ..."
+            npm publish "$TGZ" --access public || {
+              echo "ERROR: failed to publish $platform"
+              FAILED=$((FAILED + 1))
+            }
+          done
+
+          if [[ $FAILED -gt 0 ]]; then
+            echo "FAILED: $FAILED platform package(s) failed to publish."
+            echo "Aborting — root package will NOT be published."
+            exit 1
+          fi
+          echo "All platform packages published."
+
+      - name: Publish root package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          ROOT_TGZ=$(ls tarballs/bqx-0.*.tgz 2>/dev/null | head -1)
+          if [[ -z "$ROOT_TGZ" ]]; then
+            echo "ERROR: root tarball not found"
+            exit 1
+          fi
+          echo ">>> Publishing $ROOT_TGZ ..."
+          npm publish "$ROOT_TGZ" --access public
+          echo "Root package published."

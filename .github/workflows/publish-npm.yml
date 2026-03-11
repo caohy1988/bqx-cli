@@ -1,16 +1,21 @@
 name: Publish npm
 
+# Triggered manually to publish npm packages from a successful release.
+# Requires the release workflow to have completed and uploaded npm-tarballs.
+#
+# Automatic publishing is handled by the publish-npm job in release.yml.
+# This workflow exists as a manual fallback if the automatic publish fails.
 on:
-  workflow_run:
-    workflows: [Release]
-    types: [completed]
+  workflow_dispatch:
+    inputs:
+      release_run_id:
+        description: "Run ID of the Release workflow that produced the tarballs"
+        required: true
+        type: string
 
 jobs:
   publish:
     name: Publish npm packages
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      startsWith(github.event.workflow_run.head_branch, 'v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -26,7 +31,7 @@ jobs:
           name: npm-tarballs
           path: tarballs
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ inputs.release_run_id }}
 
       - name: List tarballs
         run: ls -la tarballs/

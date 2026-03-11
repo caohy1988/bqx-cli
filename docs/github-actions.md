@@ -80,7 +80,7 @@ jobs:
           bqx analytics evaluate \
             --project-id "${{ vars.BQX_PROJECT }}" \
             --dataset-id "${{ vars.BQX_DATASET }}" \
-            --evaluator error_rate \
+            --evaluator error-rate \
             --threshold 0.05 \
             --last 1h \
             --exit-code
