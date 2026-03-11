@@ -75,10 +75,11 @@ pub async fn run(
 
     if config.format == OutputFormat::Text {
         let columns: Vec<String> = result
-            .rows
-            .first()
-            .map(|r| r.keys().cloned().collect())
-            .unwrap_or_default();
+            .schema
+            .fields
+            .iter()
+            .map(|f| f.name.clone())
+            .collect();
         let rows: Vec<Vec<String>> = result
             .rows
             .iter()
