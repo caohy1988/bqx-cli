@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::auth::{self, AuthOptions};
-use crate::bigquery::client::{BigQueryClient, QueryRequest};
+use crate::bigquery::client::{BigQueryClient, QueryExecutor, QueryRequest, QueryResult};
 use crate::cli::OutputFormat;
 use crate::config::{self, Config};
 use crate::output;
@@ -47,32 +47,19 @@ pub struct TraceEvent {
     pub content: Option<serde_json::Value>,
 }
 
-pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
-    config::validate_session_id(&session_id)?;
+// ── SQL builder ──
 
-    let dataset_id = config.require_dataset_id()?;
+pub fn build_trace_query(project: &str, dataset: &str, table: &str, session_id: &str) -> String {
+    GET_TRACE_SQL
+        .replace("{project}", project)
+        .replace("{dataset}", dataset)
+        .replace("{table}", table)
+        .replace("{session_id}", session_id)
+}
 
-    let sql = GET_TRACE_SQL
-        .replace("{project}", &config.project_id)
-        .replace("{dataset}", dataset_id)
-        .replace("{table}", &config.table)
-        .replace("{session_id}", &session_id);
+// ── Result mapper ──
 
-    let resolved = auth::resolve(auth_opts).await?;
-    let client = BigQueryClient::new(resolved);
-    let result = client
-        .query(
-            &config.project_id,
-            QueryRequest {
-                query: sql,
-                use_legacy_sql: false,
-                location: config.location.clone(),
-                max_results: None,
-                timeout_ms: Some(30000),
-            },
-        )
-        .await?;
-
+pub fn trace_result_from_rows(session_id: String, result: &QueryResult) -> Result<TraceResult> {
     if result.rows.is_empty() {
         anyhow::bail!("No events found for session_id: {session_id}");
     }
@@ -128,7 +115,7 @@ pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -
     let started_at = events.first().map(|e| e.timestamp.clone());
     let ended_at = events.last().map(|e| e.timestamp.clone());
 
-    let trace = TraceResult {
+    Ok(TraceResult {
         session_id,
         agent,
         event_count: events.len() as u64,
@@ -136,14 +123,47 @@ pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -
         ended_at,
         has_errors,
         events,
-    };
+    })
+}
+
+// ── Entry points ──
+
+pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved);
+    run_with_executor(&client, session_id, config).await
+}
+
+pub async fn run_with_executor(
+    executor: &dyn QueryExecutor,
+    session_id: String,
+    config: &Config,
+) -> Result<()> {
+    config::validate_session_id(&session_id)?;
+    let dataset_id = config.require_dataset_id()?;
+
+    let sql = build_trace_query(&config.project_id, dataset_id, &config.table, &session_id);
+
+    let result = executor
+        .query(
+            &config.project_id,
+            QueryRequest {
+                query: sql,
+                use_legacy_sql: false,
+                location: config.location.clone(),
+                max_results: None,
+                timeout_ms: Some(30000),
+            },
+        )
+        .await?;
+
+    let trace = trace_result_from_rows(session_id, &result)?;
 
     match config.format {
         OutputFormat::Text => {
             output::text::render_trace(&trace);
         }
         OutputFormat::Table => {
-            // Print summary header, then a focused event table
             println!(
                 "Session: {}  Agent: {}  Events: {}  Errors: {}",
                 trace.session_id, trace.agent, trace.event_count, trace.has_errors

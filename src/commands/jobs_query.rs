@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::auth::{self, AuthOptions};
-use crate::bigquery::client::{BigQueryClient, QueryRequest};
+use crate::bigquery::client::{BigQueryClient, QueryExecutor, QueryRequest};
 use crate::cli::OutputFormat;
 use crate::config::Config;
 use crate::output;
@@ -29,6 +29,20 @@ struct QueryOutput {
     rows: Vec<serde_json::Map<String, serde_json::Value>>,
 }
 
+// ── SQL builder ──
+
+pub fn build_query_request(query: String, use_legacy_sql: bool, location: String) -> QueryRequest {
+    QueryRequest {
+        query,
+        use_legacy_sql,
+        location,
+        max_results: None,
+        timeout_ms: Some(30000),
+    }
+}
+
+// ── Entry points ──
+
 pub async fn run(
     query: String,
     use_legacy_sql: bool,
@@ -37,41 +51,22 @@ pub async fn run(
     config: &Config,
 ) -> Result<()> {
     if dry_run {
-        let url = format!(
-            "https://bigquery.googleapis.com/bigquery/v2/projects/{}/queries",
-            config.project_id
-        );
-
-        if config.format == OutputFormat::Text {
-            output::text::render_query_dry_run(&url, &query, use_legacy_sql, &config.location);
-            return Ok(());
-        }
-
-        let output = DryRunOutput {
-            dry_run: true,
-            url,
-            method: "POST".into(),
-            body: DryRunBody {
-                query,
-                use_legacy_sql,
-                location: config.location.clone(),
-            },
-        };
-        output::render(&output, &config.format)?;
-        return Ok(());
+        return run_dry_run(query, use_legacy_sql, config);
     }
 
     let resolved = auth::resolve(auth_opts).await?;
     let client = BigQueryClient::new(resolved);
-    let req = QueryRequest {
-        query,
-        use_legacy_sql,
-        location: config.location.clone(),
-        max_results: None,
-        timeout_ms: Some(30000),
-    };
+    run_with_executor(&client, query, use_legacy_sql, config).await
+}
 
-    let result = client.query(&config.project_id, req).await?;
+pub async fn run_with_executor(
+    executor: &dyn QueryExecutor,
+    query: String,
+    use_legacy_sql: bool,
+    config: &Config,
+) -> Result<()> {
+    let req = build_query_request(query, use_legacy_sql, config.location.clone());
+    let result = executor.query(&config.project_id, req).await?;
 
     if config.format == OutputFormat::Text {
         let columns: Vec<String> = result
@@ -106,7 +101,29 @@ pub async fn run(
         total_rows: result.total_rows,
         rows: result.rows,
     };
+    output::render(&output, &config.format)
+}
 
-    output::render(&output, &config.format)?;
-    Ok(())
+fn run_dry_run(query: String, use_legacy_sql: bool, config: &Config) -> Result<()> {
+    let url = format!(
+        "https://bigquery.googleapis.com/bigquery/v2/projects/{}/queries",
+        config.project_id
+    );
+
+    if config.format == OutputFormat::Text {
+        output::text::render_query_dry_run(&url, &query, use_legacy_sql, &config.location);
+        return Ok(());
+    }
+
+    let output = DryRunOutput {
+        dry_run: true,
+        url,
+        method: "POST".into(),
+        body: DryRunBody {
+            query,
+            use_legacy_sql,
+            location: config.location.clone(),
+        },
+    };
+    output::render(&output, &config.format)
 }

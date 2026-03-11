@@ -26,6 +26,12 @@ pub struct AuthStore {
     config_dir: Option<std::path::PathBuf>,
 }
 
+impl Default for AuthStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AuthStore {
     pub fn new() -> Self {
         let config_dir =

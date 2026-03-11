@@ -60,6 +60,14 @@ struct RefreshableToken {
 }
 
 impl ResolvedAuth {
+    /// Create a ResolvedAuth that always returns the given static token.
+    pub fn static_token(source: AuthSource, token: String) -> Self {
+        Self {
+            source,
+            inner: AuthInner::StaticToken(token),
+        }
+    }
+
     /// Get a bearer token string.
     pub async fn token(&self) -> Result<String> {
         match &self.inner {

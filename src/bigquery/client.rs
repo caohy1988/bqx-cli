@@ -1,16 +1,25 @@
 use anyhow::{bail, Result};
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::auth::ResolvedAuth;
 
 const BQ_BASE_URL: &str = "https://bigquery.googleapis.com/bigquery/v2";
 
+/// Narrow trait for executing BigQuery queries.
+/// Implemented by BigQueryClient for production, and by test fixtures for testing.
+#[async_trait]
+pub trait QueryExecutor: Send + Sync {
+    async fn query(&self, project: &str, req: QueryRequest) -> Result<QueryResult>;
+}
+
 pub struct BigQueryClient {
     http: reqwest::Client,
     auth: ResolvedAuth,
+    base_url: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryRequest {
     pub query: String,
@@ -68,8 +77,8 @@ pub struct TableCell {
     pub v: Option<serde_json::Value>,
 }
 
+#[derive(Debug)]
 pub struct QueryResult {
-    #[allow(dead_code)]
     pub schema: TableSchema,
     pub rows: Vec<serde_json::Map<String, serde_json::Value>>,
     pub total_rows: u64,
@@ -89,11 +98,28 @@ struct BqErrorDetail {
 impl BigQueryClient {
     pub fn new(auth: ResolvedAuth) -> Self {
         let http = reqwest::Client::new();
-        Self { http, auth }
+        Self {
+            http,
+            auth,
+            base_url: BQ_BASE_URL.to_string(),
+        }
     }
 
-    pub async fn query(&self, project: &str, req: QueryRequest) -> Result<QueryResult> {
-        let url = format!("{BQ_BASE_URL}/projects/{project}/queries");
+    /// Create a client with a custom base URL (for testing with wiremock).
+    pub fn with_base_url(auth: ResolvedAuth, base_url: String) -> Self {
+        let http = reqwest::Client::new();
+        Self {
+            http,
+            auth,
+            base_url,
+        }
+    }
+}
+
+#[async_trait]
+impl QueryExecutor for BigQueryClient {
+    async fn query(&self, project: &str, req: QueryRequest) -> Result<QueryResult> {
+        let url = format!("{}/projects/{project}/queries", self.base_url);
         let token = self.auth.token().await?;
 
         let resp = self
@@ -145,8 +171,8 @@ impl BigQueryClient {
         while let Some(ref token) = page_token {
             if let Some(ref job_ref) = response.job_reference {
                 let url = format!(
-                    "{BQ_BASE_URL}/projects/{project}/queries/{}",
-                    job_ref.job_id
+                    "{}/projects/{project}/queries/{}",
+                    self.base_url, job_ref.job_id
                 );
                 let tkn = self.auth.token().await?;
                 let page_resp: QueryResponse = self
@@ -183,14 +209,16 @@ impl BigQueryClient {
             total_rows,
         })
     }
+}
 
+impl BigQueryClient {
     async fn poll_results(
         &self,
         project: &str,
         job_id: &str,
         location: &str,
     ) -> Result<QueryResponse> {
-        let url = format!("{BQ_BASE_URL}/projects/{project}/queries/{job_id}");
+        let url = format!("{}/projects/{project}/queries/{job_id}", self.base_url);
         let mut delay = std::time::Duration::from_millis(100);
         let max_delay = std::time::Duration::from_secs(5);
 
@@ -216,7 +244,7 @@ impl BigQueryClient {
     }
 }
 
-fn convert_rows(
+pub fn convert_rows(
     schema: &TableSchema,
     rows: &[TableRow],
 ) -> Vec<serde_json::Map<String, serde_json::Value>> {
@@ -239,7 +267,7 @@ fn convert_rows(
 
 /// Convert BigQuery REST API values to more useful representations.
 /// TIMESTAMP comes as epoch seconds (float); convert to ISO 8601.
-fn coerce_value(field_type: &str, value: serde_json::Value) -> serde_json::Value {
+pub fn coerce_value(field_type: &str, value: serde_json::Value) -> serde_json::Value {
     match field_type {
         "TIMESTAMP" => {
             if let Some(s) = value.as_str() {

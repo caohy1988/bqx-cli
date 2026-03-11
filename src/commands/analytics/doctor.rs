@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::auth::{self, AuthOptions};
-use crate::bigquery::client::{BigQueryClient, QueryRequest};
+use crate::bigquery::client::{BigQueryClient, QueryExecutor, QueryRequest, QueryResult};
 use crate::cli::OutputFormat;
 use crate::config::Config;
 use crate::output;
@@ -57,32 +57,26 @@ pub struct NullChecks {
 
 const REQUIRED_COLUMNS: &[&str] = &["session_id", "agent", "event_type", "timestamp"];
 
-pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
-    let dataset_id = config.require_dataset_id()?;
-    let resolved = auth::resolve(auth_opts).await?;
-    let client = BigQueryClient::new(resolved);
-    let full_table = format!("{}.{}.{}", config.project_id, dataset_id, config.table);
+// ── SQL builders ──
 
-    // Query columns from INFORMATION_SCHEMA
-    let columns_sql = COLUMNS_SQL
-        .replace("{project}", &config.project_id)
-        .replace("{dataset}", dataset_id)
-        .replace("{table}", &config.table);
+pub fn build_columns_query(project: &str, dataset: &str, table: &str) -> String {
+    COLUMNS_SQL
+        .replace("{project}", project)
+        .replace("{dataset}", dataset)
+        .replace("{table}", table)
+}
 
-    let columns_result = client
-        .query(
-            &config.project_id,
-            QueryRequest {
-                query: columns_sql,
-                use_legacy_sql: false,
-                location: config.location.clone(),
-                max_results: None,
-                timeout_ms: Some(30000),
-            },
-        )
-        .await?;
+pub fn build_stats_query(project: &str, dataset: &str, table: &str) -> String {
+    DOCTOR_SQL
+        .replace("{project}", project)
+        .replace("{dataset}", dataset)
+        .replace("{table}", table)
+}
 
-    let columns: Vec<String> = columns_result
+// ── Result mappers ──
+
+pub fn columns_from_result(result: &QueryResult) -> Vec<String> {
+    result
         .rows
         .iter()
         .filter_map(|row| {
@@ -90,60 +84,22 @@ pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
         })
-        .collect();
+        .collect()
+}
 
-    let missing_required: Vec<String> = REQUIRED_COLUMNS
+pub fn find_missing_columns(columns: &[String]) -> Vec<String> {
+    REQUIRED_COLUMNS
         .iter()
         .filter(|col| !columns.iter().any(|c| c == **col))
         .map(|s| s.to_string())
-        .collect();
+        .collect()
+}
 
-    if !missing_required.is_empty() {
-        let report = DoctorReport {
-            status: "error".into(),
-            table: full_table,
-            total_rows: 0,
-            distinct_sessions: 0,
-            distinct_agents: 0,
-            earliest_event: None,
-            latest_event: None,
-            minutes_since_last_event: None,
-            null_checks: NullChecks {
-                session_id: 0,
-                agent: 0,
-                event_type: 0,
-                timestamp: 0,
-            },
-            distinct_event_types: 0,
-            columns,
-            missing_required_columns: missing_required.clone(),
-            warnings: vec![format!(
-                "Missing required columns: {}",
-                missing_required.join(", ")
-            )],
-        };
-        return render_report(&report, &config.format);
-    }
-
-    // Query stats
-    let stats_sql = DOCTOR_SQL
-        .replace("{project}", &config.project_id)
-        .replace("{dataset}", dataset_id)
-        .replace("{table}", &config.table);
-
-    let stats_result = client
-        .query(
-            &config.project_id,
-            QueryRequest {
-                query: stats_sql,
-                use_legacy_sql: false,
-                location: config.location.clone(),
-                max_results: None,
-                timeout_ms: Some(30000),
-            },
-        )
-        .await?;
-
+pub fn doctor_report_from_rows(
+    full_table: &str,
+    columns: Vec<String>,
+    stats_result: &QueryResult,
+) -> Result<DoctorReport> {
     let row = stats_result
         .rows
         .first()
@@ -209,9 +165,9 @@ pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
         "healthy"
     };
 
-    let report = DoctorReport {
+    Ok(DoctorReport {
         status: status.into(),
-        table: full_table,
+        table: full_table.to_string(),
         total_rows,
         distinct_sessions: get_u64("distinct_sessions"),
         distinct_agents: get_u64("distinct_agents"),
@@ -228,8 +184,80 @@ pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
         columns,
         missing_required_columns: vec![],
         warnings,
-    };
+    })
+}
 
+// ── Entry points ──
+
+pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved);
+    run_with_executor(&client, config).await
+}
+
+pub async fn run_with_executor(executor: &dyn QueryExecutor, config: &Config) -> Result<()> {
+    let dataset_id = config.require_dataset_id()?;
+    let full_table = format!("{}.{}.{}", config.project_id, dataset_id, config.table);
+
+    let columns_sql = build_columns_query(&config.project_id, dataset_id, &config.table);
+    let columns_result = executor
+        .query(
+            &config.project_id,
+            QueryRequest {
+                query: columns_sql,
+                use_legacy_sql: false,
+                location: config.location.clone(),
+                max_results: None,
+                timeout_ms: Some(30000),
+            },
+        )
+        .await?;
+
+    let columns = columns_from_result(&columns_result);
+    let missing_required = find_missing_columns(&columns);
+
+    if !missing_required.is_empty() {
+        let report = DoctorReport {
+            status: "error".into(),
+            table: full_table,
+            total_rows: 0,
+            distinct_sessions: 0,
+            distinct_agents: 0,
+            earliest_event: None,
+            latest_event: None,
+            minutes_since_last_event: None,
+            null_checks: NullChecks {
+                session_id: 0,
+                agent: 0,
+                event_type: 0,
+                timestamp: 0,
+            },
+            distinct_event_types: 0,
+            columns,
+            missing_required_columns: missing_required.clone(),
+            warnings: vec![format!(
+                "Missing required columns: {}",
+                missing_required.join(", ")
+            )],
+        };
+        return render_report(&report, &config.format);
+    }
+
+    let stats_sql = build_stats_query(&config.project_id, dataset_id, &config.table);
+    let stats_result = executor
+        .query(
+            &config.project_id,
+            QueryRequest {
+                query: stats_sql,
+                use_legacy_sql: false,
+                location: config.location.clone(),
+                max_results: None,
+                timeout_ms: Some(30000),
+            },
+        )
+        .await?;
+
+    let report = doctor_report_from_rows(&full_table, columns, &stats_result)?;
     render_report(&report, &config.format)
 }
 
