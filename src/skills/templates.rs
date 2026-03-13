@@ -67,14 +67,13 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
     out.push_str("## Prerequisites\n\n");
     out.push_str("See **bqx-shared** for authentication and global flags.\n\n");
 
-    let needs_dataset = commands.iter().any(|c| {
-        c.method
-            .parameters
-            .iter()
-            .any(|p| p.name == "datasetId" && p.location == ParamLocation::Path)
-    });
-    if needs_dataset {
+    // Determine per-command requirements and summarize at the group level.
+    let all_need_dataset = commands.iter().all(|c| cmd_needs_dataset(c));
+    let some_need_dataset = commands.iter().any(|c| cmd_needs_dataset(c));
+    if all_need_dataset {
         out.push_str("Requires: `--project-id` and `--dataset-id`\n\n");
+    } else if some_need_dataset {
+        out.push_str("Requires: `--project-id` (all commands), `--dataset-id` (some commands — see per-command details below)\n\n");
     } else {
         out.push_str("Requires: `--project-id`\n\n");
     }
@@ -82,11 +81,18 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
     // Commands section
     out.push_str("## Commands\n\n");
     for cmd in commands {
+        let needs_dataset = cmd_needs_dataset(cmd);
+
         out.push_str(&format!("### {} {}\n\n", group, cmd.action));
         out.push_str(&format!("{}\n\n", cmd.about));
 
-        // Build usage line
+        // Build usage line — include global flags that this command requires.
         let mut usage = format!("```bash\nbqx {group} {}", cmd.action);
+        usage.push_str(" \\\n  --project-id <PROJECT_ID>");
+        if needs_dataset {
+            usage.push_str(" \\\n  --dataset-id <DATASET_ID>");
+        }
+
         let user_args: Vec<_> = cmd
             .args
             .iter()
@@ -105,24 +111,25 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
         usage.push_str(" \\\n  [--dry-run] \\\n  [--format json|table|text]\n```\n\n");
         out.push_str(&usage);
 
-        // Flags table
-        if !user_args.is_empty() {
-            out.push_str("| Flag | Required | Description |\n");
-            out.push_str("|------|----------|-------------|\n");
-            for arg in &user_args {
-                let req = if arg.required { "Yes" } else { "No" };
-                let help_text = arg.help.trim();
-                let desc =
-                    if help_text.is_empty() || help_text == "Required." || help_text == "Optional."
-                    {
-                        format!("{} parameter", arg.api_name)
-                    } else {
-                        truncate_description(help_text)
-                    };
-                out.push_str(&format!("| `--{}` | {} | {} |\n", arg.flag_name, req, desc));
-            }
-            out.push('\n');
+        // Flags table — include the required global flags for this command.
+        out.push_str("| Flag | Required | Description |\n");
+        out.push_str("|------|----------|-------------|\n");
+        out.push_str("| `--project-id` | Yes | GCP project ID (global flag) |\n");
+        if needs_dataset {
+            out.push_str("| `--dataset-id` | Yes | BigQuery dataset (global flag) |\n");
         }
+        for arg in &user_args {
+            let req = if arg.required { "Yes" } else { "No" };
+            let help_text = arg.help.trim();
+            let desc =
+                if help_text.is_empty() || help_text == "Required." || help_text == "Optional." {
+                    format!("{} parameter", arg.api_name)
+                } else {
+                    truncate_description(help_text)
+                };
+            out.push_str(&format!("| `--{}` | {} | {} |\n", arg.flag_name, req, desc));
+        }
+        out.push('\n');
     }
 
     // Decision rules
@@ -201,6 +208,14 @@ fn build_openai_yaml(group: &str, display_name: &str, commands: &[&GeneratedComm
          policy:\n  \
          allow_implicit_invocation: true\n"
     )
+}
+
+/// Check if a command requires datasetId as a path parameter.
+fn cmd_needs_dataset(cmd: &GeneratedCommand) -> bool {
+    cmd.method
+        .parameters
+        .iter()
+        .any(|p| p.name == "datasetId" && p.location == ParamLocation::Path)
 }
 
 fn capitalize(s: &str) -> String {

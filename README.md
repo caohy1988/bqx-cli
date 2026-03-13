@@ -617,11 +617,11 @@ Like `gws generate-skills`, `bqx` auto-generates skills from the BigQuery
 Discovery Document:
 
 ```bash
-# Generate all skills from BigQuery API + Agent Analytics commands
+# Generate all skills from BigQuery API commands
 bqx generate-skills --output-dir=./skills
 
-# Regenerate only analytics skills
-bqx generate-skills --filter=bqx-analytics --output-dir=./skills
+# Regenerate only dataset skills
+bqx generate-skills --filter=bqx-datasets --output-dir=./skills
 ```
 
 The generator:

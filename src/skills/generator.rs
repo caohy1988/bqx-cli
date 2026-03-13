@@ -90,7 +90,7 @@ mod tests {
         let commands = load_generated_commands();
         let skills = generate_all(&commands);
         let names: Vec<&str> = skills.iter().map(|s| s.dir_name.as_str()).collect();
-        assert_eq!(names, vec!["bqx-datasets", "bqx-jobs", "bqx-tables"]);
+        assert_eq!(names, vec!["bqx-datasets", "bqx-tables"]);
     }
 
     #[test]

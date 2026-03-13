@@ -176,24 +176,6 @@ mod tests {
     }
 
     #[test]
-    fn jobs_get_url() {
-        let method = get_method("bigquery.jobs.get");
-        let mut args = HashMap::new();
-        args.insert("jobId".to_string(), "job_abc123".to_string());
-        let req = build_request(
-            "https://bigquery.googleapis.com/bigquery/v2/",
-            &method,
-            "my-project",
-            &args,
-        )
-        .unwrap();
-        assert_eq!(
-            req.url,
-            "https://bigquery.googleapis.com/bigquery/v2/projects/my-project/jobs/job_abc123"
-        );
-    }
-
-    #[test]
     fn missing_path_param_errors() {
         let method = get_method("bigquery.datasets.get");
         let args = HashMap::new(); // missing datasetId
