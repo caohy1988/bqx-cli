@@ -1,0 +1,141 @@
+{
+  "kind": "discovery#restDescription",
+  "name": "bigquery",
+  "version": "v2",
+  "revision": "20260101",
+  "baseUrl": "https://bigquery.googleapis.com/bigquery/v2/",
+  "resources": {
+    "datasets": {
+      "methods": {
+        "list": {
+          "id": "bigquery.datasets.list",
+          "path": "projects/{+projectId}/datasets",
+          "httpMethod": "GET",
+          "description": "Lists all datasets in the specified project.",
+          "parameters": {
+            "projectId": {
+              "type": "string",
+              "description": "Required. Project ID of the datasets to be listed",
+              "required": true,
+              "location": "path"
+            },
+            "maxResults": {
+              "type": "integer",
+              "description": "The maximum number of results to return in a single response page.",
+              "format": "uint32",
+              "location": "query"
+            },
+            "all": {
+              "type": "boolean",
+              "description": "Whether to list all datasets, including hidden ones",
+              "location": "query"
+            },
+            "filter": {
+              "type": "string",
+              "description": "An expression for filtering the results of the request by label.",
+              "location": "query"
+            },
+            "pageToken": {
+              "type": "string",
+              "description": "Page token, returned by a previous call, to request the next page of results.",
+              "location": "query"
+            }
+          },
+          "response": {
+            "$ref": "DatasetList"
+          }
+        },
+        "get": {
+          "id": "bigquery.datasets.get",
+          "path": "projects/{+projectId}/datasets/{+datasetId}",
+          "httpMethod": "GET",
+          "description": "Returns the dataset specified by datasetID.",
+          "parameters": {
+            "projectId": {
+              "type": "string",
+              "description": "Required. Project ID of the requested dataset",
+              "required": true,
+              "location": "path"
+            },
+            "datasetId": {
+              "type": "string",
+              "description": "Required. Dataset ID of the requested dataset",
+              "required": true,
+              "location": "path"
+            }
+          },
+          "response": {
+            "$ref": "Dataset"
+          }
+        }
+      }
+    },
+    "tables": {
+      "methods": {
+        "get": {
+          "id": "bigquery.tables.get",
+          "path": "projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}",
+          "httpMethod": "GET",
+          "description": "Gets the specified table resource by table ID.",
+          "parameters": {
+            "projectId": {
+              "type": "string",
+              "description": "Required. Project ID of the requested table",
+              "required": true,
+              "location": "path"
+            },
+            "datasetId": {
+              "type": "string",
+              "description": "Required. Dataset ID of the requested table",
+              "required": true,
+              "location": "path"
+            },
+            "tableId": {
+              "type": "string",
+              "description": "Required. Table ID of the requested table",
+              "required": true,
+              "location": "path"
+            },
+            "selectedFields": {
+              "type": "string",
+              "description": "List of table schema fields to return (comma-separated).",
+              "location": "query"
+            }
+          },
+          "response": {
+            "$ref": "Table"
+          }
+        }
+      }
+    }
+  },
+  "schemas": {
+    "DatasetList": {
+      "id": "DatasetList",
+      "type": "object",
+      "properties": {
+        "datasets": {
+          "type": "array"
+        }
+      }
+    },
+    "Dataset": {
+      "id": "Dataset",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "Table": {
+      "id": "Table",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

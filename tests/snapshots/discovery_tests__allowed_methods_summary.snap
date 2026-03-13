@@ -1,0 +1,56 @@
+---
+source: tests/discovery_tests.rs
+expression: summary
+---
+[
+  {
+    "action": "list",
+    "http_method": "GET",
+    "id": "bigquery.datasets.list",
+    "param_count": 5,
+    "path": "projects/{+projectId}/datasets",
+    "request_ref": null,
+    "resource": "datasets",
+    "response_ref": "DatasetList"
+  },
+  {
+    "action": "get",
+    "http_method": "GET",
+    "id": "bigquery.datasets.get",
+    "param_count": 4,
+    "path": "projects/{+projectId}/datasets/{+datasetId}",
+    "request_ref": null,
+    "resource": "datasets",
+    "response_ref": "Dataset"
+  },
+  {
+    "action": "list",
+    "http_method": "GET",
+    "id": "bigquery.tables.list",
+    "param_count": 4,
+    "path": "projects/{+projectId}/datasets/{+datasetId}/tables",
+    "request_ref": null,
+    "resource": "tables",
+    "response_ref": "TableList"
+  },
+  {
+    "action": "get",
+    "http_method": "GET",
+    "id": "bigquery.tables.get",
+    "param_count": 5,
+    "path": "projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}",
+    "request_ref": null,
+    "resource": "tables",
+    "response_ref": "Table"
+  },
+  {
+    "action": "get",
+    "http_method": "GET",
+    "id": "bigquery.jobs.get",
+    "param_count": 3,
+    "path": "projects/{+projectId}/jobs/{+jobId}",
+    "request_ref": null,
+    "resource": "jobs",
+    "response_ref": "Job"
+  }
+]

@@ -1,0 +1,98 @@
+---
+source: tests/discovery_tests.rs
+expression: cmd
+---
+{
+  "group": "datasets",
+  "action": "list",
+  "about": "Lists all datasets in the specified project.",
+  "args": [
+    {
+      "flag_name": "project-id",
+      "api_name": "projectId",
+      "required": true,
+      "help": "Required. Project ID of the datasets to be listed",
+      "value_type": "String"
+    },
+    {
+      "flag_name": "all",
+      "api_name": "all",
+      "required": false,
+      "help": "Whether to list all datasets, including hidden ones",
+      "value_type": "Boolean"
+    },
+    {
+      "flag_name": "filter",
+      "api_name": "filter",
+      "required": false,
+      "help": "An expression for filtering the results of the request by label.",
+      "value_type": "String"
+    },
+    {
+      "flag_name": "max-results",
+      "api_name": "maxResults",
+      "required": false,
+      "help": "The maximum number of results to return in a single response page.",
+      "value_type": "Integer"
+    },
+    {
+      "flag_name": "page-token",
+      "api_name": "pageToken",
+      "required": false,
+      "help": "Page token, returned by a previous call, to request the next page of results.",
+      "value_type": "String"
+    }
+  ],
+  "method": {
+    "id": "bigquery.datasets.list",
+    "resource": "datasets",
+    "action": "list",
+    "path": "projects/{+projectId}/datasets",
+    "http_method": "GET",
+    "description": "Lists all datasets in the specified project.",
+    "parameters": [
+      {
+        "name": "projectId",
+        "location": "path",
+        "param_type": "string",
+        "format": null,
+        "required": true,
+        "description": "Required. Project ID of the datasets to be listed"
+      },
+      {
+        "name": "all",
+        "location": "query",
+        "param_type": "boolean",
+        "format": null,
+        "required": false,
+        "description": "Whether to list all datasets, including hidden ones"
+      },
+      {
+        "name": "filter",
+        "location": "query",
+        "param_type": "string",
+        "format": null,
+        "required": false,
+        "description": "An expression for filtering the results of the request by label."
+      },
+      {
+        "name": "maxResults",
+        "location": "query",
+        "param_type": "integer",
+        "format": "uint32",
+        "required": false,
+        "description": "The maximum number of results to return in a single response page."
+      },
+      {
+        "name": "pageToken",
+        "location": "query",
+        "param_type": "string",
+        "format": null,
+        "required": false,
+        "description": "Page token, returned by a previous call, to request the next page of results."
+      }
+    ],
+    "request_ref": null,
+    "response_ref": "DatasetList"
+  }
+}
