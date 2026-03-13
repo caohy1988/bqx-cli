@@ -1,17 +1,11 @@
-mod auth;
-mod bigquery;
-mod cli;
-mod commands;
-mod config;
-mod models;
-mod output;
-
 use clap::Parser;
 use serde_json::json;
 
-use cli::{AnalyticsCommand, AuthCommand, Cli, Command, JobsCommand};
-use config::Config;
-use models::BqxError;
+use bqx::auth;
+use bqx::cli::{AnalyticsCommand, AuthCommand, Cli, Command, JobsCommand};
+use bqx::commands;
+use bqx::config::Config;
+use bqx::models::BqxError;
 
 #[tokio::main]
 async fn main() {

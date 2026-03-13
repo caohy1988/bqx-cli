@@ -74,12 +74,17 @@ pub async fn load_remote() -> Result<DiscoveryDocument> {
         .await
         .context("Failed to read Discovery response body")?;
 
-    // Cache the raw response for future use.
-    if let Err(e) = write_cache(&raw) {
+    // Parse first to validate — never cache invalid/truncated content.
+    let doc: DiscoveryDocument =
+        serde_json::from_str(&raw).context("Failed to parse remote Discovery Document")?;
+
+    // Only write to cache after successful parse, using temp-file + rename
+    // to avoid leaving a partial file on disk.
+    if let Err(e) = write_cache_atomic(&raw) {
         eprintln!("Warning: could not write discovery cache: {e}");
     }
 
-    serde_json::from_str(&raw).context("Failed to parse remote Discovery Document")
+    Ok(doc)
 }
 
 // ---------------------------------------------------------------------------
@@ -108,14 +113,24 @@ pub fn read_cache() -> Result<DiscoveryDocument> {
     serde_json::from_str(&raw).context("Failed to parse cached Discovery Document")
 }
 
-/// Write raw Discovery JSON to the local cache.
-pub fn write_cache(raw: &str) -> Result<()> {
+/// Write raw Discovery JSON to the local cache atomically.
+/// Writes to a temp file first, then renames, so a crash or error never
+/// leaves a partial/corrupt cache file.
+pub fn write_cache_atomic(raw: &str) -> Result<()> {
     let dir = cache_dir()?;
     fs::create_dir_all(&dir)
         .with_context(|| format!("Failed to create cache directory: {}", dir.display()))?;
-    let path = dir.join(CACHE_FILENAME);
-    fs::write(&path, raw)
-        .with_context(|| format!("Failed to write discovery cache: {}", path.display()))?;
+    let final_path = dir.join(CACHE_FILENAME);
+    let tmp_path = dir.join(format!(".{CACHE_FILENAME}.tmp"));
+    fs::write(&tmp_path, raw)
+        .with_context(|| format!("Failed to write temp cache file: {}", tmp_path.display()))?;
+    fs::rename(&tmp_path, &final_path).with_context(|| {
+        format!(
+            "Failed to rename {} → {}",
+            tmp_path.display(),
+            final_path.display()
+        )
+    })?;
     Ok(())
 }
 

@@ -102,7 +102,10 @@ pub enum ArgValueType {
 // ---------------------------------------------------------------------------
 
 /// Extract all ApiMethods from a DiscoveryDocument by walking its resources.
-pub fn extract_methods(doc: &DiscoveryDocument) -> Result<Vec<ApiMethod>> {
+/// Methods that cannot be parsed (unexpected shape, missing fields, etc.)
+/// are skipped rather than aborting the entire document, so that unrelated
+/// upstream Discovery changes do not break the allowlisted command set.
+pub fn extract_methods(doc: &DiscoveryDocument) -> Vec<ApiMethod> {
     let mut methods = Vec::new();
     for (resource_name, resource_value) in &doc.resources {
         let resource_methods = resource_value
@@ -110,13 +113,21 @@ pub fn extract_methods(doc: &DiscoveryDocument) -> Result<Vec<ApiMethod>> {
             .and_then(|m| m.as_object());
         if let Some(method_map) = resource_methods {
             for (_action_name, method_value) in method_map {
-                let method = parse_method(resource_name, method_value)?;
-                methods.push(method);
+                match parse_method(resource_name, method_value) {
+                    Ok(method) => methods.push(method),
+                    Err(e) => {
+                        let id = method_value
+                            .get("id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("<unknown>");
+                        eprintln!("Warning: skipping unparseable method {id}: {e}");
+                    }
+                }
             }
         }
     }
     methods.sort_by(|a, b| a.id.cmp(&b.id));
-    Ok(methods)
+    methods
 }
 
 /// Filter methods to only those in the allowlist.

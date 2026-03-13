@@ -51,7 +51,7 @@ fn bundled_discovery_base_url() {
 #[test]
 fn extract_methods_from_mini_fixture() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     assert_eq!(methods.len(), 3);
 
     let ids: Vec<&str> = methods.iter().map(|m| m.id.as_str()).collect();
@@ -63,7 +63,7 @@ fn extract_methods_from_mini_fixture() {
 #[test]
 fn mini_datasets_list_has_correct_params() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let ds_list = methods.iter().find(|m| m.id == "bigquery.datasets.list").unwrap();
 
     assert_eq!(ds_list.http_method, "GET");
@@ -96,7 +96,7 @@ fn mini_datasets_list_has_correct_params() {
 #[test]
 fn mini_tables_get_has_three_path_params() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let tbl_get = methods.iter().find(|m| m.id == "bigquery.tables.get").unwrap();
 
     let path_params: Vec<&str> = tbl_get
@@ -121,7 +121,7 @@ fn mini_tables_get_has_three_path_params() {
 #[test]
 fn extract_methods_from_bundled_returns_nonempty() {
     let doc = load_bundled();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     assert!(
         methods.len() > 30,
         "expected >30 methods from full discovery, got {}",
@@ -132,7 +132,7 @@ fn extract_methods_from_bundled_returns_nonempty() {
 #[test]
 fn bundled_contains_all_allowed_methods() {
     let doc = load_bundled();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let ids: Vec<&str> = methods.iter().map(|m| m.id.as_str()).collect();
 
     for allowed in ALLOWED_METHODS {
@@ -150,7 +150,7 @@ fn bundled_contains_all_allowed_methods() {
 #[test]
 fn filter_allowed_returns_exactly_five() {
     let doc = load_bundled();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let filtered = filter_allowed(&methods);
     assert_eq!(filtered.len(), 5);
 }
@@ -158,7 +158,7 @@ fn filter_allowed_returns_exactly_five() {
 #[test]
 fn filter_allowed_preserves_allowlist_order() {
     let doc = load_bundled();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let filtered = filter_allowed(&methods);
     let ids: Vec<&str> = filtered.iter().map(|m| m.id.as_str()).collect();
     assert_eq!(ids, ALLOWED_METHODS);
@@ -167,7 +167,7 @@ fn filter_allowed_preserves_allowlist_order() {
 #[test]
 fn filter_allowed_on_mini_returns_two() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let filtered = filter_allowed(&methods);
     // Mini has datasets.list, datasets.get, tables.get — all three are in allowlist
     assert_eq!(filtered.len(), 3);
@@ -189,7 +189,7 @@ fn filter_allowed_on_mini_returns_two() {
 #[test]
 fn generated_command_shape() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let ds_list = methods.iter().find(|m| m.id == "bigquery.datasets.list").unwrap();
     let cmd = to_generated_command(ds_list);
 
@@ -217,7 +217,7 @@ fn generated_command_shape() {
 #[test]
 fn generated_command_snapshot_datasets_list() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let ds_list = methods.iter().find(|m| m.id == "bigquery.datasets.list").unwrap();
     let cmd = to_generated_command(ds_list);
     insta::assert_json_snapshot!("generated_command_datasets_list", cmd);
@@ -226,7 +226,7 @@ fn generated_command_snapshot_datasets_list() {
 #[test]
 fn generated_command_snapshot_tables_get() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let tbl_get = methods.iter().find(|m| m.id == "bigquery.tables.get").unwrap();
     let cmd = to_generated_command(tbl_get);
     insta::assert_json_snapshot!("generated_command_tables_get", cmd);
@@ -239,7 +239,7 @@ fn generated_command_snapshot_tables_get() {
 #[test]
 fn allowed_methods_snapshot() {
     let doc = load_bundled();
-    let methods = extract_methods(&doc).unwrap();
+    let methods = extract_methods(&doc);
     let filtered = filter_allowed(&methods);
     let summary: Vec<serde_json::Value> = filtered
         .iter()
