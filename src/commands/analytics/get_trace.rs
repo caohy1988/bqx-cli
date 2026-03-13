@@ -126,27 +126,17 @@ pub fn trace_result_from_rows(session_id: String, result: &QueryResult) -> Resul
     })
 }
 
-// ── Entry points ──
+// ── Data builder (shared by run + run_with_executor) ──
 
-pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
-    // Validate inputs before resolving auth so users get fast feedback
-    config::validate_session_id(&session_id)?;
-    config.require_dataset_id()?;
-
-    let resolved = auth::resolve(auth_opts).await?;
-    let client = BigQueryClient::new(resolved);
-    run_with_executor(&client, session_id, config).await
-}
-
-pub async fn run_with_executor(
+async fn build_trace(
     executor: &dyn QueryExecutor,
-    session_id: String,
+    session_id: &str,
     config: &Config,
-) -> Result<()> {
-    config::validate_session_id(&session_id)?;
+) -> Result<TraceResult> {
+    config::validate_session_id(session_id)?;
     let dataset_id = config.require_dataset_id()?;
 
-    let sql = build_trace_query(&config.project_id, dataset_id, &config.table, &session_id);
+    let sql = build_trace_query(&config.project_id, dataset_id, &config.table, session_id);
 
     let result = executor
         .query(
@@ -161,11 +151,13 @@ pub async fn run_with_executor(
         )
         .await?;
 
-    let trace = trace_result_from_rows(session_id, &result)?;
+    trace_result_from_rows(session_id.to_string(), &result)
+}
 
+fn render_trace_output(trace: &TraceResult, config: &Config) -> Result<()> {
     match config.format {
         OutputFormat::Text => {
-            output::text::render_trace(&trace);
+            output::text::render_trace(trace);
         }
         OutputFormat::Table => {
             println!(
@@ -207,8 +199,40 @@ pub async fn run_with_executor(
             output::render_rows_as_table(&columns, &rows)?;
         }
         OutputFormat::Json => {
-            output::render(&trace, &config.format)?;
+            output::render(trace, &config.format)?;
         }
     }
     Ok(())
+}
+
+// ── Entry points ──
+
+pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
+    config::validate_session_id(&session_id)?;
+    config.require_dataset_id()?;
+
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved.clone());
+    let trace = build_trace(&client, &session_id, config).await?;
+
+    if let Some(ref template) = config.sanitize_template {
+        let json_val = serde_json::to_value(&trace)?;
+        let sanitize_result =
+            crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+        if sanitize_result.sanitized {
+            return crate::output::render(&sanitize_result.content, &config.format);
+        }
+    }
+
+    render_trace_output(&trace, config)
+}
+
+pub async fn run_with_executor(
+    executor: &dyn QueryExecutor,
+    session_id: String,
+    config: &Config,
+) -> Result<()> {
+    let trace = build_trace(executor, &session_id, config).await?;
+    render_trace_output(&trace, config)
 }

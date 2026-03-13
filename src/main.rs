@@ -148,6 +148,10 @@ async fn run_dynamic(
         std::process::exit(1);
     }
 
+    let sanitize_template = root_matches
+        .get_one::<String>("sanitize")
+        .map(|s| s.as_str());
+
     let result = executor::execute(
         cmd,
         &args,
@@ -156,6 +160,7 @@ async fn run_dynamic(
         &format,
         dry_run,
         &auth_opts,
+        sanitize_template,
     )
     .await;
 

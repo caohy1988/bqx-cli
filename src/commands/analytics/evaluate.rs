@@ -197,56 +197,31 @@ pub fn eval_result_from_rows(
     }
 }
 
-// ── Entry points ──
+// ── Data builder (shared by run + run_with_executor) ──
 
-pub async fn run(
-    evaluator: EvaluatorType,
-    threshold: f64,
-    last: String,
-    agent_id: Option<String>,
-    exit_code: bool,
-    auth_opts: &AuthOptions,
-    config: &Config,
-) -> Result<()> {
-    // Validate inputs before resolving auth so users get fast feedback
-    if let Some(ref id) = agent_id {
-        config::validate_agent_id(id)?;
-    }
-    config::parse_duration(&last)?;
-    config.require_dataset_id()?;
-
-    let resolved = auth::resolve(auth_opts).await?;
-    let client = BigQueryClient::new(resolved);
-    run_with_executor(
-        &client, evaluator, threshold, last, agent_id, exit_code, config,
-    )
-    .await
-}
-
-pub async fn run_with_executor(
+async fn build_eval_result(
     executor: &dyn QueryExecutor,
-    evaluator: EvaluatorType,
+    evaluator: &EvaluatorType,
     threshold: f64,
-    last: String,
-    agent_id: Option<String>,
-    exit_code: bool,
+    last: &str,
+    agent_id: Option<&str>,
     config: &Config,
-) -> Result<()> {
-    if let Some(ref id) = agent_id {
+) -> Result<EvalResult> {
+    if let Some(id) = agent_id {
         config::validate_agent_id(id)?;
     }
 
-    let duration = config::parse_duration(&last)?;
+    let duration = config::parse_duration(last)?;
     let dataset_id = config.require_dataset_id()?;
 
     let sql = build_evaluate_query(
-        &evaluator,
+        evaluator,
         &config.project_id,
         dataset_id,
         &config.table,
         &duration.interval_sql,
         threshold,
-        agent_id.as_deref(),
+        agent_id,
     );
 
     let result = executor
@@ -262,14 +237,99 @@ pub async fn run_with_executor(
         )
         .await?;
 
-    let eval_result = eval_result_from_rows(&evaluator, threshold, last, agent_id, &result);
+    Ok(eval_result_from_rows(
+        evaluator,
+        threshold,
+        last.to_string(),
+        agent_id.map(|s| s.to_string()),
+        &result,
+    ))
+}
+
+fn render_eval(eval_result: &EvalResult, format: &OutputFormat) -> Result<()> {
+    if *format == OutputFormat::Text {
+        output::text::render_evaluate(eval_result);
+    } else {
+        output::render(eval_result, format)?;
+    }
+    Ok(())
+}
+
+// ── Entry points ──
+
+pub async fn run(
+    evaluator: EvaluatorType,
+    threshold: f64,
+    last: String,
+    agent_id: Option<String>,
+    exit_code: bool,
+    auth_opts: &AuthOptions,
+    config: &Config,
+) -> Result<()> {
+    if let Some(ref id) = agent_id {
+        config::validate_agent_id(id)?;
+    }
+    config::parse_duration(&last)?;
+    config.require_dataset_id()?;
+
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved.clone());
+    let eval_result = build_eval_result(
+        &client,
+        &evaluator,
+        threshold,
+        &last,
+        agent_id.as_deref(),
+        config,
+    )
+    .await?;
+
     let failed_count = eval_result.failed;
 
-    if config.format == OutputFormat::Text {
-        output::text::render_evaluate(&eval_result);
-    } else {
-        output::render(&eval_result, &config.format)?;
+    if let Some(ref template) = config.sanitize_template {
+        let json_val = serde_json::to_value(&eval_result)?;
+        let sanitize_result =
+            crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+        if sanitize_result.sanitized {
+            crate::output::render(&sanitize_result.content, &config.format)?;
+            if exit_code && failed_count > 0 {
+                return Err(BqxError::EvalFailed { exit_code: 1 }.into());
+            }
+            return Ok(());
+        }
     }
+
+    render_eval(&eval_result, &config.format)?;
+
+    if exit_code && failed_count > 0 {
+        return Err(BqxError::EvalFailed { exit_code: 1 }.into());
+    }
+
+    Ok(())
+}
+
+pub async fn run_with_executor(
+    executor: &dyn QueryExecutor,
+    evaluator: EvaluatorType,
+    threshold: f64,
+    last: String,
+    agent_id: Option<String>,
+    exit_code: bool,
+    config: &Config,
+) -> Result<()> {
+    let eval_result = build_eval_result(
+        executor,
+        &evaluator,
+        threshold,
+        &last,
+        agent_id.as_deref(),
+        config,
+    )
+    .await?;
+
+    let failed_count = eval_result.failed;
+    render_eval(&eval_result, &config.format)?;
 
     if exit_code && failed_count > 0 {
         return Err(BqxError::EvalFailed { exit_code: 1 }.into());

@@ -187,18 +187,9 @@ pub fn doctor_report_from_rows(
     })
 }
 
-// ── Entry points ──
+// ── Data builder (shared by run + run_with_executor) ──
 
-pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
-    // Validate inputs before resolving auth so users get fast feedback
-    config.require_dataset_id()?;
-
-    let resolved = auth::resolve(auth_opts).await?;
-    let client = BigQueryClient::new(resolved);
-    run_with_executor(&client, config).await
-}
-
-pub async fn run_with_executor(executor: &dyn QueryExecutor, config: &Config) -> Result<()> {
+async fn build_report(executor: &dyn QueryExecutor, config: &Config) -> Result<DoctorReport> {
     let dataset_id = config.require_dataset_id()?;
     let full_table = format!("{}.{}.{}", config.project_id, dataset_id, config.table);
 
@@ -220,7 +211,7 @@ pub async fn run_with_executor(executor: &dyn QueryExecutor, config: &Config) ->
     let missing_required = find_missing_columns(&columns);
 
     if !missing_required.is_empty() {
-        let report = DoctorReport {
+        return Ok(DoctorReport {
             status: "error".into(),
             table: full_table,
             total_rows: 0,
@@ -242,8 +233,7 @@ pub async fn run_with_executor(executor: &dyn QueryExecutor, config: &Config) ->
                 "Missing required columns: {}",
                 missing_required.join(", ")
             )],
-        };
-        return render_report(&report, &config.format);
+        });
     }
 
     let stats_sql = build_stats_query(&config.project_id, dataset_id, &config.table);
@@ -260,7 +250,33 @@ pub async fn run_with_executor(executor: &dyn QueryExecutor, config: &Config) ->
         )
         .await?;
 
-    let report = doctor_report_from_rows(&full_table, columns, &stats_result)?;
+    doctor_report_from_rows(&full_table, columns, &stats_result)
+}
+
+// ── Entry points ──
+
+pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
+    config.require_dataset_id()?;
+
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved.clone());
+    let report = build_report(&client, config).await?;
+
+    if let Some(ref template) = config.sanitize_template {
+        let json_val = serde_json::to_value(&report)?;
+        let sanitize_result =
+            crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+        if sanitize_result.sanitized {
+            return crate::output::render(&sanitize_result.content, &config.format);
+        }
+    }
+
+    render_report(&report, &config.format)
+}
+
+pub async fn run_with_executor(executor: &dyn QueryExecutor, config: &Config) -> Result<()> {
+    let report = build_report(executor, config).await?;
     render_report(&report, &config.format)
 }
 

@@ -73,6 +73,7 @@ fn test_config(format: OutputFormat) -> Config {
         location: "US".into(),
         table: "agent_events".into(),
         format,
+        sanitize_template: None,
     }
 }
 

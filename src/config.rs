@@ -10,6 +10,7 @@ pub struct Config {
     pub location: String,
     pub table: String,
     pub format: OutputFormat,
+    pub sanitize_template: Option<String>,
 }
 
 impl Config {
@@ -44,6 +45,7 @@ impl Config {
             location: cli.location.clone(),
             table: cli.table.clone(),
             format: cli.format.clone(),
+            sanitize_template: cli.sanitize.clone(),
         })
     }
 }
