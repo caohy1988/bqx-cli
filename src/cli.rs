@@ -33,6 +33,11 @@ pub struct Cli {
     /// Path to service account credentials JSON file
     #[arg(long, global = true, env = "BQX_CREDENTIALS_FILE")]
     pub credentials_file: Option<String>,
+
+    /// Model Armor template for response sanitization
+    /// (e.g. projects/my-proj/locations/us-central1/templates/my-template)
+    #[arg(long, global = true, env = "BQX_SANITIZE_TEMPLATE")]
+    pub sanitize: Option<String>,
 }
 
 #[derive(Subcommand)]

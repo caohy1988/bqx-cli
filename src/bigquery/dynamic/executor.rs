@@ -15,7 +15,8 @@ use super::request_builder::{self, DynamicRequest};
 /// 2. In dry-run mode, prints the request and returns
 /// 3. Resolves auth
 /// 4. Sends the HTTP request
-/// 5. Renders the JSON response
+/// 5. Optionally sanitizes via Model Armor
+/// 6. Renders the JSON response
 pub async fn execute(
     cmd: &GeneratedCommand,
     args: &HashMap<String, String>,
@@ -24,6 +25,7 @@ pub async fn execute(
     format: &OutputFormat,
     dry_run: bool,
     auth_opts: &AuthOptions,
+    sanitize_template: Option<&str>,
 ) -> Result<()> {
     // Validate required params before any network/auth.
     if let Err(msg) = super::clap_tree::validate_required_params(args, cmd) {
@@ -38,6 +40,16 @@ pub async fn execute(
 
     let resolved = auth::resolve(auth_opts).await?;
     let body = send_request(&resolved, &request).await?;
+
+    let body = if let Some(template) = sanitize_template {
+        let result =
+            crate::bigquery::sanitize::sanitize_response(&resolved, template, &body).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&result);
+        result.content
+    } else {
+        body
+    };
+
     render_response(&body, format)
 }
 

@@ -55,8 +55,69 @@ pub async fn run(
     }
 
     let resolved = auth::resolve(auth_opts).await?;
-    let client = BigQueryClient::new(resolved);
-    run_with_executor(&client, query, use_legacy_sql, config).await
+    let client = BigQueryClient::new(resolved.clone());
+    run_with_executor_and_sanitize(&client, query, use_legacy_sql, config, &resolved).await
+}
+
+async fn run_with_executor_and_sanitize(
+    executor: &dyn QueryExecutor,
+    query: String,
+    use_legacy_sql: bool,
+    config: &Config,
+    auth: &crate::auth::ResolvedAuth,
+) -> Result<()> {
+    let req = build_query_request(query, use_legacy_sql, config.location.clone());
+    let result = executor.query(&config.project_id, req).await?;
+
+    let output = QueryOutput {
+        total_rows: result.total_rows,
+        rows: result.rows.clone(),
+    };
+
+    // Sanitize output if template is configured.
+    if let Some(ref template) = config.sanitize_template {
+        let json_val = serde_json::to_value(&output)?;
+        let sanitize_result =
+            crate::bigquery::sanitize::sanitize_response(auth, template, &json_val).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+
+        if sanitize_result.sanitized {
+            // If content was flagged, render the redacted output instead.
+            return crate::output::render(&sanitize_result.content, &config.format);
+        }
+    }
+
+    // No sanitization or no flags — render normally.
+    if config.format == OutputFormat::Text {
+        let columns: Vec<String> = result
+            .schema
+            .fields
+            .iter()
+            .map(|f| f.name.clone())
+            .collect();
+        let rows: Vec<Vec<String>> = result
+            .rows
+            .iter()
+            .map(|row| {
+                columns
+                    .iter()
+                    .map(|col| {
+                        row.get(col)
+                            .map(|v| match v {
+                                serde_json::Value::String(s) => s.clone(),
+                                serde_json::Value::Null => "null".into(),
+                                other => other.to_string(),
+                            })
+                            .unwrap_or_default()
+                    })
+                    .collect()
+            })
+            .collect();
+        output::text::render_query(result.total_rows, &columns, &rows);
+        return Ok(());
+    }
+
+    crate::output::render(&output, &config.format)
 }
 
 pub async fn run_with_executor(

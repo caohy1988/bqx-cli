@@ -40,11 +40,13 @@ impl std::fmt::Display for AuthSource {
 }
 
 /// Resolved credential ready to produce bearer tokens.
+#[derive(Clone)]
 pub struct ResolvedAuth {
     pub source: AuthSource,
     inner: AuthInner,
 }
 
+#[derive(Clone)]
 enum AuthInner {
     StaticToken(String),
     Refreshable(RefreshableToken),
@@ -52,6 +54,7 @@ enum AuthInner {
 }
 
 /// A token that can be refreshed using a stored refresh_token.
+#[derive(Clone)]
 struct RefreshableToken {
     client_id: String,
     client_secret: String,
