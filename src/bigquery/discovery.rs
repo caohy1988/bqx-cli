@@ -108,8 +108,8 @@ pub fn cache_path() -> Result<PathBuf> {
 /// Read a DiscoveryDocument from the local cache.
 pub fn read_cache() -> Result<DiscoveryDocument> {
     let path = cache_path()?;
-    let raw =
-        fs::read_to_string(&path).with_context(|| format!("No cached discovery at {}", path.display()))?;
+    let raw = fs::read_to_string(&path)
+        .with_context(|| format!("No cached discovery at {}", path.display()))?;
     serde_json::from_str(&raw).context("Failed to parse cached Discovery Document")
 }
 

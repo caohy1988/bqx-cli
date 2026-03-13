@@ -108,9 +108,7 @@ pub enum ArgValueType {
 pub fn extract_methods(doc: &DiscoveryDocument) -> Vec<ApiMethod> {
     let mut methods = Vec::new();
     for (resource_name, resource_value) in &doc.resources {
-        let resource_methods = resource_value
-            .get("methods")
-            .and_then(|m| m.as_object());
+        let resource_methods = resource_value.get("methods").and_then(|m| m.as_object());
         if let Some(method_map) = resource_methods {
             for (_action_name, method_value) in method_map {
                 match parse_method(resource_name, method_value) {
@@ -372,10 +370,7 @@ mod tests {
         assert_eq!(normalize_method_id("datasets.list"), None);
         assert_eq!(normalize_method_id(""), None);
         assert_eq!(normalize_method_id("bigquery.datasets"), None);
-        assert_eq!(
-            normalize_method_id("bigquery.datasets.list.extra"),
-            None
-        );
+        assert_eq!(normalize_method_id("bigquery.datasets.list.extra"), None);
     }
 
     #[test]
@@ -397,18 +392,9 @@ mod tests {
     #[test]
     fn discovery_type_mapping() {
         assert_eq!(discovery_type_to_arg_type("string"), ArgValueType::String);
-        assert_eq!(
-            discovery_type_to_arg_type("integer"),
-            ArgValueType::Integer
-        );
-        assert_eq!(
-            discovery_type_to_arg_type("boolean"),
-            ArgValueType::Boolean
-        );
-        assert_eq!(
-            discovery_type_to_arg_type("unknown"),
-            ArgValueType::String
-        );
+        assert_eq!(discovery_type_to_arg_type("integer"), ArgValueType::Integer);
+        assert_eq!(discovery_type_to_arg_type("boolean"), ArgValueType::Boolean);
+        assert_eq!(discovery_type_to_arg_type("unknown"), ArgValueType::String);
     }
 
     #[test]

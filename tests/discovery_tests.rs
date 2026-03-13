@@ -64,7 +64,10 @@ fn extract_methods_from_mini_fixture() {
 fn mini_datasets_list_has_correct_params() {
     let doc = load_mini_fixture();
     let methods = extract_methods(&doc);
-    let ds_list = methods.iter().find(|m| m.id == "bigquery.datasets.list").unwrap();
+    let ds_list = methods
+        .iter()
+        .find(|m| m.id == "bigquery.datasets.list")
+        .unwrap();
 
     assert_eq!(ds_list.http_method, "GET");
     assert_eq!(ds_list.path, "projects/{+projectId}/datasets");
@@ -74,13 +77,21 @@ fn mini_datasets_list_has_correct_params() {
     assert_eq!(ds_list.response_ref.as_deref(), Some("DatasetList"));
 
     // Check projectId is path, required
-    let project_param = ds_list.parameters.iter().find(|p| p.name == "projectId").unwrap();
+    let project_param = ds_list
+        .parameters
+        .iter()
+        .find(|p| p.name == "projectId")
+        .unwrap();
     assert_eq!(project_param.location, ParamLocation::Path);
     assert!(project_param.required);
     assert_eq!(project_param.param_type, "string");
 
     // Check maxResults is query, optional, integer
-    let max_param = ds_list.parameters.iter().find(|p| p.name == "maxResults").unwrap();
+    let max_param = ds_list
+        .parameters
+        .iter()
+        .find(|p| p.name == "maxResults")
+        .unwrap();
     assert_eq!(max_param.location, ParamLocation::Query);
     assert!(!max_param.required);
     assert_eq!(max_param.param_type, "integer");
@@ -97,7 +108,10 @@ fn mini_datasets_list_has_correct_params() {
 fn mini_tables_get_has_three_path_params() {
     let doc = load_mini_fixture();
     let methods = extract_methods(&doc);
-    let tbl_get = methods.iter().find(|m| m.id == "bigquery.tables.get").unwrap();
+    let tbl_get = methods
+        .iter()
+        .find(|m| m.id == "bigquery.tables.get")
+        .unwrap();
 
     let path_params: Vec<&str> = tbl_get
         .parameters
@@ -190,7 +204,10 @@ fn filter_allowed_on_mini_returns_two() {
 fn generated_command_shape() {
     let doc = load_mini_fixture();
     let methods = extract_methods(&doc);
-    let ds_list = methods.iter().find(|m| m.id == "bigquery.datasets.list").unwrap();
+    let ds_list = methods
+        .iter()
+        .find(|m| m.id == "bigquery.datasets.list")
+        .unwrap();
     let cmd = to_generated_command(ds_list);
 
     assert_eq!(cmd.group, "datasets");
@@ -203,7 +220,11 @@ fn generated_command_shape() {
     assert!(project_arg.required);
     assert_eq!(project_arg.value_type, ArgValueType::String);
 
-    let max_arg = cmd.args.iter().find(|a| a.api_name == "maxResults").unwrap();
+    let max_arg = cmd
+        .args
+        .iter()
+        .find(|a| a.api_name == "maxResults")
+        .unwrap();
     assert_eq!(max_arg.flag_name, "max-results");
     assert!(!max_arg.required);
     assert_eq!(max_arg.value_type, ArgValueType::Integer);
@@ -218,7 +239,10 @@ fn generated_command_shape() {
 fn generated_command_snapshot_datasets_list() {
     let doc = load_mini_fixture();
     let methods = extract_methods(&doc);
-    let ds_list = methods.iter().find(|m| m.id == "bigquery.datasets.list").unwrap();
+    let ds_list = methods
+        .iter()
+        .find(|m| m.id == "bigquery.datasets.list")
+        .unwrap();
     let cmd = to_generated_command(ds_list);
     insta::assert_json_snapshot!("generated_command_datasets_list", cmd);
 }
@@ -227,7 +251,10 @@ fn generated_command_snapshot_datasets_list() {
 fn generated_command_snapshot_tables_get() {
     let doc = load_mini_fixture();
     let methods = extract_methods(&doc);
-    let tbl_get = methods.iter().find(|m| m.id == "bigquery.tables.get").unwrap();
+    let tbl_get = methods
+        .iter()
+        .find(|m| m.id == "bigquery.tables.get")
+        .unwrap();
     let cmd = to_generated_command(tbl_get);
     insta::assert_json_snapshot!("generated_command_tables_get", cmd);
 }
