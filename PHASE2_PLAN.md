@@ -40,7 +40,7 @@ README alignment notes:
   dynamic command surface is already stable, not a driver of Phase 2 command
   design
 
-## Current State
+## Baseline (pre-Phase 2)
 
 Phase 1 established the static command and packaging foundation:
 
@@ -58,15 +58,17 @@ Phase 1 established the static command and packaging foundation:
 - skills shipped as hand-written `SKILL.md` files
 - npm packaging and release automation for the Phase 1 binary/install story
 
-What Phase 2 still needs:
+What Phase 2 added (all complete — see milestones below):
 
-- no Discovery Document ingestion or cache layer
-- no dynamic command model
-- no generated BigQuery API commands such as `datasets list`
-- no skill generation pipeline
-- no Model Armor integration
-- no Gemini extension registration assets
-- skills are still manually authored, not generated or API-aware
+- Discovery Document ingestion with bundled pinned copy (M1, PR #13)
+- dynamic command model with read-only allowlist of 8 methods (M2, PR #14)
+- generated BigQuery API commands: `datasets list/get`, `tables list/get`,
+  `routines list/get`, `models list/get` (M2, PR #14)
+- skill generation pipeline: `bqx generate-skills` (M3, PR #16)
+- 19 non-CA skills: 4 generated + 15 curated (M4, PR #17)
+- Model Armor integration via `--sanitize` with regional endpoints (M5, PR #18)
+- Gemini extension manifest packaged and validated (M5, PR #18)
+- docs, e2e validation, and exit-criteria closure (M6, PR #19)
 
 ## Scope
 

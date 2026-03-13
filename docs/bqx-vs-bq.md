@@ -433,16 +433,16 @@ targets), making it installable in any CI environment in seconds.
 `gcloud` isn't pre-installed, adding it takes minutes and requires manual
 auth configuration.
 
-**Status:** npm distribution available now (Phase 1, PR #11). `npx bqx --help`
-works on macOS, Linux, and Windows. Skills with binary dependency declarations
-are on the `skills-m6` branch (PR #10).
+**Status:** npm distribution available (Phase 1). `npx bqx --help` works on
+macOS, Linux, and Windows. 19 skills shipped (Phase 2), with 4 generated from
+Discovery API metadata and 15 curated.
 
 ### Phase roadmap for deeper integration
 
 | Phase | What it adds | Why it can't be bq |
 |---|---|---|
-| Phase 1 (current) | `evaluate`, `get-trace`, `doctor`, npm distribution, 5 skills (pending merge) | `bq` has no analytics commands or skill format |
-| Phase 2 (planned) | Dynamic BigQuery API commands from Discovery Document, `generate-skills` | `bq` commands are static Python; cannot generate skills from API metadata |
+| Phase 1 (complete) | `evaluate`, `get-trace`, `doctor`, npm distribution, 5 core skills | `bq` has no analytics commands or skill format |
+| Phase 2 (complete) | Dynamic BigQuery API commands from Discovery Document, `generate-skills`, 19 skills, `--sanitize` (Model Armor), Gemini extension manifest | `bq` commands are static Python; cannot generate skills from API metadata |
 | Phase 3 (planned) | Conversational Analytics (`bqx ca ask`), natural language → SQL | `bq` has no CA integration; requires a new command domain |
 
 Each phase increases the gap between what `bqx` can do natively and what
