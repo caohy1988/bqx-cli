@@ -284,17 +284,22 @@ pub async fn run(
     )
     .await?;
 
+    let failed_count = eval_result.failed;
+
     if let Some(ref template) = config.sanitize_template {
         let json_val = serde_json::to_value(&eval_result)?;
         let sanitize_result =
             crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
         crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
         if sanitize_result.sanitized {
-            return crate::output::render(&sanitize_result.content, &config.format);
+            crate::output::render(&sanitize_result.content, &config.format)?;
+            if exit_code && failed_count > 0 {
+                return Err(BqxError::EvalFailed { exit_code: 1 }.into());
+            }
+            return Ok(());
         }
     }
 
-    let failed_count = eval_result.failed;
     render_eval(&eval_result, &config.format)?;
 
     if exit_code && failed_count > 0 {

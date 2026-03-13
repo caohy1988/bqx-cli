@@ -98,7 +98,7 @@
           "required": true
         }
       },
-      "command": "bqx tables get --project-id {project_id} --dataset-id {dataset_id} --tableId {table_id} --format json"
+      "command": "bqx tables get --project-id {project_id} --dataset-id {dataset_id} --table-id {table_id} --format json"
     },
     {
       "name": "bqx_routines_list",
