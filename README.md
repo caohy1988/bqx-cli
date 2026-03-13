@@ -144,12 +144,24 @@ Like `gws`, `bqx` uses two-phase argument parsing:
    cache it (24h TTL), and build a `clap::Command` tree dynamically
 
 **Offline / CI resilience:** The binary ships with a pinned copy of the
-Discovery Document (committed at build time). The runtime fetch is
-best-effort: if it fails (network-restricted CI, air-gapped environments),
-`bqx` falls back to the bundled version and logs a warning. A
-`--discovery=bundled|fetch|<path>` flag lets users force a specific
-source. The bundled document is updated on each `bqx` release and its
-version is printed by `bqx --version`.
+Discovery Document (committed at build time via `include_str!`). The
+bundled document is the sole source in Phase 2 — no runtime fetch. This
+ensures deterministic builds, reproducible CI, and no network dependency.
+The bundled document is updated intentionally and reviewed like vendored
+API input.
+
+**Phase 2 allowlist:** Dynamic commands are restricted to a read-only
+allowlist of 8 methods across 4 resource families:
+
+| Resource | Methods |
+|----------|---------|
+| datasets | `list`, `get` |
+| tables | `list`, `get` |
+| routines | `list`, `get` |
+| models | `list`, `get` |
+
+Write/mutation methods are excluded from Phase 2. The allowlist is defined
+in `src/bigquery/dynamic/model.rs`.
 
 ```bash
 # Dynamic commands (generated from BigQuery REST API Discovery Document)
@@ -333,7 +345,21 @@ bqx analytics evaluate --evaluator=latency --last=24h --exit-code
 ### 3.5 Security
 
 - **Model Armor integration:** `--sanitize <template>` screens API responses
-  for prompt injection. `BQX_SANITIZE_TEMPLATE` env var for global default.
+  through [Model Armor](https://cloud.google.com/security-command-center/docs/model-armor-overview)
+  for prompt injection and malicious content. Flagged responses are redacted
+  before reaching stdout; a notice is printed to stderr. Set
+  `BQX_SANITIZE_TEMPLATE` env var for global default.
+  ```bash
+  # Screen a query response through Model Armor
+  bqx jobs query --query "SELECT * FROM my_table" \
+    --sanitize projects/my-proj/locations/us-central1/templates/my-template
+
+  # Set globally for all commands
+  export BQX_SANITIZE_TEMPLATE=projects/my-proj/locations/us-central1/templates/my-template
+  bqx datasets list --project-id=myproject
+  ```
+  **Note:** Model Armor requires regional endpoints. The location is
+  extracted automatically from the template resource name.
 - **Credential encryption:** AES-256-GCM at rest, key in OS keyring.
 - **Destructive operation guards:** Write/delete commands require `--confirm`
   flag or interactive confirmation. Skill generator blocks destructive
@@ -631,11 +657,25 @@ bqx generate-skills --filter=bqx-datasets --output-dir=./skills
 ```
 
 The generator:
-- Fetches the BigQuery v2 Discovery Document
-- Creates one `SKILL.md` per API resource (datasets, tables, jobs, etc.)
-- Creates helper skills for common operations
-- Blocks destructive methods (delete, drop) in skill descriptions
+- Uses the bundled BigQuery v2 Discovery Document
+- Creates one `SKILL.md` + `agents/openai.yaml` per API resource family
+- Only generates skills for methods in the read-only allowlist
 - Includes flag tables, usage examples, and cross-references
+
+**Generated vs curated scope:** `generate-skills` produces service skills
+for BigQuery API resource families (datasets, tables, routines, models).
+Analytics helpers, personas, and recipes are curated by hand — they
+require opinionated workflow guidance that raw Discovery metadata cannot
+provide.
+
+| Type | Count | Generated? | Examples |
+|------|-------|------------|----------|
+| Service (API) | 4 | Yes | `bqx-datasets`, `bqx-tables`, `bqx-routines`, `bqx-models` |
+| Service (static/non-Discovery) | 3 | No | `bqx-jobs`, `bqx-connections`, `bqx-analytics` |
+| Helper | 6 | No | `bqx-analytics-evaluate`, `bqx-query`, `bqx-schema` |
+| Persona | 2 | No | `persona-agent-developer`, `persona-data-analyst` |
+| Recipe | 3 | No | `recipe-eval-pipeline`, `recipe-quality-dashboard` |
+| Shared | 1 | No | `bqx-shared` |
 
 ### 4.4 Skill Distribution
 
@@ -649,7 +689,8 @@ npx skills add https://github.com/bigquery/bqx/tree/main/skills/bqx-analytics
 # OpenClaw
 ln -s $(pwd)/skills/bqx-* ~/.openclaw/skills/
 
-# Gemini CLI
+# Gemini CLI (extension manifest packaged at extensions/gemini/manifest.json)
+# Not yet tested with live `gemini extensions install` — spec is evolving
 gemini extensions install https://github.com/bigquery/bqx
 
 # Claude Code (auto-discover from project)
@@ -825,36 +866,43 @@ bqx jobs query --query="
 
 ## 7. Implementation Roadmap
 
-### Phase 1: Core CLI + Analytics (v0.1)
+### Phase 1: Core CLI + Analytics (v0.1) — Complete
 
-- [ ] Rust CLI scaffold with `clap` (auth, global flags, `--format`)
-- [ ] `bqx analytics` commands: `doctor`, `evaluate`, `get-trace`
-- [ ] `--exit-code` for CI/CD
-- [ ] JSON/table/text output formatting
-- [ ] Auth: ADC + service account + `bqx auth login`
-- [ ] npm distribution (`npx bqx`) — platform-specific binaries via
+- [x] Rust CLI scaffold with `clap` (auth, global flags, `--format`)
+- [x] `bqx analytics` commands: `doctor`, `evaluate`, `get-trace`
+- [x] `--exit-code` for CI/CD
+- [x] JSON/table/text output formatting
+- [x] Auth: ADC + service account + `bqx auth login`
+- [x] npm distribution (`npx bqx`) — platform-specific binaries via
   optional dependencies (same approach as `esbuild`, `turbo`)
-- [ ] 5 core skills: `bqx-shared`, `bqx-analytics`, `bqx-analytics-evaluate`,
+- [x] 5 core skills: `bqx-shared`, `bqx-analytics`, `bqx-analytics-evaluate`,
   `bqx-analytics-trace`, `bqx-query`
 
 **Exit criteria:** `npx bqx analytics evaluate --last=1h --exit-code` works
 in GitHub Actions; 5 skills installable via `npx skills add`.
 
-### Phase 2: Dynamic BigQuery API + Skills (v0.2)
+### Phase 2: Dynamic BigQuery API + Skills (v0.2) — Complete
 
-- [ ] Discovery Document fetching + caching
-- [ ] Dynamic `clap::Command` tree generation for BigQuery v2 API
-- [ ] `bqx generate-skills` command
-- [ ] Non-CA curated skills: 1 shared, 6 BigQuery API service, 4
-  analytics helpers, 2 generic helpers, 2 CA-independent personas
-  (`persona-agent-developer`, `persona-data-analyst`), 4 non-CA recipes
-  (19 of 26 skills in §4.1; CA-dependent skills ship in Phase 3)
-- [ ] Model Armor integration (`--sanitize`)
-- [ ] Gemini CLI extension registration
+- [x] Discovery Document fetching + caching (bundled, pinned copy)
+- [x] Dynamic `clap::Command` tree generation for BigQuery v2 API
+- [x] `bqx generate-skills` command
+- [x] Non-CA curated skills: 19 of 26 skills (see §4.1); CA-dependent
+  skills ship in Phase 3
+- [x] Model Armor integration (`--sanitize`) — uses regional endpoints,
+  verified with live prompt injection detection and redaction
+- [x] Gemini CLI extension manifest packaged and validated
+  (`extensions/gemini/manifest.json`, 10 tools); `gemini extensions
+  install` not yet tested live as the Gemini CLI extension spec is
+  still evolving
 
-**Exit criteria:** `bqx datasets list` works without any hardcoded command
-definition; `bqx generate-skills` produces valid SKILL.md files;
-`gemini extensions install` succeeds.
+**Exit criteria:**
+- `bqx datasets list` works without any hardcoded command definition ✓
+- `bqx generate-skills` produces valid SKILL.md files ✓
+- Gemini extension manifest packaged and programmatically validated ✓
+- `--sanitize` verified end-to-end against live Model Armor ✓
+
+See [docs/e2e-validation.md](docs/e2e-validation.md) for the full
+reproducible validation script.
 
 ### Phase 3: Conversational Analytics + Polish (v0.3)
 
