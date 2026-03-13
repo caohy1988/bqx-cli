@@ -69,6 +69,8 @@ fn generate_skills_writes_all_expected_files() {
     // Verify all expected skill dirs were written.
     assert!(written.contains(&"bqx-datasets".to_string()));
     assert!(written.contains(&"bqx-tables".to_string()));
+    assert!(written.contains(&"bqx-routines".to_string()));
+    assert!(written.contains(&"bqx-models".to_string()));
 
     // Verify file structure.
     for name in &written {
@@ -136,4 +138,56 @@ fn generated_skill_md_contains_command_examples() {
     let tables_skill = skills.iter().find(|s| s.dir_name == "bqx-tables").unwrap();
     assert!(tables_skill.skill_md.contains("bqx tables list"));
     assert!(tables_skill.skill_md.contains("bqx tables get"));
+
+    let routines_skill = skills
+        .iter()
+        .find(|s| s.dir_name == "bqx-routines")
+        .unwrap();
+    assert!(routines_skill.skill_md.contains("bqx routines list"));
+    assert!(routines_skill.skill_md.contains("bqx routines get"));
+
+    let models_skill = skills.iter().find(|s| s.dir_name == "bqx-models").unwrap();
+    assert!(models_skill.skill_md.contains("bqx models list"));
+    assert!(models_skill.skill_md.contains("bqx models get"));
+}
+
+#[test]
+fn snapshot_routines_skill_md() {
+    let commands = load_generated_commands();
+    let skills = generator::generate_all(&commands);
+    let routines_skill = skills
+        .iter()
+        .find(|s| s.dir_name == "bqx-routines")
+        .unwrap();
+    insta::assert_snapshot!("generated_routines_skill_md", &routines_skill.skill_md);
+}
+
+#[test]
+fn snapshot_routines_openai_yaml() {
+    let commands = load_generated_commands();
+    let skills = generator::generate_all(&commands);
+    let routines_skill = skills
+        .iter()
+        .find(|s| s.dir_name == "bqx-routines")
+        .unwrap();
+    insta::assert_snapshot!(
+        "generated_routines_openai_yaml",
+        &routines_skill.openai_yaml
+    );
+}
+
+#[test]
+fn snapshot_models_skill_md() {
+    let commands = load_generated_commands();
+    let skills = generator::generate_all(&commands);
+    let models_skill = skills.iter().find(|s| s.dir_name == "bqx-models").unwrap();
+    insta::assert_snapshot!("generated_models_skill_md", &models_skill.skill_md);
+}
+
+#[test]
+fn snapshot_models_openai_yaml() {
+    let commands = load_generated_commands();
+    let skills = generator::generate_all(&commands);
+    let models_skill = skills.iter().find(|s| s.dir_name == "bqx-models").unwrap();
+    insta::assert_snapshot!("generated_models_openai_yaml", &models_skill.openai_yaml);
 }

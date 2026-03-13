@@ -42,5 +42,45 @@ expression: summary
     "request_ref": null,
     "resource": "tables",
     "response_ref": "Table"
+  },
+  {
+    "action": "list",
+    "http_method": "GET",
+    "id": "bigquery.routines.list",
+    "param_count": 6,
+    "path": "projects/{+projectId}/datasets/{+datasetId}/routines",
+    "request_ref": null,
+    "resource": "routines",
+    "response_ref": "ListRoutinesResponse"
+  },
+  {
+    "action": "get",
+    "http_method": "GET",
+    "id": "bigquery.routines.get",
+    "param_count": 4,
+    "path": "projects/{+projectId}/datasets/{+datasetId}/routines/{+routineId}",
+    "request_ref": null,
+    "resource": "routines",
+    "response_ref": "Routine"
+  },
+  {
+    "action": "list",
+    "http_method": "GET",
+    "id": "bigquery.models.list",
+    "param_count": 4,
+    "path": "projects/{+projectId}/datasets/{+datasetId}/models",
+    "request_ref": null,
+    "resource": "models",
+    "response_ref": "ListModelsResponse"
+  },
+  {
+    "action": "get",
+    "http_method": "GET",
+    "id": "bigquery.models.get",
+    "param_count": 3,
+    "path": "projects/{+projectId}/datasets/{+datasetId}/models/{+modelId}",
+    "request_ref": null,
+    "resource": "models",
+    "response_ref": "Model"
   }
 ]

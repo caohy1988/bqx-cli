@@ -1,0 +1,7 @@
+interface:
+  display_name: "Data Analyst Persona"
+  short_description: "Guide SQL analysts through BigQuery exploration with bqx"
+  default_prompt: "Use $persona-data-analyst to guide the user through data exploration workflows using bqx."
+
+policy:
+  allow_implicit_invocation: true

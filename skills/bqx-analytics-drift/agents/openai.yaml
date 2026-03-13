@@ -1,0 +1,7 @@
+interface:
+  display_name: "bqx Drift Detection"
+  short_description: "Detect behavioral drift in agent sessions"
+  default_prompt: "Use $bqx-analytics-drift to compare agent metrics across time windows and detect performance regressions."
+
+policy:
+  allow_implicit_invocation: true

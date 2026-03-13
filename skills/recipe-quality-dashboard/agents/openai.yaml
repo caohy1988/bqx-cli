@@ -1,0 +1,7 @@
+interface:
+  display_name: "Quality Dashboard Recipe"
+  short_description: "Build an agent quality dashboard with BigQuery views"
+  default_prompt: "Use $recipe-quality-dashboard to set up BigQuery views and dashboards for monitoring agent quality."
+
+policy:
+  allow_implicit_invocation: true

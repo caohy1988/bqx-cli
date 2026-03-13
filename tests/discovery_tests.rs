@@ -162,11 +162,11 @@ fn bundled_contains_all_allowed_methods() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn filter_allowed_returns_exactly_four() {
+fn filter_allowed_returns_expected_count() {
     let doc = load_bundled();
     let methods = extract_methods(&doc);
     let filtered = filter_allowed(&methods);
-    assert_eq!(filtered.len(), 4);
+    assert_eq!(filtered.len(), 8);
 }
 
 #[test]

@@ -1,0 +1,7 @@
+interface:
+  display_name: "bqx Models"
+  short_description: "list/get BigQuery ML models via bqx"
+  default_prompt: "Use $bqx-models to list/get BigQuery ML models using the bqx CLI."
+
+policy:
+  allow_implicit_invocation: true

@@ -355,39 +355,45 @@ CLI, Cursor, Copilot, Codex) can discover and use.
 
 ```
 skills/
-├── bqx-shared/SKILL.md                       # Auth, global flags, security rules
+│ ## Shared
+├── bqx-shared/SKILL.md                       # Curated: auth, global flags, security rules
 │
-├── bqx-datasets/SKILL.md                     # Service: dataset operations
-├── bqx-tables/SKILL.md                       # Service: table operations
-├── bqx-jobs/SKILL.md                         # Service: query execution
-├── bqx-routines/SKILL.md                     # Service: UDFs, remote functions
-├── bqx-models/SKILL.md                       # Service: ML models
-├── bqx-connections/SKILL.md                  # Service: external connections
+│ ## Service skills — generated from BigQuery v2 Discovery API
+├── bqx-datasets/SKILL.md                     # Generated: dataset list/get
+├── bqx-tables/SKILL.md                       # Generated: table list/get
+├── bqx-routines/SKILL.md                     # Generated: routine list/get
+├── bqx-models/SKILL.md                       # Generated: ML model list/get
 │
-├── bqx-analytics/SKILL.md                    # Service: Agent Analytics SDK
-├── bqx-analytics-evaluate/SKILL.md           # Helper: run evaluations
-├── bqx-analytics-trace/SKILL.md              # Helper: retrieve traces
-├── bqx-analytics-drift/SKILL.md              # Helper: drift detection
-├── bqx-analytics-views/SKILL.md              # Helper: manage event views
+│ ## Service skills — curated (static commands or non-Discovery APIs)
+├── bqx-jobs/SKILL.md                         # Curated: query execution (static command)
+├── bqx-connections/SKILL.md                  # Curated: external connections (via INFORMATION_SCHEMA)
+├── bqx-analytics/SKILL.md                    # Curated: Agent Analytics SDK
 │
-├── bqx-ca/SKILL.md                           # Service: Conversational Analytics
-├── bqx-ca-ask/SKILL.md                       # Helper: ask questions in NL
-├── bqx-ca-create-agent/SKILL.md              # Helper: create data agents
+│ ## Helper skills — curated
+├── bqx-analytics-evaluate/SKILL.md           # Curated: run evaluations
+├── bqx-analytics-trace/SKILL.md              # Curated: retrieve traces
+├── bqx-analytics-drift/SKILL.md              # Curated: drift detection workflow
+├── bqx-analytics-views/SKILL.md              # Curated: manage event views
+├── bqx-query/SKILL.md                        # Curated: shortcut for `bqx jobs query`
+├── bqx-schema/SKILL.md                       # Curated: inspect table schemas
 │
-├── bqx-query/SKILL.md                        # Helper: shortcut for `bqx jobs query`
-│                                              #   (convenience alias for the most common API call)
-├── bqx-schema/SKILL.md                       # Helper: inspect table schemas
+│ ## Personas — curated
+├── persona-agent-developer/SKILL.md          # Curated: agent developer workflows
+├── persona-data-analyst/SKILL.md             # Curated: SQL analyst workflows
+├── persona-sre/SKILL.md                      # Phase 3: SRE/on-call (requires bqx-ca)
 │
-├── persona-agent-developer/SKILL.md          # Persona: agent developer workflows
-├── persona-data-analyst/SKILL.md             # Persona: SQL analyst workflows
-├── persona-sre/SKILL.md                      # Persona: SRE/on-call workflows
+│ ## Recipes — curated
+├── recipe-eval-pipeline/SKILL.md             # Curated: CI/CD eval gate setup
+├── recipe-quality-dashboard/SKILL.md         # Curated: dashboard via BigQuery views
+├── recipe-drift-monitoring/SKILL.md          # Curated: weekly drift detection
 │
-├── recipe-eval-pipeline/SKILL.md             # Recipe: CI/CD eval gate setup
-├── recipe-quality-dashboard/SKILL.md         # Recipe: Looker dashboard via remote fn
-├── recipe-error-alerting/SKILL.md            # Recipe: CQ + AI.GENERATE_TEXT alerting
-├── recipe-drift-monitoring/SKILL.md          # Recipe: weekly drift detection
-├── recipe-self-diagnostic-agent/SKILL.md     # Recipe: agent self-correction loop
-└── recipe-ca-data-agent-setup/SKILL.md       # Recipe: CA data agent creation
+│ ## CA-dependent (Phase 3)
+├── bqx-ca/SKILL.md                           # Phase 3: Conversational Analytics
+├── bqx-ca-ask/SKILL.md                       # Phase 3: ask questions in NL
+├── bqx-ca-create-agent/SKILL.md              # Phase 3: create data agents
+├── recipe-error-alerting/SKILL.md            # Phase 3: CQ + AI.GENERATE_TEXT alerting
+├── recipe-self-diagnostic-agent/SKILL.md     # Phase 3: agent self-correction loop
+└── recipe-ca-data-agent-setup/SKILL.md       # Phase 3: CA data agent creation
 ```
 
 ### 4.2 Example Skills

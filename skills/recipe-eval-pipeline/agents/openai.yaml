@@ -1,0 +1,7 @@
+interface:
+  display_name: "Eval Pipeline Recipe"
+  short_description: "Set up CI/CD evaluation gates for agent quality"
+  default_prompt: "Use $recipe-eval-pipeline to set up CI/CD evaluation gates that block deployments when agent quality drops."
+
+policy:
+  allow_implicit_invocation: true

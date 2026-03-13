@@ -1,0 +1,7 @@
+interface:
+  display_name: "Agent Developer Persona"
+  short_description: "Guide agent developers through bqx workflows"
+  default_prompt: "Use $persona-agent-developer to guide the user through agent development workflows using bqx."
+
+policy:
+  allow_implicit_invocation: true
