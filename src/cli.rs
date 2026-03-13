@@ -52,6 +52,16 @@ pub enum Command {
         #[command(subcommand)]
         command: AuthCommand,
     },
+    /// Generate SKILL.md and agents/openai.yaml for BigQuery API commands
+    GenerateSkills {
+        /// Output directory for generated skill files
+        #[arg(long, default_value = "./skills")]
+        output_dir: String,
+
+        /// Generate only skills matching these names (e.g. bqx-datasets)
+        #[arg(long)]
+        filter: Vec<String>,
+    },
 }
 
 #[derive(Subcommand)]

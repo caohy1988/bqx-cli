@@ -10,28 +10,21 @@ use bqx::config::Config;
 use bqx::models::BqxError;
 
 /// Names of static (derive-based) top-level subcommands.
-const STATIC_COMMANDS: &[&str] = &["jobs", "analytics", "auth"];
+const STATIC_COMMANDS: &[&str] = &["jobs", "analytics", "auth", "generate-skills"];
 
 #[tokio::main]
 async fn main() {
-    // 1. Load Discovery and build the generated command metadata.
-    let doc = match discovery::load(&DiscoverySource::Bundled) {
-        Ok(d) => d,
+    // 1. Build a hybrid clap::Command: static derive tree + dynamic subcommands.
+    //    Discovery loading is cheap (bundled include_str!) but isolated so that
+    //    a bad bundled asset cannot brick static commands like auth/analytics.
+    let (generated_commands, base_url) = match load_generated_commands() {
+        Ok((cmds, url)) => (cmds, url),
         Err(e) => {
-            eprintln!(
-                "{}",
-                json!({"error": format!("Failed to load discovery: {e}")})
-            );
-            std::process::exit(1);
+            eprintln!("Warning: could not load dynamic commands: {e}");
+            (Vec::new(), String::new())
         }
     };
-    let base_url = doc.base_url.clone();
-    let methods = model::extract_methods(&doc);
-    let allowed = model::filter_allowed(&methods);
-    let generated_commands: Vec<model::GeneratedCommand> =
-        allowed.iter().map(model::to_generated_command).collect();
 
-    // 2. Build a hybrid clap::Command: static derive tree + dynamic subcommands.
     let mut app = Cli::command();
     let dynamic_clap = clap_tree::build_dynamic_commands(&generated_commands);
     for sub in dynamic_clap {
@@ -41,10 +34,10 @@ async fn main() {
         }
     }
 
-    // 3. Parse args with the augmented command.
+    // 2. Parse args with the augmented command.
     let matches = app.get_matches();
 
-    // 4. Check if the matched subcommand is dynamic.
+    // 3. Check if the matched subcommand is dynamic.
     if let Some((group_name, group_matches)) = matches.subcommand() {
         if !STATIC_COMMANDS.contains(&group_name) {
             // This is a dynamic command.
@@ -60,7 +53,7 @@ async fn main() {
         }
     }
 
-    // 5. Static path: reconstruct Cli from the already-parsed matches.
+    // 4. Static path: reconstruct Cli from the already-parsed matches.
     let cli = match Cli::from_arg_matches(&matches) {
         Ok(c) => c,
         Err(e) => {
@@ -70,6 +63,18 @@ async fn main() {
     };
 
     run_static(cli).await;
+}
+
+/// Load Discovery and build the generated command metadata.
+/// Separated so that a failure here does not brick static commands.
+fn load_generated_commands() -> anyhow::Result<(Vec<model::GeneratedCommand>, String)> {
+    let doc = discovery::load(&DiscoverySource::Bundled)?;
+    let base_url = doc.base_url.clone();
+    let methods = model::extract_methods(&doc);
+    let allowed = model::filter_allowed(&methods);
+    let commands: Vec<model::GeneratedCommand> =
+        allowed.iter().map(model::to_generated_command).collect();
+    Ok((commands, base_url))
 }
 
 async fn run_dynamic(
@@ -99,6 +104,7 @@ async fn run_dynamic(
     };
 
     // Extract global flags from root matches.
+    // --project-id is required for all dynamic commands.
     let project_id = match root_matches.get_one::<String>("project_id") {
         Some(p) => p.clone(),
         None => {
@@ -125,9 +131,21 @@ async fn run_dynamic(
     let mut args = clap_tree::extract_args(action_matches, cmd);
 
     // Inject global flag values for params that are skipped in clap generation.
+    // Check if datasetId is a required path parameter for this command.
+    let needs_dataset_id =
+        cmd.method.parameters.iter().any(|p| {
+            p.name == "datasetId" && p.location == model::ParamLocation::Path && p.required
+        });
+
     if let Some(dataset_id) = root_matches.get_one::<String>("dataset_id") {
         args.entry("datasetId".to_string())
             .or_insert_with(|| dataset_id.clone());
+    } else if needs_dataset_id && !args.contains_key("datasetId") {
+        eprintln!(
+            "{}",
+            json!({"error": "--dataset-id or BQX_DATASET is required for this command"})
+        );
+        std::process::exit(1);
     }
 
     let result = executor::execute(
@@ -159,6 +177,20 @@ async fn run_static(cli: Cli) {
             AuthCommand::Logout => auth::login::run_logout(),
             AuthCommand::Status => auth::login::run_status(&auth_opts).await,
         };
+        if let Err(e) = result {
+            eprintln!("{}", json!({"error": e.to_string()}));
+            std::process::exit(1);
+        }
+        return;
+    }
+
+    // generate-skills doesn't need project/dataset config
+    if let Command::GenerateSkills {
+        ref output_dir,
+        ref filter,
+    } = cli.command
+    {
+        let result = commands::generate_skills::run(output_dir, filter, &cli.format);
         if let Err(e) = result {
             eprintln!("{}", json!({"error": e.to_string()}));
             std::process::exit(1);
@@ -206,7 +238,7 @@ async fn run_static(cli: Cli) {
                 commands::analytics::get_trace::run(session_id, &auth_opts, &config).await
             }
         },
-        Command::Auth { .. } => unreachable!(),
+        Command::Auth { .. } | Command::GenerateSkills { .. } => unreachable!(),
     };
 
     if let Err(e) = result {

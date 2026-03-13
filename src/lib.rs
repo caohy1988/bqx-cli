@@ -5,3 +5,4 @@ pub mod commands;
 pub mod config;
 pub mod models;
 pub mod output;
+pub mod skills;
