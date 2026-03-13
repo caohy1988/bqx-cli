@@ -67,7 +67,7 @@ Point Looker Studio, Grafana, or Metabase at the summary views:
 ### Step 4: Set up scheduled refresh (optional)
 
 For materialized summaries instead of views, create a scheduled query in
-BigQuery that writes to a destination table daily. Use `bqx query --dry-run`
+BigQuery that writes to a destination table daily. Use `bqx jobs query --dry-run`
 to validate the aggregation SQL before scheduling.
 
 ## Decision rules

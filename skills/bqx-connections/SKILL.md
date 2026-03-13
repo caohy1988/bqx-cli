@@ -24,7 +24,7 @@ Requires: `--project-id`
 
 BigQuery connections are managed by the separate BigQuery Connection API
 (`bigqueryconnection.googleapis.com`), not the core BigQuery v2 API. To inspect
-connection metadata through bqx, use `bqx query` with `INFORMATION_SCHEMA` views.
+connection metadata through bqx, use `bqx jobs query` with `INFORMATION_SCHEMA` views.
 
 ## Inspecting connections
 

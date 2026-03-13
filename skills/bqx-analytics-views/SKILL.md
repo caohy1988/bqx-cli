@@ -27,7 +27,7 @@ subsets of events without repeating WHERE clauses.
 
 ## Creating event-type views
 
-Use `bqx query` to create views for common event types:
+Use `bqx jobs query` to create views for common event types:
 
 ### Session start events
 
@@ -116,4 +116,4 @@ bqx jobs query \
 - View creation requires `bigquery.tables.create` IAM permission on the dataset
 - Views are SQL-based filters, not materialized — query cost applies on each read
 - View names must follow BigQuery naming rules (alphanumeric + underscores)
-- Views created via `bqx query` are standard SQL views, not authorized views
+- Views created via `bqx jobs query` are standard SQL views, not authorized views

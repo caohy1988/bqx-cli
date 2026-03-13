@@ -590,7 +590,7 @@ drops below thresholds.
 1. Install `bqx` in CI (distributed as platform-specific binaries via npm,
    similar to [`esbuild`](https://github.com/evanw/esbuild) and
    [`turbo`](https://github.com/vercel/turbo)):
-   `npm install -g @bigquery/bqx`
+   `npm install -g bqx`
 
 2. Authenticate with Workload Identity Federation:
    ```yaml

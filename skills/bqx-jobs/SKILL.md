@@ -47,7 +47,7 @@ bqx jobs query \
 - Use `--dry-run` to verify the query plan without running it
 - Use `--format table` for scanning results visually in a terminal
 - Use `--format json` when piping output to other tools or scripts
-- Prefer `bqx query` (shortcut) for simple one-off queries
+- Prefer the `bqx-query` skill for guidance on simple one-off queries
 - Use `bqx jobs query` when you need explicit control over legacy SQL mode
 
 ## Examples
@@ -76,4 +76,4 @@ bqx jobs query \
 
 - Only `jobs query` is available in Phase 2; job listing and management commands are planned
 - The `--query` flag requires the full SQL string including fully-qualified table references
-- `bqx query` is a shortcut that delegates to `jobs query`
+- See the `bqx-query` skill for query-focused guidance

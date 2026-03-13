@@ -1,4 +1,8 @@
 ---
+source: tests/skill_generation_tests.rs
+expression: "&routines_skill.skill_md"
+---
+---
 name: bqx-routines
 description: Use bqx to manage BigQuery routines via the get, list commands. Generated from the BigQuery v2 Discovery API.
 ---

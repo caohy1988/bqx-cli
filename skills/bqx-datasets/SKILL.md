@@ -17,7 +17,7 @@ Do not use when the user wants analytics workflows (doctor, evaluate, get-trace)
 
 See **bqx-shared** for authentication and global flags.
 
-Requires: `--project-id` and `--dataset-id`
+Requires: `--project-id` (all commands), `--dataset-id` (some commands — see per-command details below)
 
 ## Commands
 
@@ -27,6 +27,8 @@ Returns the dataset specified by datasetID.
 
 ```bash
 bqx datasets get \
+  --project-id <PROJECT_ID> \
+  --dataset-id <DATASET_ID> \
   [--access-policy-version] \
   [--dataset-view] \
   [--dry-run] \
@@ -35,6 +37,8 @@ bqx datasets get \
 
 | Flag | Required | Description |
 |------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
+| `--dataset-id` | Yes | BigQuery dataset (global flag) |
 | `--access-policy-version` | No | Optional |
 | `--dataset-view` | No | Optional |
 
@@ -44,6 +48,7 @@ Lists all datasets in the specified project to which the user has been granted t
 
 ```bash
 bqx datasets list \
+  --project-id <PROJECT_ID> \
   [--all] \
   [--filter] \
   [--max-results] \
@@ -54,6 +59,7 @@ bqx datasets list \
 
 | Flag | Required | Description |
 |------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
 | `--all` | No | Whether to list all datasets, including hidden ones |
 | `--filter` | No | An expression for filtering the results of the request by label |
 | `--max-results` | No | The maximum number of results to return in a single response page |

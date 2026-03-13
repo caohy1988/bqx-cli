@@ -1,3 +1,7 @@
+---
+source: tests/skill_generation_tests.rs
+expression: "&models_skill.openai_yaml"
+---
 interface:
   display_name: "bqx Models"
   short_description: "get/list BigQuery models via bqx"

@@ -27,6 +27,8 @@ Gets the specified table resource by table ID. This method does not return the d
 
 ```bash
 bqx tables get \
+  --project-id <PROJECT_ID> \
+  --dataset-id <DATASET_ID> \
   --table-id <tableId> \
   [--selected-fields] \
   [--view] \
@@ -36,6 +38,8 @@ bqx tables get \
 
 | Flag | Required | Description |
 |------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
+| `--dataset-id` | Yes | BigQuery dataset (global flag) |
 | `--table-id` | Yes | Required |
 | `--selected-fields` | No | List of table schema fields to return (comma-separated) |
 | `--view` | No | Optional |
@@ -46,6 +50,8 @@ Lists all tables in the specified dataset. Requires the READER dataset role.
 
 ```bash
 bqx tables list \
+  --project-id <PROJECT_ID> \
+  --dataset-id <DATASET_ID> \
   [--max-results] \
   [--page-token] \
   [--dry-run] \
@@ -54,6 +60,8 @@ bqx tables list \
 
 | Flag | Required | Description |
 |------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
+| `--dataset-id` | Yes | BigQuery dataset (global flag) |
 | `--max-results` | No | The maximum number of results to return in a single response page |
 | `--page-token` | No | Page token, returned by a previous call, to request the next page of results |
 

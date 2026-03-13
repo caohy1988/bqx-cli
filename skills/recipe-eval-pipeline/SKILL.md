@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install bqx
-        run: npm install -g @bqx-cli/linux-x64
+        run: npm install -g bqx
 
       - name: Check latency
         run: |
