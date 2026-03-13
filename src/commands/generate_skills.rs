@@ -1,0 +1,60 @@
+use std::path::Path;
+
+use anyhow::Result;
+use serde_json::json;
+
+use crate::bigquery::discovery::{self, DiscoverySource};
+use crate::bigquery::dynamic::model;
+use crate::cli::OutputFormat;
+use crate::skills::generator;
+
+/// Run the `generate-skills` command.
+///
+/// Generates SKILL.md and agents/openai.yaml for each resource group
+/// from the BigQuery v2 Discovery Document.
+pub fn run(output_dir: &str, filter: &[String], format: &OutputFormat) -> Result<()> {
+    let doc = discovery::load(&DiscoverySource::Bundled)?;
+    let methods = model::extract_methods(&doc);
+    let allowed = model::filter_allowed(&methods);
+    let commands: Vec<model::GeneratedCommand> =
+        allowed.iter().map(model::to_generated_command).collect();
+
+    let skills = generator::generate_all(&commands);
+    let skills = generator::filter_skills(skills, filter);
+
+    if skills.is_empty() {
+        match format {
+            OutputFormat::Json => {
+                println!("{}", json!({"generated": [], "count": 0}));
+            }
+            OutputFormat::Table | OutputFormat::Text => {
+                println!("No skills matched the filter.");
+            }
+        }
+        return Ok(());
+    }
+
+    let written = generator::write_skills(Path::new(output_dir), &skills)?;
+
+    match format {
+        OutputFormat::Json => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "generated": written,
+                    "count": written.len(),
+                    "output_dir": output_dir,
+                }))?
+            );
+        }
+        OutputFormat::Table | OutputFormat::Text => {
+            println!("Generated {} skill(s) in {}:", written.len(), output_dir);
+            for name in &written {
+                println!("  {name}/SKILL.md");
+                println!("  {name}/agents/openai.yaml");
+            }
+        }
+    }
+
+    Ok(())
+}

@@ -42,15 +42,5 @@ expression: summary
     "request_ref": null,
     "resource": "tables",
     "response_ref": "Table"
-  },
-  {
-    "action": "get",
-    "http_method": "GET",
-    "id": "bigquery.jobs.get",
-    "param_count": 3,
-    "path": "projects/{+projectId}/jobs/{+jobId}",
-    "request_ref": null,
-    "resource": "jobs",
-    "response_ref": "Job"
   }
 ]
