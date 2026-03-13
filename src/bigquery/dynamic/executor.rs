@@ -17,6 +17,7 @@ use super::request_builder::{self, DynamicRequest};
 /// 4. Sends the HTTP request
 /// 5. Optionally sanitizes via Model Armor
 /// 6. Renders the JSON response
+#[allow(clippy::too_many_arguments)]
 pub async fn execute(
     cmd: &GeneratedCommand,
     args: &HashMap<String, String>,
