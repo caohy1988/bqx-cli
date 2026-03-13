@@ -1,0 +1,7 @@
+interface:
+  display_name: "bqx Connections"
+  short_description: "Inspect BigQuery external connections via bqx"
+  default_prompt: "Use $bqx-connections to inspect BigQuery external connection metadata using INFORMATION_SCHEMA queries."
+
+policy:
+  allow_implicit_invocation: true

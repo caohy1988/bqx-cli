@@ -1,0 +1,7 @@
+interface:
+  display_name: "bqx Tables"
+  short_description: "get/list BigQuery tables via bqx"
+  default_prompt: "Use $bqx-tables to get/list BigQuery tables using the bqx CLI."
+
+policy:
+  allow_implicit_invocation: true

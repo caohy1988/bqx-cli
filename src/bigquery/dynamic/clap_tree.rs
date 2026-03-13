@@ -174,7 +174,7 @@ mod tests {
         let cmds = load_commands();
         let dynamic = build_dynamic_commands(&cmds);
         let names: Vec<&str> = dynamic.iter().map(|c| c.get_name()).collect();
-        assert_eq!(names, vec!["datasets", "tables"]);
+        assert_eq!(names, vec!["datasets", "models", "routines", "tables"]);
     }
 
     #[test]

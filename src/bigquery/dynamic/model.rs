@@ -9,6 +9,10 @@ pub const ALLOWED_METHODS: &[&str] = &[
     "bigquery.datasets.get",
     "bigquery.tables.list",
     "bigquery.tables.get",
+    "bigquery.routines.list",
+    "bigquery.routines.get",
+    "bigquery.models.list",
+    "bigquery.models.get",
 ];
 
 /// A parsed BigQuery API method, extracted from Discovery.

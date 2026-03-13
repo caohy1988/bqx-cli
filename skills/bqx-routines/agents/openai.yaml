@@ -1,0 +1,7 @@
+interface:
+  display_name: "bqx Routines"
+  short_description: "get/list BigQuery routines via bqx"
+  default_prompt: "Use $bqx-routines to get/list BigQuery routines using the bqx CLI."
+
+policy:
+  allow_implicit_invocation: true

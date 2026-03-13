@@ -1,0 +1,7 @@
+interface:
+  display_name: "Drift Monitoring Recipe"
+  short_description: "Set up weekly drift detection for agent performance"
+  default_prompt: "Use $recipe-drift-monitoring to set up automated weekly drift detection for agent quality metrics."
+
+policy:
+  allow_implicit_invocation: true

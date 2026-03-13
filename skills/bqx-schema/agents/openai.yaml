@@ -1,0 +1,7 @@
+interface:
+  display_name: "bqx Schema"
+  short_description: "Inspect BigQuery table schemas via bqx"
+  default_prompt: "Use $bqx-schema to inspect the schema of a BigQuery table using bqx."
+
+policy:
+  allow_implicit_invocation: true

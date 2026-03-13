@@ -1,0 +1,97 @@
+---
+name: bqx-datasets
+description: Use bqx to manage BigQuery datasets via the get, list commands. Generated from the BigQuery v2 Discovery API.
+---
+
+## When to use this skill
+
+Use when the user asks about:
+- "get a BigQuery dataset"
+- "list a BigQuery dataset"
+- "show me BigQuery datasets"
+- "what datasets are in my project"
+
+Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) — use bqx-analytics instead.
+
+## Prerequisites
+
+See **bqx-shared** for authentication and global flags.
+
+Requires: `--project-id` (all commands), `--dataset-id` (some commands — see per-command details below)
+
+## Commands
+
+### datasets get
+
+Returns the dataset specified by datasetID.
+
+```bash
+bqx datasets get \
+  --project-id <PROJECT_ID> \
+  --dataset-id <DATASET_ID> \
+  [--access-policy-version] \
+  [--dataset-view] \
+  [--dry-run] \
+  [--format json|table|text]
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
+| `--dataset-id` | Yes | BigQuery dataset (global flag) |
+| `--access-policy-version` | No | Optional |
+| `--dataset-view` | No | Optional |
+
+### datasets list
+
+Lists all datasets in the specified project to which the user has been granted the READER dataset role.
+
+```bash
+bqx datasets list \
+  --project-id <PROJECT_ID> \
+  [--all] \
+  [--filter] \
+  [--max-results] \
+  [--page-token] \
+  [--dry-run] \
+  [--format json|table|text]
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
+| `--all` | No | Whether to list all datasets, including hidden ones |
+| `--filter` | No | An expression for filtering the results of the request by label |
+| `--max-results` | No | The maximum number of results to return in a single response page |
+| `--page-token` | No | Page token, returned by a previous call, to request the next page of results |
+
+## Decision rules
+
+- Use `--dry-run` to see the API request without executing it
+- Use `--format table` for scanning results visually in a terminal
+- Use `--format json` when piping output to other tools or scripts
+- Use `datasets list` to discover available datasets in a project
+- Use `datasets get` to inspect a specific dataset's metadata
+
+## Examples
+
+```bash
+# Get datasets
+bqx datasets get \
+  --project-id my-proj \
+  --dataset-id my_dataset \
+  --format table
+
+# List datasets
+bqx datasets list \
+  --project-id my-proj \
+  --format table
+
+```
+
+## Constraints
+
+- These commands are generated from the BigQuery v2 Discovery API
+- Only read operations are supported in Phase 2
+- Nested response objects are summarized in table format; use `--format json` for full detail
+- Reference objects (e.g. datasetsReference) are automatically flattened in table output
