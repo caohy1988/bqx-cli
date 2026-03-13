@@ -38,15 +38,17 @@ pub async fn sanitize_response(
     let client = reqwest::Client::new();
     let token = auth.token().await?;
 
+    // Model Armor requires regional endpoints for sanitization.
+    // Extract location from the template resource name:
+    //   projects/{proj}/locations/{loc}/templates/{id}
+    let location = extract_location(template)?;
     let url = format!(
-        "https://modelarmor.googleapis.com/v1/{template}:sanitizeModelResponse",
+        "https://modelarmor.{location}.rep.googleapis.com/v1/{template}:sanitizeModelResponse",
     );
 
     let body = serde_json::json!({
-        "model_response_data": {
-            "text": {
-                "text": text
-            }
+        "modelResponseData": {
+            "text": text
         }
     });
 
@@ -125,6 +127,21 @@ fn extract_finding_summary(ma_response: &serde_json::Value) -> String {
     }
 }
 
+/// Extract the location segment from a fully-qualified template resource name.
+/// e.g. `projects/my-proj/locations/us-central1/templates/my-tmpl` → `us-central1`
+fn extract_location(template: &str) -> Result<&str> {
+    let parts: Vec<&str> = template.split('/').collect();
+    // Expected: ["projects", proj, "locations", loc, "templates", id]
+    if parts.len() >= 4 && parts[2] == "locations" {
+        Ok(parts[3])
+    } else {
+        bail!(
+            "Cannot extract location from template: '{template}'. \
+             Expected format: projects/{{project}}/locations/{{location}}/templates/{{id}}"
+        );
+    }
+}
+
 /// Render a sanitization notice to stderr so it's visible regardless of format.
 pub fn print_sanitization_notice(result: &SanitizeResult) {
     if result.sanitized {
@@ -194,6 +211,24 @@ mod tests {
             result.finding_summary.as_deref(),
             Some("Content was flagged by Model Armor")
         );
+    }
+
+    #[test]
+    fn extract_location_from_template() {
+        assert_eq!(
+            extract_location("projects/my-proj/locations/us-central1/templates/my-tmpl").unwrap(),
+            "us-central1"
+        );
+        assert_eq!(
+            extract_location("projects/p/locations/europe-west1/templates/t").unwrap(),
+            "europe-west1"
+        );
+    }
+
+    #[test]
+    fn extract_location_invalid_format() {
+        assert!(extract_location("invalid-template-name").is_err());
+        assert!(extract_location("projects/p/templates/t").is_err());
     }
 
     #[test]
