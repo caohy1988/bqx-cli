@@ -1,0 +1,83 @@
+---
+source: tests/discovery_tests.rs
+expression: cmd
+---
+{
+  "group": "tables",
+  "action": "get",
+  "about": "Gets the specified table resource by table ID.",
+  "args": [
+    {
+      "flag_name": "dataset-id",
+      "api_name": "datasetId",
+      "required": true,
+      "help": "Required. Dataset ID of the requested table",
+      "value_type": "String"
+    },
+    {
+      "flag_name": "project-id",
+      "api_name": "projectId",
+      "required": true,
+      "help": "Required. Project ID of the requested table",
+      "value_type": "String"
+    },
+    {
+      "flag_name": "table-id",
+      "api_name": "tableId",
+      "required": true,
+      "help": "Required. Table ID of the requested table",
+      "value_type": "String"
+    },
+    {
+      "flag_name": "selected-fields",
+      "api_name": "selectedFields",
+      "required": false,
+      "help": "List of table schema fields to return (comma-separated).",
+      "value_type": "String"
+    }
+  ],
+  "method": {
+    "id": "bigquery.tables.get",
+    "resource": "tables",
+    "action": "get",
+    "path": "projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}",
+    "http_method": "GET",
+    "description": "Gets the specified table resource by table ID.",
+    "parameters": [
+      {
+        "name": "datasetId",
+        "location": "path",
+        "param_type": "string",
+        "format": null,
+        "required": true,
+        "description": "Required. Dataset ID of the requested table"
+      },
+      {
+        "name": "projectId",
+        "location": "path",
+        "param_type": "string",
+        "format": null,
+        "required": true,
+        "description": "Required. Project ID of the requested table"
+      },
+      {
+        "name": "tableId",
+        "location": "path",
+        "param_type": "string",
+        "format": null,
+        "required": true,
+        "description": "Required. Table ID of the requested table"
+      },
+      {
+        "name": "selectedFields",
+        "location": "query",
+        "param_type": "string",
+        "format": null,
+        "required": false,
+        "description": "List of table schema fields to return (comma-separated)."
+      }
+    ],
+    "request_ref": null,
+    "response_ref": "Table"
+  }
+}
