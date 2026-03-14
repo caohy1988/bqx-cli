@@ -1,0 +1,7 @@
+interface:
+  display_name: "Error Alerting Recipe"
+  short_description: "Set up automated error alerting for AI agents"
+  default_prompt: "Use $recipe-error-alerting to build a proactive monitoring pipeline with Slack or PagerDuty alerts."
+
+policy:
+  allow_implicit_invocation: true

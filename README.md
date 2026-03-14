@@ -672,9 +672,9 @@ provide.
 |------|-------|------------|----------|
 | Service (API) | 4 | Yes | `bqx-datasets`, `bqx-tables`, `bqx-routines`, `bqx-models` |
 | Service (static/non-Discovery) | 3 | No | `bqx-jobs`, `bqx-connections`, `bqx-analytics` |
-| Helper | 6 | No | `bqx-analytics-evaluate`, `bqx-query`, `bqx-schema` |
-| Persona | 2 | No | `persona-agent-developer`, `persona-data-analyst` |
-| Recipe | 3 | No | `recipe-eval-pipeline`, `recipe-quality-dashboard` |
+| Helper | 9 | No | `bqx-analytics-evaluate`, `bqx-query`, `bqx-schema`, `bqx-ca`, `bqx-ca-ask`, `bqx-ca-create-agent` |
+| Persona | 3 | No | `persona-agent-developer`, `persona-data-analyst`, `persona-sre` |
+| Recipe | 6 | No | `recipe-eval-pipeline`, `recipe-quality-dashboard`, `recipe-ca-data-agent-setup`, `recipe-error-alerting`, `recipe-self-diagnostic-agent` |
 | Shared | 1 | No | `bqx-shared` |
 
 ### 4.4 Skill Distribution
@@ -910,15 +910,15 @@ reproducible validation script.
 > sufficient stability (currently in preview). Phase 1-2 deliver value
 > independently.
 
-- [ ] `bqx ca ask` — natural language query via CA API
-- [ ] `bqx ca create-agent` — create data agents
-- [ ] `bqx ca add-verified-query` — add verified queries
-- [ ] Ship `deploy/ca/verified_queries.yaml` with SDK
-- [ ] Remaining CA-dependent skills (7 of 26): `bqx-ca`, `bqx-ca-ask`,
+- [x] `bqx ca ask` — natural language query via CA API
+- [x] `bqx ca create-agent` — create data agents
+- [x] `bqx ca add-verified-query` — add verified queries
+- [x] Ship `deploy/ca/verified_queries.yaml` with SDK
+- [x] Remaining CA-dependent skills (7 of 26): `bqx-ca`, `bqx-ca-ask`,
   `bqx-ca-create-agent`, `persona-sre` (requires `bqx-ca`),
   `recipe-ca-data-agent-setup`, `recipe-error-alerting`,
   `recipe-self-diagnostic-agent`
-- [ ] Remaining analytics commands: `insights`, `drift`, `distribution`,
+- [x] Remaining analytics commands: `insights`, `drift`, `distribution`,
   `views`, `hitl-metrics`, `list-traces`
 - [ ] Completion scripts (bash, zsh, fish)
 - [ ] Documentation and examples
