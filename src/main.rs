@@ -4,13 +4,13 @@ use serde_json::json;
 use bqx::auth;
 use bqx::bigquery::discovery::{self, DiscoverySource};
 use bqx::bigquery::dynamic::{clap_tree, executor, model};
-use bqx::cli::{AnalyticsCommand, AuthCommand, Cli, Command, JobsCommand, OutputFormat};
+use bqx::cli::{AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat};
 use bqx::commands;
 use bqx::config::Config;
 use bqx::models::BqxError;
 
 /// Names of static (derive-based) top-level subcommands.
-const STATIC_COMMANDS: &[&str] = &["jobs", "analytics", "auth", "generate-skills"];
+const STATIC_COMMANDS: &[&str] = &["jobs", "analytics", "ca", "auth", "generate-skills"];
 
 #[tokio::main]
 async fn main() {
@@ -225,6 +225,13 @@ async fn run_static(cli: Cli) {
                     dry_run,
                 },
         } => commands::jobs_query::run(query, use_legacy_sql, dry_run, &auth_opts, &config).await,
+        Command::Ca { command } => match command {
+            CaCommand::Ask {
+                question,
+                agent,
+                tables,
+            } => commands::ca::ask::run(question, agent, tables, &auth_opts, &config).await,
+        },
         Command::Analytics { command } => match command {
             AnalyticsCommand::Doctor => commands::analytics::doctor::run(&auth_opts, &config).await,
             AnalyticsCommand::Evaluate {
