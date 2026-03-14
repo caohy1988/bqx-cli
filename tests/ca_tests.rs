@@ -1,8 +1,11 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use bqx::ca::client::CaExecutor;
-use bqx::ca::models::{CaQuestionRequest, CaQuestionResponse};
+use bqx::ca::client::{CaAgentManager, CaExecutor, CreateAgentParams};
+use bqx::ca::models::{
+    AddVerifiedQueryResponse, CaQuestionRequest, CaQuestionResponse, CreateAgentResponse,
+    DataAgentSummary, ListAgentsResponse,
+};
 use bqx::cli::OutputFormat;
 use bqx::commands::ca::ask::{build_request, validate_inputs};
 use bqx::config::Config;
@@ -255,4 +258,253 @@ async fn run_with_executor_empty_question_fails() {
         .unwrap_err()
         .to_string()
         .contains("Question cannot be empty"));
+}
+
+// ═══════════════════════════════════════════════
+// MockCaAgentManager
+// ═══════════════════════════════════════════════
+
+struct MockCaAgentManager;
+
+#[async_trait]
+impl CaAgentManager for MockCaAgentManager {
+    async fn create_agent(
+        &self,
+        project: &str,
+        location: &str,
+        params: &CreateAgentParams<'_>,
+    ) -> Result<CreateAgentResponse> {
+        Ok(CreateAgentResponse {
+            agent_id: params.agent_id.to_string(),
+            name: format!(
+                "projects/{project}/locations/{location}/dataAgents/{}",
+                params.agent_id
+            ),
+            display_name: params.display_name.map(|s| s.to_string()),
+            location: location.to_string(),
+            create_time: Some("2026-03-13T00:00:00Z".into()),
+            tables_count: params.tables.len() - params.views_count,
+            views_count: params.views_count,
+            verified_queries_count: params.verified_queries.len(),
+        })
+    }
+
+    async fn list_agents(&self, _project: &str, _location: &str) -> Result<ListAgentsResponse> {
+        Ok(ListAgentsResponse {
+            agents: vec![DataAgentSummary {
+                agent_id: "test-agent".into(),
+                name: "projects/p/locations/us/dataAgents/test-agent".into(),
+                display_name: Some("Test Agent".into()),
+                create_time: Some("2026-03-13T00:00:00Z".into()),
+                update_time: None,
+            }],
+        })
+    }
+
+    async fn add_verified_query(
+        &self,
+        _project: &str,
+        _location: &str,
+        agent_id: &str,
+        question: &str,
+        _query: &str,
+    ) -> Result<AddVerifiedQueryResponse> {
+        Ok(AddVerifiedQueryResponse {
+            agent_id: agent_id.to_string(),
+            question: question.to_string(),
+            total_verified_queries: 5,
+            status: "added".to_string(),
+        })
+    }
+}
+
+// ═══════════════════════════════════════════════
+// Create Agent Validation Tests
+// ═══════════════════════════════════════════════
+
+#[test]
+fn create_agent_validate_rejects_empty_tables() {
+    use bqx::commands::ca::create_agent::validate_inputs;
+    let result = validate_inputs("my-agent", &[], None);
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("--tables is required"));
+}
+
+#[test]
+fn create_agent_validate_rejects_invalid_name() {
+    use bqx::commands::ca::create_agent::validate_inputs;
+    let result = validate_inputs("bad/name", &["p.d.t".into()], None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Invalid agent_id"));
+}
+
+#[test]
+fn create_agent_validate_rejects_invalid_table_ref() {
+    use bqx::commands::ca::create_agent::validate_inputs;
+    let result = validate_inputs("my-agent", &["bad_ref".into()], None);
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("Invalid table reference"));
+}
+
+#[test]
+fn create_agent_validate_accepts_valid_inputs() {
+    use bqx::commands::ca::create_agent::validate_inputs;
+    assert!(validate_inputs("my-agent", &["p.d.t".into()], None).is_ok());
+}
+
+// ═══════════════════════════════════════════════
+// Add Verified Query Validation Tests
+// ═══════════════════════════════════════════════
+
+#[test]
+fn add_vq_validate_rejects_empty_question() {
+    use bqx::commands::ca::add_verified_query::validate_inputs;
+    let result = validate_inputs("my-agent", "", "SELECT 1");
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("--question cannot be empty"));
+}
+
+#[test]
+fn add_vq_validate_rejects_empty_query() {
+    use bqx::commands::ca::add_verified_query::validate_inputs;
+    let result = validate_inputs("my-agent", "test?", "  ");
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("--query cannot be empty"));
+}
+
+#[test]
+fn add_vq_validate_rejects_invalid_agent() {
+    use bqx::commands::ca::add_verified_query::validate_inputs;
+    let result = validate_inputs("bad/agent", "test?", "SELECT 1");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Invalid agent_id"));
+}
+
+#[test]
+fn add_vq_validate_accepts_valid_inputs() {
+    use bqx::commands::ca::add_verified_query::validate_inputs;
+    assert!(validate_inputs("my-agent", "How many?", "SELECT COUNT(*) FROM t").is_ok());
+}
+
+// ═══════════════════════════════════════════════
+// Verified Queries YAML Tests
+// ═══════════════════════════════════════════════
+
+#[test]
+fn bundled_verified_queries_load() {
+    let queries = bqx::ca::verified_queries::load(None).unwrap();
+    assert!(queries.len() >= 4);
+}
+
+// ═══════════════════════════════════════════════
+// Agent Management Integration Tests
+// ═══════════════════════════════════════════════
+
+#[tokio::test]
+async fn create_agent_with_executor_json() {
+    let mock = MockCaAgentManager;
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::ca::create_agent::run_with_executor(
+        &mock,
+        "my-agent".into(),
+        vec!["p.d.t".into()],
+        None,
+        None,
+        None,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn create_agent_with_executor_text() {
+    let mock = MockCaAgentManager;
+    let config = test_config(OutputFormat::Text);
+    let result = bqx::commands::ca::create_agent::run_with_executor(
+        &mock,
+        "my-agent".into(),
+        vec!["p.d.t".into()],
+        None,
+        None,
+        Some("Test instructions".into()),
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn create_agent_empty_tables_fails() {
+    let mock = MockCaAgentManager;
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::ca::create_agent::run_with_executor(
+        &mock,
+        "my-agent".into(),
+        vec![],
+        None,
+        None,
+        None,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn list_agents_with_executor() {
+    let mock = MockCaAgentManager;
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::ca::list_agents::run_with_executor(&mock, &config).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn list_agents_with_executor_text() {
+    let mock = MockCaAgentManager;
+    let config = test_config(OutputFormat::Text);
+    let result = bqx::commands::ca::list_agents::run_with_executor(&mock, &config).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn add_verified_query_with_executor() {
+    let mock = MockCaAgentManager;
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::ca::add_verified_query::run_with_executor(
+        &mock,
+        "my-agent".into(),
+        "What is the error rate?".into(),
+        "SELECT COUNT(*) FROM t".into(),
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn add_verified_query_empty_question_fails() {
+    let mock = MockCaAgentManager;
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::ca::add_verified_query::run_with_executor(
+        &mock,
+        "my-agent".into(),
+        "".into(),
+        "SELECT 1".into(),
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
 }

@@ -144,6 +144,47 @@ pub enum CaCommand {
         #[arg(long, value_delimiter = ',')]
         tables: Option<Vec<String>>,
     },
+
+    /// Create a new Conversational Analytics data agent
+    CreateAgent {
+        /// Agent name / ID (alphanumeric, hyphens, underscores, dots)
+        #[arg(long)]
+        name: String,
+
+        /// Table references (project.dataset.table)
+        #[arg(long, value_delimiter = ',')]
+        tables: Vec<String>,
+
+        /// View references to include as additional data sources
+        #[arg(long, value_delimiter = ',')]
+        views: Option<Vec<String>>,
+
+        /// Path to verified queries YAML file (defaults to bundled)
+        #[arg(long)]
+        verified_queries: Option<String>,
+
+        /// System instructions for the agent
+        #[arg(long)]
+        instructions: Option<String>,
+    },
+
+    /// List data agents in the project
+    ListAgents,
+
+    /// Add a verified query to an existing data agent
+    AddVerifiedQuery {
+        /// Agent ID to add the query to
+        #[arg(long)]
+        agent: String,
+
+        /// Natural language question
+        #[arg(long)]
+        question: String,
+
+        /// SQL query to associate with the question
+        #[arg(long)]
+        query: String,
+    },
 }
 
 #[derive(Subcommand)]

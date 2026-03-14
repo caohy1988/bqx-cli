@@ -36,7 +36,52 @@ pub struct CaQuestionResponse {
     pub explanation: Option<String>,
 }
 
-// ── CA API wire types ──
+// ── Agent management output contracts ──
+
+/// Stable output contract for `bqx ca create-agent`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateAgentResponse {
+    pub agent_id: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    pub location: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub create_time: Option<String>,
+    pub tables_count: usize,
+    pub views_count: usize,
+    pub verified_queries_count: usize,
+}
+
+/// Stable output contract for `bqx ca list-agents`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListAgentsResponse {
+    pub agents: Vec<DataAgentSummary>,
+}
+
+/// Summary of a data agent (used in list output).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataAgentSummary {
+    pub agent_id: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub create_time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub update_time: Option<String>,
+}
+
+/// Stable output contract for `bqx ca add-verified-query`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddVerifiedQueryResponse {
+    pub agent_id: String,
+    pub question: String,
+    pub total_verified_queries: usize,
+    pub status: String,
+}
+
+// ── CA API wire types (chat) ──
 
 /// A single message in the streaming chat response.
 #[derive(Debug, Deserialize)]

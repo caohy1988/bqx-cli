@@ -115,7 +115,9 @@ fn format_cell(value: Option<&serde_json::Value>) -> String {
 pub mod text {
     use std::fmt::Write;
 
-    use crate::ca::models::CaQuestionResponse;
+    use crate::ca::models::{
+        AddVerifiedQueryResponse, CaQuestionResponse, CreateAgentResponse, ListAgentsResponse,
+    };
     use crate::commands::analytics::doctor::DoctorReport;
     use crate::commands::analytics::evaluate::{EvalResult, SessionEval};
     use crate::commands::analytics::get_trace::{TraceEvent, TraceResult};
@@ -153,6 +155,24 @@ pub mod text {
     pub fn render_ca_ask(resp: &CaQuestionResponse) {
         let mut buf = String::new();
         fmt_ca_ask(&mut buf, resp);
+        print!("{buf}");
+    }
+
+    pub fn render_create_agent(resp: &CreateAgentResponse) {
+        let mut buf = String::new();
+        fmt_create_agent(&mut buf, resp);
+        print!("{buf}");
+    }
+
+    pub fn render_list_agents(resp: &ListAgentsResponse) {
+        let mut buf = String::new();
+        fmt_list_agents(&mut buf, resp);
+        print!("{buf}");
+    }
+
+    pub fn render_add_verified_query(resp: &AddVerifiedQueryResponse) {
+        let mut buf = String::new();
+        fmt_add_verified_query(&mut buf, resp);
         print!("{buf}");
     }
 
@@ -259,6 +279,43 @@ pub mod text {
         }
     }
 
+    pub fn fmt_create_agent(w: &mut dyn Write, resp: &CreateAgentResponse) {
+        let _ = writeln!(w, "Agent created: {}", resp.agent_id);
+        if let Some(ref dn) = resp.display_name {
+            let _ = writeln!(w, "Display name: {dn}");
+        }
+        let _ = writeln!(w, "Location: {}", resp.location);
+        let _ = writeln!(w, "Name: {}", resp.name);
+        let _ = writeln!(w, "Tables: {}", resp.tables_count);
+        if resp.views_count > 0 {
+            let _ = writeln!(w, "Views: {}", resp.views_count);
+        }
+        let _ = writeln!(w, "Verified queries: {}", resp.verified_queries_count);
+        if let Some(ref ct) = resp.create_time {
+            let _ = writeln!(w, "Created: {ct}");
+        }
+    }
+
+    pub fn fmt_list_agents(w: &mut dyn Write, resp: &ListAgentsResponse) {
+        if resp.agents.is_empty() {
+            let _ = writeln!(w, "No data agents found.");
+            return;
+        }
+        let _ = writeln!(w, "Data agents ({}):", resp.agents.len());
+        for a in &resp.agents {
+            let display = a.display_name.as_deref().unwrap_or(&a.agent_id);
+            let time = a.create_time.as_deref().unwrap_or("unknown");
+            let _ = writeln!(w, "  {:<30} created={time}", display);
+        }
+    }
+
+    pub fn fmt_add_verified_query(w: &mut dyn Write, resp: &AddVerifiedQueryResponse) {
+        let _ = writeln!(w, "Verified query added to agent: {}", resp.agent_id);
+        let _ = writeln!(w, "Question: {}", resp.question);
+        let _ = writeln!(w, "Total verified queries: {}", resp.total_verified_queries);
+        let _ = writeln!(w, "Status: {}", resp.status);
+    }
+
     pub fn fmt_ca_ask(w: &mut dyn Write, resp: &CaQuestionResponse) {
         let _ = writeln!(w, "Question: {}", resp.question);
         if let Some(ref agent) = resp.agent {
@@ -300,7 +357,10 @@ pub mod text {
 #[cfg(test)]
 mod tests {
     use super::text::*;
-    use crate::ca::models::CaQuestionResponse;
+    use crate::ca::models::{
+        AddVerifiedQueryResponse, CaQuestionResponse, CreateAgentResponse, DataAgentSummary,
+        ListAgentsResponse,
+    };
     use crate::commands::analytics::doctor::{DoctorReport, NullChecks};
     use crate::commands::analytics::evaluate::{EvalResult, SessionEval};
     use crate::commands::analytics::get_trace::{TraceEvent, TraceResult};
@@ -644,5 +704,78 @@ mod tests {
         assert!(!buf.contains("Agent:"));
         assert!(buf.contains("Results: (none)"));
         assert!(!buf.contains("Explanation:"));
+    }
+
+    #[test]
+    fn text_create_agent() {
+        let resp = CreateAgentResponse {
+            agent_id: "agent-analytics".into(),
+            name: "projects/p/locations/us/dataAgents/agent-analytics".into(),
+            display_name: Some("agent-analytics".into()),
+            location: "us".into(),
+            create_time: Some("2026-03-13T00:00:00Z".into()),
+            tables_count: 1,
+            views_count: 2,
+            verified_queries_count: 4,
+        };
+        let mut buf = String::new();
+        fmt_create_agent(&mut buf, &resp);
+        assert!(buf.contains("Agent created: agent-analytics"));
+        assert!(buf.contains("Location: us"));
+        assert!(buf.contains("Tables: 1"));
+        assert!(buf.contains("Views: 2"));
+        assert!(buf.contains("Verified queries: 4"));
+        assert!(buf.contains("Created: 2026-03-13T00:00:00Z"));
+    }
+
+    #[test]
+    fn text_list_agents_empty() {
+        let resp = ListAgentsResponse { agents: vec![] };
+        let mut buf = String::new();
+        fmt_list_agents(&mut buf, &resp);
+        assert!(buf.contains("No data agents found."));
+    }
+
+    #[test]
+    fn text_list_agents_with_entries() {
+        let resp = ListAgentsResponse {
+            agents: vec![
+                DataAgentSummary {
+                    agent_id: "agent-1".into(),
+                    name: "projects/p/locations/us/dataAgents/agent-1".into(),
+                    display_name: Some("Agent One".into()),
+                    create_time: Some("2026-03-13T00:00:00Z".into()),
+                    update_time: None,
+                },
+                DataAgentSummary {
+                    agent_id: "agent-2".into(),
+                    name: "projects/p/locations/us/dataAgents/agent-2".into(),
+                    display_name: None,
+                    create_time: None,
+                    update_time: None,
+                },
+            ],
+        };
+        let mut buf = String::new();
+        fmt_list_agents(&mut buf, &resp);
+        assert!(buf.contains("Data agents (2):"));
+        assert!(buf.contains("Agent One"));
+        assert!(buf.contains("agent-2"));
+    }
+
+    #[test]
+    fn text_add_verified_query() {
+        let resp = AddVerifiedQueryResponse {
+            agent_id: "agent-analytics".into(),
+            question: "What is the error rate?".into(),
+            total_verified_queries: 5,
+            status: "added".into(),
+        };
+        let mut buf = String::new();
+        fmt_add_verified_query(&mut buf, &resp);
+        assert!(buf.contains("Verified query added to agent: agent-analytics"));
+        assert!(buf.contains("Question: What is the error rate?"));
+        assert!(buf.contains("Total verified queries: 5"));
+        assert!(buf.contains("Status: added"));
     }
 }

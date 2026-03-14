@@ -231,6 +231,33 @@ async fn run_static(cli: Cli) {
                 agent,
                 tables,
             } => commands::ca::ask::run(question, agent, tables, &auth_opts, &config).await,
+            CaCommand::CreateAgent {
+                name,
+                tables,
+                views,
+                verified_queries,
+                instructions,
+            } => {
+                commands::ca::create_agent::run(
+                    name,
+                    tables,
+                    views,
+                    verified_queries,
+                    instructions,
+                    &auth_opts,
+                    &config,
+                )
+                .await
+            }
+            CaCommand::ListAgents => commands::ca::list_agents::run(&auth_opts, &config).await,
+            CaCommand::AddVerifiedQuery {
+                agent,
+                question,
+                query,
+            } => {
+                commands::ca::add_verified_query::run(agent, question, query, &auth_opts, &config)
+                    .await
+            }
         },
         Command::Analytics { command } => match command {
             AnalyticsCommand::Doctor => commands::analytics::doctor::run(&auth_opts, &config).await,
