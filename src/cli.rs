@@ -57,6 +57,11 @@ pub enum Command {
         #[command(subcommand)]
         command: AuthCommand,
     },
+    /// Conversational Analytics operations
+    Ca {
+        #[command(subcommand)]
+        command: CaCommand,
+    },
     /// Generate SKILL.md and agents/openai.yaml for BigQuery API commands
     GenerateSkills {
         /// Output directory for generated skill files
@@ -120,6 +125,24 @@ pub enum AnalyticsCommand {
         /// Session ID to retrieve
         #[arg(long)]
         session_id: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum CaCommand {
+    /// Ask a natural language question via Conversational Analytics
+    Ask {
+        /// The question to ask
+        #[arg()]
+        question: String,
+
+        /// Data agent to use (e.g. agent-analytics)
+        #[arg(long)]
+        agent: Option<String>,
+
+        /// Table references for context (e.g. project.dataset.table)
+        #[arg(long, value_delimiter = ',')]
+        tables: Option<Vec<String>>,
     },
 }
 

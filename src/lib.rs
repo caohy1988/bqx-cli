@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod bigquery;
+pub mod ca;
 pub mod cli;
 pub mod commands;
 pub mod config;

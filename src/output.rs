@@ -115,6 +115,7 @@ fn format_cell(value: Option<&serde_json::Value>) -> String {
 pub mod text {
     use std::fmt::Write;
 
+    use crate::ca::models::CaQuestionResponse;
     use crate::commands::analytics::doctor::DoctorReport;
     use crate::commands::analytics::evaluate::{EvalResult, SessionEval};
     use crate::commands::analytics::get_trace::{TraceEvent, TraceResult};
@@ -146,6 +147,12 @@ pub mod text {
     pub fn render_trace(trace: &TraceResult) {
         let mut buf = String::new();
         fmt_trace(&mut buf, trace);
+        print!("{buf}");
+    }
+
+    pub fn render_ca_ask(resp: &CaQuestionResponse) {
+        let mut buf = String::new();
+        fmt_ca_ask(&mut buf, resp);
         print!("{buf}");
     }
 
@@ -251,11 +258,49 @@ pub mod text {
             }
         }
     }
+
+    pub fn fmt_ca_ask(w: &mut dyn Write, resp: &CaQuestionResponse) {
+        let _ = writeln!(w, "Question: {}", resp.question);
+        if let Some(ref agent) = resp.agent {
+            let _ = writeln!(w, "Agent: {agent}");
+        }
+        if let Some(ref sql) = resp.sql {
+            let _ = writeln!(w, "SQL: {sql}");
+        }
+        if let Some(ref explanation) = resp.explanation {
+            let _ = writeln!(w, "Explanation: {explanation}");
+        }
+        if resp.results.is_empty() {
+            let _ = writeln!(w, "Results: (none)");
+        } else {
+            let _ = writeln!(w, "Results: {} rows", resp.results.len());
+            // Print column headers from first row
+            if let Some(first) = resp.results.first() {
+                let cols: Vec<&String> = first.keys().collect();
+                for (i, row) in resp.results.iter().enumerate() {
+                    let vals: Vec<String> = cols
+                        .iter()
+                        .map(|col| {
+                            row.get(*col)
+                                .map(|v| match v {
+                                    serde_json::Value::String(s) => s.clone(),
+                                    serde_json::Value::Null => "null".to_string(),
+                                    other => other.to_string(),
+                                })
+                                .unwrap_or_else(|| "null".to_string())
+                        })
+                        .collect();
+                    let _ = writeln!(w, "Row {}: {}", i + 1, vals.join(" | "));
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::text::*;
+    use crate::ca::models::CaQuestionResponse;
     use crate::commands::analytics::doctor::{DoctorReport, NullChecks};
     use crate::commands::analytics::evaluate::{EvalResult, SessionEval};
     use crate::commands::analytics::get_trace::{TraceEvent, TraceResult};
@@ -559,5 +604,45 @@ mod tests {
         let mut buf = String::new();
         fmt_query(&mut buf, 0, &[], &[]);
         assert_eq!(buf.trim(), "Query complete: 0 rows");
+    }
+
+    #[test]
+    fn text_ca_ask_with_results() {
+        let resp = CaQuestionResponse {
+            question: "error rate for support_bot?".into(),
+            agent: Some("agent-analytics".into()),
+            sql: Some("SELECT error_rate FROM t".into()),
+            results: vec![{
+                let mut map = serde_json::Map::new();
+                map.insert("error_rate".into(), serde_json::json!(0.05));
+                map
+            }],
+            explanation: Some("Shows the error rate".into()),
+        };
+        let mut buf = String::new();
+        fmt_ca_ask(&mut buf, &resp);
+        assert!(buf.contains("Question: error rate for support_bot?"));
+        assert!(buf.contains("Agent: agent-analytics"));
+        assert!(buf.contains("SQL: SELECT error_rate FROM t"));
+        assert!(buf.contains("Explanation: Shows the error rate"));
+        assert!(buf.contains("Results: 1 rows"));
+        assert!(buf.contains("Row 1:"));
+    }
+
+    #[test]
+    fn text_ca_ask_no_results() {
+        let resp = CaQuestionResponse {
+            question: "test?".into(),
+            agent: None,
+            sql: Some("SELECT 1".into()),
+            results: vec![],
+            explanation: None,
+        };
+        let mut buf = String::new();
+        fmt_ca_ask(&mut buf, &resp);
+        assert!(buf.contains("Question: test?"));
+        assert!(!buf.contains("Agent:"));
+        assert!(buf.contains("Results: (none)"));
+        assert!(!buf.contains("Explanation:"));
     }
 }
