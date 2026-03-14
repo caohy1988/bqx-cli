@@ -46,13 +46,41 @@ fn test_config(format: OutputFormat) -> Config {
 
 #[test]
 fn validate_empty_question_fails() {
-    assert!(validate_inputs("").is_err());
-    assert!(validate_inputs("   ").is_err());
+    assert!(validate_inputs("", None, None).is_err());
+    assert!(validate_inputs("   ", None, None).is_err());
 }
 
 #[test]
 fn validate_normal_question_succeeds() {
-    assert!(validate_inputs("error rate for support_bot?").is_ok());
+    assert!(validate_inputs("error rate for support_bot?", None, None).is_ok());
+}
+
+#[test]
+fn validate_rejects_agent_and_tables_together() {
+    let tables = vec!["p.d.t".into()];
+    let result = validate_inputs("test?", Some("my-agent"), Some(&tables));
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("--agent and --tables cannot be used together"), "Got: {err}");
+}
+
+#[test]
+fn validate_rejects_malformed_agent_id() {
+    let result = validate_inputs("test?", Some("bad/agent"), None);
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("Invalid agent_id"), "Got: {err}");
+}
+
+#[test]
+fn validate_accepts_agent_only() {
+    assert!(validate_inputs("test?", Some("my-agent"), None).is_ok());
+}
+
+#[test]
+fn validate_accepts_tables_only() {
+    let tables = vec!["p.d.t".into()];
+    assert!(validate_inputs("test?", None, Some(&tables)).is_ok());
 }
 
 // ═══════════════════════════════════════════════
@@ -60,19 +88,33 @@ fn validate_normal_question_succeeds() {
 // ═══════════════════════════════════════════════
 
 #[test]
-fn build_request_sets_all_fields() {
+fn build_request_with_agent() {
     let req = build_request(
         "test question".into(),
         Some("my-agent".into()),
-        Some(vec!["proj.ds.tbl".into()]),
+        None,
         "us",
     )
     .unwrap();
     assert_eq!(req.question, "test question");
     assert_eq!(req.agent.as_deref(), Some("my-agent"));
+    assert!(req.tables.is_none());
+    assert_eq!(req.location, "us");
+}
+
+#[test]
+fn build_request_with_tables() {
+    let req = build_request(
+        "test question".into(),
+        None,
+        Some(vec!["proj.ds.tbl".into()]),
+        "us",
+    )
+    .unwrap();
+    assert_eq!(req.question, "test question");
+    assert!(req.agent.is_none());
     assert_eq!(req.tables.as_ref().unwrap().len(), 1);
     assert_eq!(req.tables.as_ref().unwrap()[0].project_id, "proj");
-    assert_eq!(req.location, "us");
 }
 
 #[test]

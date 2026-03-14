@@ -4,7 +4,7 @@ use crate::auth::{self, AuthOptions};
 use crate::ca::client::{CaClient, CaExecutor, parse_table_refs};
 use crate::ca::models::{CaQuestionRequest, CaQuestionResponse};
 use crate::cli::OutputFormat;
-use crate::config::Config;
+use crate::config::{self, Config};
 use crate::output;
 
 /// Build the CA question request from CLI args.
@@ -28,9 +28,22 @@ pub fn build_request(
 }
 
 /// Validate CA ask inputs before making any network call.
-pub fn validate_inputs(question: &str) -> Result<()> {
+pub fn validate_inputs(
+    question: &str,
+    agent: Option<&str>,
+    tables: Option<&[String]>,
+) -> Result<()> {
     if question.trim().is_empty() {
         anyhow::bail!("Question cannot be empty");
+    }
+    if let Some(agent) = agent {
+        config::validate_agent_id(agent)?;
+    }
+    if agent.is_some() && tables.is_some() {
+        anyhow::bail!(
+            "--agent and --tables cannot be used together. \
+             Use --agent for a data agent context or --tables for inline table context, not both."
+        );
     }
     Ok(())
 }
@@ -44,11 +57,11 @@ pub async fn run(
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
-    validate_inputs(&question)?;
+    validate_inputs(&question, agent.as_deref(), tables.as_deref())?;
+    let req = build_request(question, agent, tables, &config.location)?;
 
     let resolved = auth::resolve(auth_opts).await?;
     let client = CaClient::new(resolved.clone());
-    let req = build_request(question, agent, tables, &config.location)?;
     let resp = client.ask(&config.project_id, &req).await?;
 
     if let Some(ref template) = config.sanitize_template {
@@ -72,7 +85,7 @@ pub async fn run_with_executor(
     location: &str,
     config: &Config,
 ) -> Result<()> {
-    validate_inputs(&question)?;
+    validate_inputs(&question, agent.as_deref(), tables.as_deref())?;
     let req = build_request(question, agent, tables, location)?;
     let resp = executor.ask(&config.project_id, &req).await?;
     render_response(&resp, &config.format)
