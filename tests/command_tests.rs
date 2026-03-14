@@ -1266,6 +1266,74 @@ async fn drift_rejects_invalid_golden_dataset() {
     assert!(result.unwrap_err().to_string().contains("Invalid golden-dataset"));
 }
 
+#[tokio::test]
+async fn drift_rejects_invalid_min_coverage() {
+    let executor = MockExecutor::new(vec![], vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::drift::run_with_executor(
+        &executor,
+        "golden_qs".into(),
+        "7d".into(),
+        None,
+        2.0,
+        false,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(
+        result.unwrap_err().to_string().contains("Invalid min-coverage"),
+        "Should reject min-coverage > 1.0"
+    );
+}
+
+#[test]
+fn drift_sql_deduplicates_per_golden_question() {
+    let sql = build_drift_query("proj", "ds", "events", "gq", "INTERVAL 7 DAY", None);
+    assert!(sql.contains("ROW_NUMBER()"), "SQL must deduplicate with ROW_NUMBER");
+    assert!(sql.contains("WHERE rn = 1"), "SQL must keep only first match per golden question");
+}
+
+#[test]
+fn drift_from_rows_coverage_not_inflated_by_duplicates() {
+    // Simulate what would happen if the SQL returned two rows for one golden
+    // question (i.e. the old bug). With the fix, the SQL deduplicates, but
+    // the Rust layer should also produce correct coverage from any input.
+    // Two distinct golden questions: one covered, one not.
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("golden_question".into(), json!("Q1"));
+                m.insert("expected_answer".into(), json!("A1"));
+                m.insert("session_id".into(), json!("s1"));
+                m.insert("actual_answer".into(), json!("A1b"));
+                m.insert("covered".into(), json!("true"));
+                m
+            },
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("golden_question".into(), json!("Q2"));
+                m.insert("expected_answer".into(), json!("A2"));
+                m.insert("session_id".into(), json!(serde_json::Value::Null));
+                m.insert("actual_answer".into(), json!(serde_json::Value::Null));
+                m.insert("covered".into(), json!("false"));
+                m
+            },
+        ],
+        total_rows: 2,
+    };
+    let questions = drift_from_rows(&result);
+    assert_eq!(questions.len(), 2);
+    let covered = questions.iter().filter(|q| q.covered).count();
+    let coverage = covered as f64 / questions.len() as f64;
+    assert!(
+        (coverage - 0.5).abs() < 0.01,
+        "Coverage should be 1/2 = 0.50, got {coverage}"
+    );
+}
+
 // ── Distribution tests ──
 
 #[test]

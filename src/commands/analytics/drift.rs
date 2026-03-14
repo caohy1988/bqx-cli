@@ -34,13 +34,14 @@ recent_sessions AS (
     {agent_filter}
     AND event_type IN ('HUMAN_INPUT_RECEIVED', 'INVOCATION_COMPLETED', 'LLM_RESPONSE')
 ),
-matched AS (
+ranked AS (
   SELECT
     g.question AS golden_question,
     g.expected_answer,
     r.session_id,
     r.answer_text AS actual_answer,
-    CASE WHEN r.session_id IS NOT NULL THEN true ELSE false END AS covered
+    CASE WHEN r.session_id IS NOT NULL THEN true ELSE false END AS covered,
+    ROW_NUMBER() OVER (PARTITION BY g.question ORDER BY r.session_id) AS rn
   FROM golden g
   LEFT JOIN recent_sessions r
     ON LOWER(r.question_text) = LOWER(g.question)
@@ -51,7 +52,8 @@ SELECT
   session_id,
   actual_answer,
   covered
-FROM matched
+FROM ranked
+WHERE rn = 1
 ORDER BY covered ASC, golden_question
 "#;
 
@@ -147,6 +149,7 @@ async fn build_drift(
     if let Some(id) = agent_id {
         config::validate_agent_id(id)?;
     }
+    config::validate_threshold_ratio(min_coverage, "min-coverage")?;
     let parsed = config::parse_duration(last)?;
     let dataset_id = config.require_dataset_id()?;
     config::validate_identifier(golden_dataset, "golden-dataset")?;
@@ -252,6 +255,7 @@ pub async fn run(
     if let Some(ref id) = agent_id {
         config::validate_agent_id(id)?;
     }
+    config::validate_threshold_ratio(min_coverage, "min-coverage")?;
     config::parse_duration(&last)?;
     config.require_dataset_id()?;
     config::validate_identifier(&golden_dataset, "golden-dataset")?;

@@ -95,6 +95,13 @@ pub fn validate_agent_id(s: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn validate_threshold_ratio(v: f64, name: &str) -> Result<()> {
+    if !(0.0..=1.0).contains(&v) {
+        bail!("Invalid {name}: {v}. Must be between 0.0 and 1.0.");
+    }
+    Ok(())
+}
+
 pub fn validate_view_prefix(s: &str) -> Result<()> {
     if s.is_empty() {
         return Ok(());
