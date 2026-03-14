@@ -10,6 +10,8 @@ use bqx::commands::analytics::doctor::{
 };
 use bqx::commands::analytics::evaluate::{build_evaluate_query, eval_result_from_rows};
 use bqx::commands::analytics::get_trace::{build_trace_query, trace_result_from_rows};
+use bqx::commands::analytics::list_traces::{build_list_traces_query, traces_from_rows};
+use bqx::commands::analytics::views::build_create_view_sql;
 use bqx::commands::jobs_query::build_query_request;
 use bqx::config::Config;
 
@@ -734,4 +736,218 @@ async fn evaluate_rejects_invalid_duration() {
     .await;
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("Invalid duration"));
+}
+
+// ═══════════════════════════════════════════════
+// list-traces SQL Builder Tests
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_list_traces_query_basic() {
+    let sql = build_list_traces_query("proj", "ds", "events", "INTERVAL 24 HOUR", None, 20);
+    assert!(sql.contains("proj.ds.events"));
+    assert!(sql.contains("INTERVAL 24 HOUR"));
+    assert!(sql.contains("LIMIT 20"));
+    assert!(!sql.contains("AND agent ="));
+}
+
+#[test]
+fn build_list_traces_query_with_agent_filter() {
+    let sql = build_list_traces_query(
+        "proj",
+        "ds",
+        "events",
+        "INTERVAL 7 DAY",
+        Some("support_bot"),
+        10,
+    );
+    assert!(sql.contains("AND agent = 'support_bot'"));
+    assert!(sql.contains("LIMIT 10"));
+}
+
+// ── list-traces Result Mapper Tests ──
+
+#[test]
+fn traces_from_rows_parses_results() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![
+            make_row(vec![
+                ("session_id", json!("s1")),
+                ("agent", json!("support_bot")),
+                ("event_count", json!("12")),
+                ("started_at", json!("2026-03-13 10:00:00 UTC")),
+                ("ended_at", json!("2026-03-13 10:01:00 UTC")),
+                ("has_errors", json!(false)),
+            ]),
+            make_row(vec![
+                ("session_id", json!("s2")),
+                ("agent", json!("sales_agent")),
+                ("event_count", json!("5")),
+                ("started_at", json!("2026-03-13 09:00:00 UTC")),
+                ("ended_at", json!("2026-03-13 09:00:30 UTC")),
+                ("has_errors", json!(true)),
+            ]),
+        ],
+        total_rows: 2,
+    };
+    let traces = traces_from_rows(&result);
+    assert_eq!(traces.len(), 2);
+    assert_eq!(traces[0].session_id, "s1");
+    assert_eq!(traces[0].agent, "support_bot");
+    assert_eq!(traces[0].event_count, 12);
+    assert!(!traces[0].has_errors);
+    assert_eq!(traces[1].session_id, "s2");
+    assert!(traces[1].has_errors);
+}
+
+#[test]
+fn traces_from_rows_empty() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![],
+        total_rows: 0,
+    };
+    let traces = traces_from_rows(&result);
+    assert!(traces.is_empty());
+}
+
+// ── list-traces Integration Tests ──
+
+#[tokio::test]
+async fn list_traces_json_output() {
+    let executor = MockExecutor::new(
+        vec![
+            ("session_id", "STRING"),
+            ("agent", "STRING"),
+            ("event_count", "INTEGER"),
+            ("started_at", "TIMESTAMP"),
+            ("ended_at", "TIMESTAMP"),
+            ("has_errors", "BOOLEAN"),
+        ],
+        vec![make_row(vec![
+            ("session_id", json!("s1")),
+            ("agent", json!("test_agent")),
+            ("event_count", json!("5")),
+            ("started_at", json!("2026-03-13 10:00:00 UTC")),
+            ("ended_at", json!("2026-03-13 10:01:00 UTC")),
+            ("has_errors", json!(false)),
+        ])],
+    );
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::list_traces::run_with_executor(
+        &executor,
+        "24h".into(),
+        None,
+        20,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn list_traces_text_output() {
+    let executor = MockExecutor::new(
+        vec![
+            ("session_id", "STRING"),
+            ("agent", "STRING"),
+            ("event_count", "INTEGER"),
+            ("started_at", "TIMESTAMP"),
+            ("ended_at", "TIMESTAMP"),
+            ("has_errors", "BOOLEAN"),
+        ],
+        vec![make_row(vec![
+            ("session_id", json!("s1")),
+            ("agent", json!("test_agent")),
+            ("event_count", json!("3")),
+            ("started_at", json!("2026-03-13 10:00:00 UTC")),
+            ("ended_at", json!("2026-03-13 10:00:30 UTC")),
+            ("has_errors", json!(false)),
+        ])],
+    );
+    let config = test_config(OutputFormat::Text);
+    let result = bqx::commands::analytics::list_traces::run_with_executor(
+        &executor,
+        "7d".into(),
+        Some("test_agent".into()),
+        10,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn list_traces_rejects_invalid_agent_id() {
+    let executor = MockExecutor::empty(vec![("session_id", "STRING")]);
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::list_traces::run_with_executor(
+        &executor,
+        "24h".into(),
+        Some("bad agent!".into()),
+        20,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Invalid agent_id"));
+}
+
+#[tokio::test]
+async fn list_traces_rejects_invalid_duration() {
+    let executor = MockExecutor::empty(vec![("session_id", "STRING")]);
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::list_traces::run_with_executor(
+        &executor,
+        "bad_duration".into(),
+        None,
+        20,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Invalid duration"));
+}
+
+// ═══════════════════════════════════════════════
+// views SQL Builder Tests
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_create_view_sql_basic() {
+    let (view_name, sql) =
+        build_create_view_sql("proj", "ds", "agent_events", "adk_", "LLM_REQUEST");
+    assert_eq!(view_name, "adk_llm_request");
+    assert!(sql.contains("CREATE OR REPLACE VIEW `proj.ds.adk_llm_request`"));
+    assert!(sql.contains("FROM `proj.ds.agent_events`"));
+    assert!(sql.contains("WHERE event_type = 'LLM_REQUEST'"));
+}
+
+#[test]
+fn build_create_view_sql_no_prefix() {
+    let (view_name, sql) = build_create_view_sql("proj", "ds", "agent_events", "", "TOOL_ERROR");
+    assert_eq!(view_name, "tool_error");
+    assert!(sql.contains("CREATE OR REPLACE VIEW `proj.ds.tool_error`"));
+}
+
+// ── views Integration Tests ──
+
+#[tokio::test]
+async fn views_create_all_json_output() {
+    // Mock always succeeds — each DDL returns empty
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result =
+        bqx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn views_create_all_text_output() {
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Text);
+    let result =
+        bqx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
+    assert!(result.is_ok());
 }

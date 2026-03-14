@@ -126,6 +126,37 @@ pub enum AnalyticsCommand {
         #[arg(long)]
         session_id: String,
     },
+
+    /// List recent traces matching filter criteria
+    ListTraces {
+        /// Time window (e.g., 1h, 24h, 7d)
+        #[arg(long)]
+        last: String,
+
+        /// Filter by agent name
+        #[arg(long)]
+        agent_id: Option<String>,
+
+        /// Maximum number of traces to return
+        #[arg(long, default_value = "20")]
+        limit: u32,
+    },
+
+    /// Manage per-event-type BigQuery views
+    Views {
+        #[command(subcommand)]
+        command: ViewsCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ViewsCommand {
+    /// Create views for all 18 standard event types
+    CreateAll {
+        /// Prefix for view names (e.g., "adk_" → adk_llm_request)
+        #[arg(long, default_value = "")]
+        prefix: String,
+    },
 }
 
 #[derive(Subcommand)]

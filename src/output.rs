@@ -121,6 +121,8 @@ pub mod text {
     use crate::commands::analytics::doctor::DoctorReport;
     use crate::commands::analytics::evaluate::{EvalResult, SessionEval};
     use crate::commands::analytics::get_trace::{TraceEvent, TraceResult};
+    use crate::commands::analytics::list_traces::ListTracesResult;
+    use crate::commands::analytics::views::ViewsCreateResult;
 
     pub fn render_query_dry_run(url: &str, query: &str, legacy_sql: bool, location: &str) {
         let mut buf = String::new();
@@ -316,6 +318,63 @@ pub mod text {
         let _ = writeln!(w, "Status: {}", resp.status);
     }
 
+    pub fn render_list_traces(result: &ListTracesResult) {
+        let mut buf = String::new();
+        fmt_list_traces(&mut buf, result);
+        print!("{buf}");
+    }
+
+    pub fn fmt_list_traces(w: &mut dyn Write, result: &ListTracesResult) {
+        let _ = write!(
+            w,
+            "Traces: {}  Window: {}",
+            result.total, result.time_window
+        );
+        if let Some(ref agent) = result.agent_id {
+            let _ = write!(w, "  Agent: {agent}");
+        }
+        let _ = writeln!(w);
+        if result.traces.is_empty() {
+            let _ = writeln!(w, "No traces found.");
+            return;
+        }
+        for t in &result.traces {
+            let errors = if t.has_errors { " [ERRORS]" } else { "" };
+            let start = t.started_at.as_deref().unwrap_or("-");
+            let _ = writeln!(
+                w,
+                "  {:<40} {:<20} events={}{errors}  {start}",
+                t.session_id, t.agent, t.event_count
+            );
+        }
+    }
+
+    pub fn render_views_create(result: &ViewsCreateResult) {
+        let mut buf = String::new();
+        fmt_views_create(&mut buf, result);
+        print!("{buf}");
+    }
+
+    pub fn fmt_views_create(w: &mut dyn Write, result: &ViewsCreateResult) {
+        let _ = writeln!(
+            w,
+            "Views: created={}  failed={}  prefix=\"{}\"",
+            result.created, result.failed, result.prefix
+        );
+        for v in &result.views {
+            let status_indicator = if v.status == "created" { "+" } else { "!" };
+            let _ = write!(
+                w,
+                "  {status_indicator} {:<40} {}",
+                v.view_name, v.event_type
+            );
+            if let Some(ref err) = v.error {
+                let _ = write!(w, "  error: {err}");
+            }
+            let _ = writeln!(w);
+        }
+    }
+
     pub fn fmt_ca_ask(w: &mut dyn Write, resp: &CaQuestionResponse) {
         let _ = writeln!(w, "Question: {}", resp.question);
         if let Some(ref agent) = resp.agent {
@@ -364,6 +423,8 @@ mod tests {
     use crate::commands::analytics::doctor::{DoctorReport, NullChecks};
     use crate::commands::analytics::evaluate::{EvalResult, SessionEval};
     use crate::commands::analytics::get_trace::{TraceEvent, TraceResult};
+    use crate::commands::analytics::list_traces::{ListTracesResult, TraceSummary};
+    use crate::commands::analytics::views::{ViewStatus, ViewsCreateResult};
 
     #[test]
     fn text_doctor_healthy() {
@@ -777,5 +838,102 @@ mod tests {
         assert!(buf.contains("Question: What is the error rate?"));
         assert!(buf.contains("Total verified queries: 5"));
         assert!(buf.contains("Status: added"));
+    }
+
+    #[test]
+    fn text_list_traces_with_results() {
+        let result = ListTracesResult {
+            traces: vec![
+                TraceSummary {
+                    session_id: "s-abc123".into(),
+                    agent: "support_bot".into(),
+                    event_count: 12,
+                    started_at: Some("2026-03-13 10:00:00 UTC".into()),
+                    ended_at: Some("2026-03-13 10:01:00 UTC".into()),
+                    has_errors: false,
+                },
+                TraceSummary {
+                    session_id: "s-def456".into(),
+                    agent: "sales_agent".into(),
+                    event_count: 5,
+                    started_at: Some("2026-03-13 09:00:00 UTC".into()),
+                    ended_at: Some("2026-03-13 09:00:30 UTC".into()),
+                    has_errors: true,
+                },
+            ],
+            total: 2,
+            time_window: "24h".into(),
+            agent_id: None,
+        };
+        let mut buf = String::new();
+        fmt_list_traces(&mut buf, &result);
+        assert!(buf.contains("Traces: 2  Window: 24h"));
+        assert!(buf.contains("s-abc123"));
+        assert!(buf.contains("support_bot"));
+        assert!(buf.contains("events=12"));
+        assert!(buf.contains("[ERRORS]"));
+        assert!(!buf.contains("No traces found."));
+    }
+
+    #[test]
+    fn text_list_traces_empty() {
+        let result = ListTracesResult {
+            traces: vec![],
+            total: 0,
+            time_window: "7d".into(),
+            agent_id: Some("my-agent".into()),
+        };
+        let mut buf = String::new();
+        fmt_list_traces(&mut buf, &result);
+        assert!(buf.contains("Traces: 0  Window: 7d  Agent: my-agent"));
+        assert!(buf.contains("No traces found."));
+    }
+
+    #[test]
+    fn text_views_create_all_success() {
+        let result = ViewsCreateResult {
+            views: vec![
+                ViewStatus {
+                    view_name: "adk_llm_request".into(),
+                    event_type: "LLM_REQUEST".into(),
+                    status: "created".into(),
+                    error: None,
+                },
+                ViewStatus {
+                    view_name: "adk_llm_response".into(),
+                    event_type: "LLM_RESPONSE".into(),
+                    status: "created".into(),
+                    error: None,
+                },
+            ],
+            created: 2,
+            failed: 0,
+            prefix: "adk_".into(),
+        };
+        let mut buf = String::new();
+        fmt_views_create(&mut buf, &result);
+        assert!(buf.contains("created=2  failed=0"));
+        assert!(buf.contains("+ adk_llm_request"));
+        assert!(buf.contains("+ adk_llm_response"));
+    }
+
+    #[test]
+    fn text_views_create_with_failure() {
+        let result = ViewsCreateResult {
+            views: vec![ViewStatus {
+                view_name: "adk_tool_error".into(),
+                event_type: "TOOL_ERROR".into(),
+                status: "failed".into(),
+                error: Some("permission denied".into()),
+            }],
+            created: 0,
+            failed: 1,
+            prefix: "adk_".into(),
+        };
+        let mut buf = String::new();
+        fmt_views_create(&mut buf, &result);
+        assert!(buf.contains("created=0  failed=1"));
+        assert!(buf.contains("! adk_tool_error"));
+        assert!(buf.contains("error: permission denied"));
     }
 }
