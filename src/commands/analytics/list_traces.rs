@@ -22,6 +22,7 @@ SELECT
 FROM `{project}.{dataset}.{table}`
 WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), {interval})
 {agent_filter}
+GROUP BY session_id, agent
 ORDER BY started_at DESC
 LIMIT {limit}
 "#;
