@@ -972,3 +972,21 @@ async fn views_create_all_with_failures_returns_error() {
     let err = result.unwrap_err().to_string();
     assert!(err.contains("18 of 18 views failed"), "Got: {err}");
 }
+
+#[test]
+fn validate_view_prefix_accepts_valid() {
+    assert!(bqx::config::validate_view_prefix("").is_ok());
+    assert!(bqx::config::validate_view_prefix("adk_").is_ok());
+    assert!(bqx::config::validate_view_prefix("MyPrefix123").is_ok());
+}
+
+#[test]
+fn validate_view_prefix_rejects_invalid() {
+    let bad = bqx::config::validate_view_prefix("bad\\prefix");
+    assert!(bad.is_err());
+    assert!(bad.unwrap_err().to_string().contains("Invalid view prefix"));
+
+    assert!(bqx::config::validate_view_prefix("has space").is_err());
+    assert!(bqx::config::validate_view_prefix("has-dash").is_err());
+    assert!(bqx::config::validate_view_prefix("has.dot").is_err());
+}

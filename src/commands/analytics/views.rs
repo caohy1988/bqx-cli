@@ -4,7 +4,7 @@ use serde::Serialize;
 use crate::auth::{self, AuthOptions};
 use crate::bigquery::client::{BigQueryClient, QueryExecutor, QueryRequest};
 use crate::cli::OutputFormat;
-use crate::config::Config;
+use crate::config::{self, Config};
 use crate::output;
 
 /// The 18 standard ADK event types.
@@ -187,6 +187,7 @@ fn check_failures(result: &ViewsCreateResult) -> Result<()> {
 }
 
 pub async fn run(prefix: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
+    config::validate_view_prefix(&prefix)?;
     config.require_dataset_id()?;
 
     let resolved = auth::resolve(auth_opts).await?;
@@ -199,7 +200,8 @@ pub async fn run(prefix: String, auth_opts: &AuthOptions, config: &Config) -> Re
             crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
         crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
         if sanitize_result.sanitized {
-            return crate::output::render(&sanitize_result.content, &config.format);
+            crate::output::render(&sanitize_result.content, &config.format)?;
+            return check_failures(&result);
         }
     }
 

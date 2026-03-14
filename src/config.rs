@@ -94,3 +94,14 @@ pub fn validate_agent_id(s: &str) -> Result<()> {
     }
     Ok(())
 }
+
+pub fn validate_view_prefix(s: &str) -> Result<()> {
+    if s.is_empty() {
+        return Ok(());
+    }
+    let re = Regex::new(r"^[a-zA-Z0-9_]+$").unwrap();
+    if !re.is_match(s) {
+        bail!("Invalid view prefix: '{s}'. Must be alphanumeric with underscores only.");
+    }
+    Ok(())
+}
