@@ -287,6 +287,9 @@ pub mod text {
         let _ = writeln!(w, "Location: {}", resp.location);
         let _ = writeln!(w, "Name: {}", resp.name);
         let _ = writeln!(w, "Tables: {}", resp.tables_count);
+        if resp.views_count > 0 {
+            let _ = writeln!(w, "Views: {}", resp.views_count);
+        }
         let _ = writeln!(w, "Verified queries: {}", resp.verified_queries_count);
         if let Some(ref ct) = resp.create_time {
             let _ = writeln!(w, "Created: {ct}");
@@ -711,14 +714,16 @@ mod tests {
             display_name: Some("agent-analytics".into()),
             location: "us".into(),
             create_time: Some("2026-03-13T00:00:00Z".into()),
-            tables_count: 2,
+            tables_count: 1,
+            views_count: 2,
             verified_queries_count: 4,
         };
         let mut buf = String::new();
         fmt_create_agent(&mut buf, &resp);
         assert!(buf.contains("Agent created: agent-analytics"));
         assert!(buf.contains("Location: us"));
-        assert!(buf.contains("Tables: 2"));
+        assert!(buf.contains("Tables: 1"));
+        assert!(buf.contains("Views: 2"));
         assert!(buf.contains("Verified queries: 4"));
         assert!(buf.contains("Created: 2026-03-13T00:00:00Z"));
     }

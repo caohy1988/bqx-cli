@@ -9,10 +9,20 @@ use crate::output;
 
 pub async fn run(auth_opts: &AuthOptions, config: &Config) -> Result<()> {
     let resolved = auth::resolve(auth_opts).await?;
-    let client = CaClient::new(resolved);
+    let client = CaClient::new(resolved.clone());
     let resp = client
         .list_agents(&config.project_id, &config.location)
         .await?;
+
+    if let Some(ref template) = config.sanitize_template {
+        let json_val = serde_json::to_value(&resp)?;
+        let sanitize_result =
+            crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+        if sanitize_result.sanitized {
+            return crate::output::render(&sanitize_result.content, &config.format);
+        }
+    }
 
     render_response(&resp, &config.format)
 }

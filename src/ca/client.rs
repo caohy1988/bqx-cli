@@ -28,6 +28,7 @@ pub trait CaAgentManager: Send + Sync {
         agent_id: &str,
         display_name: Option<&str>,
         tables: &[TableRef],
+        views_count: usize,
         instructions: Option<&str>,
         verified_queries: &[VerifiedQuery],
     ) -> Result<CreateAgentResponse>;
@@ -160,6 +161,7 @@ impl CaAgentManager for CaClient {
         agent_id: &str,
         display_name: Option<&str>,
         tables: &[TableRef],
+        views_count: usize,
         instructions: Option<&str>,
         verified_queries: &[VerifiedQuery],
     ) -> Result<CreateAgentResponse> {
@@ -230,13 +232,15 @@ impl CaAgentManager for CaClient {
 
         let agent: serde_json::Value = resp.json().await?;
 
+        let tables_count = tables.len() - views_count;
         Ok(CreateAgentResponse {
             agent_id: agent_id.to_string(),
             name: agent["name"].as_str().unwrap_or("").to_string(),
             display_name: agent["displayName"].as_str().map(|s| s.to_string()),
             location: location.to_string(),
             create_time: agent["createTime"].as_str().map(|s| s.to_string()),
-            tables_count: tables.len(),
+            tables_count,
+            views_count,
             verified_queries_count: verified_queries.len(),
         })
     }
@@ -587,6 +591,7 @@ mod tests {
                 "my-agent",
                 Some("my-agent"),
                 &tables,
+                0,
                 Some("Test instructions"),
                 &vqs,
             )
@@ -595,6 +600,7 @@ mod tests {
 
         assert_eq!(resp.agent_id, "my-agent");
         assert_eq!(resp.tables_count, 1);
+        assert_eq!(resp.views_count, 0);
         assert_eq!(resp.verified_queries_count, 1);
         assert_eq!(resp.location, "us");
     }

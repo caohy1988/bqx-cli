@@ -40,7 +40,7 @@ pub async fn run(
 ) -> Result<()> {
     validate_inputs(&name, &tables, verified_queries_path.as_deref())?;
 
-    // Merge tables and views into a single list of table refs
+    let views_count = views.as_ref().map_or(0, |v| v.len());
     let mut all_refs_str = tables;
     if let Some(v) = views {
         all_refs_str.extend(v);
@@ -50,7 +50,7 @@ pub async fn run(
     let vqs = verified_queries::load(verified_queries_path.as_deref())?;
 
     let resolved = auth::resolve(auth_opts).await?;
-    let client = CaClient::new(resolved);
+    let client = CaClient::new(resolved.clone());
     let resp = client
         .create_agent(
             &config.project_id,
@@ -58,10 +58,21 @@ pub async fn run(
             &name,
             Some(&name),
             &table_refs,
+            views_count,
             instructions.as_deref(),
             &vqs,
         )
         .await?;
+
+    if let Some(ref template) = config.sanitize_template {
+        let json_val = serde_json::to_value(&resp)?;
+        let sanitize_result =
+            crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+        if sanitize_result.sanitized {
+            return crate::output::render(&sanitize_result.content, &config.format);
+        }
+    }
 
     render_response(&resp, &config.format)
 }
@@ -77,6 +88,7 @@ pub async fn run_with_executor(
 ) -> Result<()> {
     validate_inputs(&name, &tables, verified_queries_path.as_deref())?;
 
+    let views_count = views.as_ref().map_or(0, |v| v.len());
     let mut all_refs_str = tables;
     if let Some(v) = views {
         all_refs_str.extend(v);
@@ -92,6 +104,7 @@ pub async fn run_with_executor(
             &name,
             Some(&name),
             &table_refs,
+            views_count,
             instructions.as_deref(),
             &vqs,
         )

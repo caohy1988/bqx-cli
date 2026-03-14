@@ -49,6 +49,7 @@ pub struct CreateAgentResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub create_time: Option<String>,
     pub tables_count: usize,
+    pub views_count: usize,
     pub verified_queries_count: usize,
 }
 

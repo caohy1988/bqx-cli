@@ -276,6 +276,7 @@ impl CaAgentManager for MockCaAgentManager {
         agent_id: &str,
         display_name: Option<&str>,
         tables: &[TableRef],
+        views_count: usize,
         _instructions: Option<&str>,
         verified_queries: &[VerifiedQuery],
     ) -> Result<CreateAgentResponse> {
@@ -285,7 +286,8 @@ impl CaAgentManager for MockCaAgentManager {
             display_name: display_name.map(|s| s.to_string()),
             location: location.to_string(),
             create_time: Some("2026-03-13T00:00:00Z".into()),
-            tables_count: tables.len(),
+            tables_count: tables.len() - views_count,
+            views_count,
             verified_queries_count: verified_queries.len(),
         })
     }
