@@ -951,3 +951,24 @@ async fn views_create_all_text_output() {
         bqx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
     assert!(result.is_ok());
 }
+
+/// MockExecutor that always fails.
+struct FailingExecutor;
+
+#[async_trait]
+impl QueryExecutor for FailingExecutor {
+    async fn query(&self, _project: &str, _req: QueryRequest) -> Result<QueryResult> {
+        anyhow::bail!("permission denied")
+    }
+}
+
+#[tokio::test]
+async fn views_create_all_with_failures_returns_error() {
+    let executor = FailingExecutor;
+    let config = test_config(OutputFormat::Json);
+    let result =
+        bqx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("18 of 18 views failed"), "Got: {err}");
+}

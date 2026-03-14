@@ -175,6 +175,17 @@ fn render_views_create(result: &ViewsCreateResult, config: &Config) -> Result<()
 
 // ── Entry points ──
 
+fn check_failures(result: &ViewsCreateResult) -> Result<()> {
+    if result.failed > 0 {
+        anyhow::bail!(
+            "{} of {} views failed to create",
+            result.failed,
+            result.views.len()
+        );
+    }
+    Ok(())
+}
+
 pub async fn run(prefix: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
     config.require_dataset_id()?;
 
@@ -192,7 +203,8 @@ pub async fn run(prefix: String, auth_opts: &AuthOptions, config: &Config) -> Re
         }
     }
 
-    render_views_create(&result, config)
+    render_views_create(&result, config)?;
+    check_failures(&result)
 }
 
 pub async fn run_with_executor(
@@ -201,5 +213,6 @@ pub async fn run_with_executor(
     config: &Config,
 ) -> Result<()> {
     let result = build_views_create(executor, &prefix, config).await?;
-    render_views_create(&result, config)
+    render_views_create(&result, config)?;
+    check_failures(&result)
 }

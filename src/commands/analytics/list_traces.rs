@@ -206,6 +206,7 @@ pub async fn run(
     if let Some(ref id) = agent_id {
         config::validate_agent_id(id)?;
     }
+    config::parse_duration(&last)?;
     config.require_dataset_id()?;
 
     let resolved = auth::resolve(auth_opts).await?;
