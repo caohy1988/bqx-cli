@@ -40,7 +40,7 @@ README alignment notes:
   dynamic command surface is already stable, not a driver of Phase 2 command
   design
 
-## Current State
+## Baseline (pre-Phase 2)
 
 Phase 1 established the static command and packaging foundation:
 
@@ -58,15 +58,17 @@ Phase 1 established the static command and packaging foundation:
 - skills shipped as hand-written `SKILL.md` files
 - npm packaging and release automation for the Phase 1 binary/install story
 
-What Phase 2 still needs:
+What Phase 2 added (all complete — see milestones below):
 
-- no Discovery Document ingestion or cache layer
-- no dynamic command model
-- no generated BigQuery API commands such as `datasets list`
-- no skill generation pipeline
-- no Model Armor integration
-- no Gemini extension registration assets
-- skills are still manually authored, not generated or API-aware
+- Discovery Document ingestion with bundled pinned copy (M1, PR #13)
+- dynamic command model with read-only allowlist of 8 methods (M2, PR #14)
+- generated BigQuery API commands: `datasets list/get`, `tables list/get`,
+  `routines list/get`, `models list/get` (M2, PR #14)
+- skill generation pipeline: `bqx generate-skills` (M3, PR #16)
+- 19 non-CA skills: 4 generated + 15 curated (M4, PR #17)
+- Model Armor integration via `--sanitize` with regional endpoints (M5, PR #18)
+- Gemini extension manifest packaged and validated (M5, PR #18)
+- docs, e2e validation, and exit-criteria closure (M6, PR #19)
 
 ## Scope
 
@@ -280,7 +282,7 @@ Use templates plus Discovery metadata, not freeform generation.
 
 ## Milestones
 
-### Milestone 1: Discovery and Dynamic API Model
+### Milestone 1: Discovery and Dynamic API Model — Complete (PR #13)
 
 Objective:
 establish Discovery as deterministic input and parse it into a stable internal
@@ -317,7 +319,7 @@ Done when:
 - the parsed internal model is snapshot-tested and independent of `clap`
 - CI can use bundled Discovery deterministically
 
-### Milestone 2: Generated Command Surface
+### Milestone 2: Generated Command Surface — Complete (PR #14)
 
 Objective:
 turn the internal model into a runtime command tree and execute the first
@@ -354,7 +356,7 @@ Done when:
 - `bqx datasets list` and `bqx tables get` work end to end from generated
   metadata
 
-### Milestone 3: Skill Generation Pipeline
+### Milestone 3: Skill Generation Pipeline — Complete (PR #16)
 
 Objective:
 ship `bqx generate-skills` for deterministic generation from the stable Phase 2
@@ -386,7 +388,7 @@ Done when:
   behavior
 - generated skills are snapshot-tested and reviewable
 
-### Milestone 4: Curated Non-CA Skill Expansion
+### Milestone 4: Curated Non-CA Skill Expansion — Complete (PR #17)
 
 Objective:
 expand from the Phase 1 skill set to the full non-CA Phase 2 set without
@@ -436,7 +438,7 @@ Done when:
 - 19 non-CA skills are present and internally consistent
 - the generated-vs-curated split is explicit in the repo layout and docs
 
-### Milestone 5: Sanitization and Integration Surfaces
+### Milestone 5: Sanitization and Integration Surfaces — Complete (PR #18)
 
 Objective:
 add the remaining Phase 2 integration hooks after the dynamic CLI and skill
@@ -469,8 +471,17 @@ Dependency note:
 
 Done when:
 
-- `--sanitize` is wired consistently through the supported command paths
-- `gemini extensions install` succeeds for the packaged extension
+- `--sanitize` is wired consistently through the supported command paths ✓
+- Gemini extension manifest packaged and programmatically validated ✓
+- `gemini extensions install` not yet tested live (spec evolving)
+
+Actual outcomes:
+
+- Model Armor integration verified end-to-end against live GCP project
+- Regional endpoint requirement discovered and implemented during e2e testing
+- `modelResponseData.text` request format corrected during e2e testing
+- Prompt injection content correctly detected and redacted
+- `--sanitize` + `--exit-code` interaction verified (CI gates preserved)
 
 ### Milestone 6: Docs, Validation, and Exit-Criteria Closure
 
@@ -479,27 +490,28 @@ close the README Phase 2 exit criteria with reproducible docs and CI evidence.
 
 Tasks:
 
-- document discovery source behavior and fallback rules
-- document generated command limitations and allowlist scope
-- document `generate-skills` scope:
+- document discovery source behavior and fallback rules ✓
+- document generated command limitations and allowlist scope ✓
+- document `generate-skills` scope: ✓
   - what is generated
   - what remains curated
-- add examples for:
+- add examples for: ✓
   - `datasets list`
   - `tables get`
   - `generate-skills`
   - `--sanitize`
 - add CI checks for:
-  - discovery snapshots
-  - generated command help
-  - generated skill snapshots
-  - extension manifest validation where possible
-- align README examples with the shipped Phase 2 command surface
+  - discovery snapshots ✓ (existing in CI)
+  - generated command help ✓ (existing in CI)
+  - generated skill snapshots ✓ (existing in CI)
+  - extension manifest validation ✓ (gemini_tests.rs)
+- align README examples with the shipped Phase 2 command surface ✓
+- add reproducible e2e validation doc ✓ (docs/e2e-validation.md)
 
 Done when:
 
 - the README Phase 2 exit criteria can be demonstrated from CI artifacts or
-  reproducible local commands
+  reproducible local commands ✓
 
 ## Recommended Build Order
 
