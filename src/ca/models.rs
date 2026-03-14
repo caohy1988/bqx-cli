@@ -100,9 +100,7 @@ pub(crate) struct ErrorContent {
 pub fn parse_table_ref(s: &str) -> anyhow::Result<TableRef> {
     let parts: Vec<&str> = s.split('.').collect();
     if parts.len() != 3 {
-        anyhow::bail!(
-            "Invalid table reference: '{s}'. Expected format: project.dataset.table"
-        );
+        anyhow::bail!("Invalid table reference: '{s}'. Expected format: project.dataset.table");
     }
     Ok(TableRef {
         project_id: parts[0].to_string(),
@@ -224,8 +222,12 @@ mod tests {
                             }]),
                             schema: Some(ResultSchema {
                                 fields: Some(vec![
-                                    SchemaField { name: "agent".into() },
-                                    SchemaField { name: "count".into() },
+                                    SchemaField {
+                                        name: "agent".into(),
+                                    },
+                                    SchemaField {
+                                        name: "count".into(),
+                                    },
                                 ]),
                             }),
                         }),
@@ -282,7 +284,11 @@ mod tests {
         }];
 
         let resp = extract_response(&messages, "test?", None);
-        assert!(resp.explanation.as_deref().unwrap().contains("Table not found"));
+        assert!(resp
+            .explanation
+            .as_deref()
+            .unwrap()
+            .contains("Table not found"));
     }
 
     #[test]

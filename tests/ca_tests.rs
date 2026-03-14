@@ -61,7 +61,10 @@ fn validate_rejects_agent_and_tables_together() {
     let result = validate_inputs("test?", Some("my-agent"), Some(&tables));
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("--agent and --tables cannot be used together"), "Got: {err}");
+    assert!(
+        err.contains("--agent and --tables cannot be used together"),
+        "Got: {err}"
+    );
 }
 
 #[test]
@@ -89,13 +92,7 @@ fn validate_accepts_tables_only() {
 
 #[test]
 fn build_request_with_agent() {
-    let req = build_request(
-        "test question".into(),
-        Some("my-agent".into()),
-        None,
-        "us",
-    )
-    .unwrap();
+    let req = build_request("test question".into(), Some("my-agent".into()), None, "us").unwrap();
     assert_eq!(req.question, "test question");
     assert_eq!(req.agent.as_deref(), Some("my-agent"));
     assert!(req.tables.is_none());
@@ -134,7 +131,10 @@ fn build_request_rejects_invalid_table_ref() {
         "us",
     );
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Invalid table reference"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("Invalid table reference"));
 }
 
 // ═══════════════════════════════════════════════
@@ -246,15 +246,9 @@ async fn run_with_executor_empty_question_fails() {
     });
 
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::ca::ask::run_with_executor(
-        &mock,
-        "".into(),
-        None,
-        None,
-        "us",
-        &config,
-    )
-    .await;
+    let result =
+        bqx::commands::ca::ask::run_with_executor(&mock, "".into(), None, None, "us", &config)
+            .await;
 
     assert!(result.is_err());
     assert!(result

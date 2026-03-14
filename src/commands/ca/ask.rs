@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::auth::{self, AuthOptions};
-use crate::ca::client::{CaClient, CaExecutor, parse_table_refs};
+use crate::ca::client::{parse_table_refs, CaClient, CaExecutor};
 use crate::ca::models::{CaQuestionRequest, CaQuestionResponse};
 use crate::cli::OutputFormat;
 use crate::config::{self, Config};

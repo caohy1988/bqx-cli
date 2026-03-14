@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use crate::auth::ResolvedAuth;
 
 use super::models::{
-    CaChatMessage, CaQuestionRequest, CaQuestionResponse, TableRef, extract_response,
+    extract_response, CaChatMessage, CaQuestionRequest, CaQuestionResponse, TableRef,
 };
 
 const CA_BASE_URL: &str = "https://geminidataanalytics.googleapis.com/v1beta";
@@ -66,9 +66,8 @@ impl CaExecutor for CaClient {
 
         // If an agent is specified, use data_agent_context.
         if let Some(ref agent) = req.agent {
-            let agent_resource = format!(
-                "projects/{project}/locations/{location}/dataAgents/{agent}"
-            );
+            let agent_resource =
+                format!("projects/{project}/locations/{location}/dataAgents/{agent}");
             body["data_agent_context"] = serde_json::json!({
                 "data_agent": agent_resource,
             });
@@ -201,9 +200,7 @@ mod tests {
         ]);
 
         Mock::given(method("POST"))
-            .and(path(
-                "/projects/test-project/locations/us:chat",
-            ))
+            .and(path("/projects/test-project/locations/us:chat"))
             .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
             .expect(1)
             .mount(&mock_server)
@@ -238,9 +235,7 @@ mod tests {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
-            .and(path(
-                "/projects/test-project/locations/us:chat",
-            ))
+            .and(path("/projects/test-project/locations/us:chat"))
             .respond_with(
                 ResponseTemplate::new(403).set_body_string(r#"{"error":"Permission denied"}"#),
             )
@@ -267,12 +262,8 @@ mod tests {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
-            .and(path(
-                "/projects/test-project/locations/us:chat",
-            ))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(serde_json::json!([])),
-            )
+            .and(path("/projects/test-project/locations/us:chat"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!([])))
             .expect(1)
             .mount(&mock_server)
             .await;
@@ -295,7 +286,8 @@ mod tests {
 
     #[test]
     fn parse_streaming_json_array() {
-        let text = r#"[{"systemMessage":{"text":{"parts":["hello"],"textType":"FINAL_RESPONSE"}}}]"#;
+        let text =
+            r#"[{"systemMessage":{"text":{"parts":["hello"],"textType":"FINAL_RESPONSE"}}}]"#;
         let messages = parse_streaming_response(text).unwrap();
         assert_eq!(messages.len(), 1);
     }
