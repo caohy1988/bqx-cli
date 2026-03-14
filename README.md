@@ -697,6 +697,23 @@ gemini extensions install https://github.com/bigquery/bqx
 # Just clone the repo — Claude Code reads SKILL.md files automatically
 ```
 
+### 4.5 Shell Completions
+
+```bash
+# Bash
+bqx completions bash > /usr/local/etc/bash_completion.d/bqx
+# or: bqx completions bash >> ~/.bashrc
+
+# Zsh (add to fpath first if needed)
+bqx completions zsh > "${fpath[1]}/_bqx"
+# or: bqx completions zsh > ~/.zsh/completions/_bqx
+
+# Fish
+bqx completions fish > ~/.config/fish/completions/bqx.fish
+```
+
+Pre-generated scripts are also available in the `completions/` directory.
+
 ---
 
 ## 5. Conversational Analytics Integration
@@ -920,8 +937,8 @@ reproducible validation script.
   `recipe-self-diagnostic-agent`
 - [x] Remaining analytics commands: `insights`, `drift`, `distribution`,
   `views`, `hitl-metrics`, `list-traces`
-- [ ] Completion scripts (bash, zsh, fish)
-- [ ] Documentation and examples
+- [x] Completion scripts (bash, zsh, fish)
+- [x] Documentation and examples
 
 **Exit criteria:** `bqx ca ask "error rate for support_bot?"` returns
 structured JSON with SQL and results; all analytics commands pass

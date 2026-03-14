@@ -1,0 +1,1345 @@
+#compdef bqx
+
+autoload -U is-at-least
+
+_bqx() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_bqx_commands" \
+"*::: :->bqx" \
+&& ret=0
+    case $state in
+    (bqx)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-command-$line[1]:"
+        case $line[1] in
+            (jobs)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_bqx__jobs_commands" \
+"*::: :->jobs" \
+&& ret=0
+
+    case $state in
+    (jobs)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-jobs-command-$line[1]:"
+        case $line[1] in
+            (query)
+_arguments "${_arguments_options[@]}" : \
+'--query=[SQL query string]:QUERY:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--use-legacy-sql[Use legacy SQL]' \
+'--dry-run[Dry run (show request without executing)]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__jobs__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-jobs-help-command-$line[1]:"
+        case $line[1] in
+            (query)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(analytics)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_bqx__analytics_commands" \
+"*::: :->analytics" \
+&& ret=0
+
+    case $state in
+    (analytics)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-analytics-command-$line[1]:"
+        case $line[1] in
+            (doctor)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(evaluate)
+_arguments "${_arguments_options[@]}" : \
+'--evaluator=[Evaluator type]:EVALUATOR:(latency error-rate)' \
+'--threshold=[Pass/fail threshold (ms for latency, 0-1 for rates)]:THRESHOLD:_default' \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--exit-code[Return exit code 1 on evaluation failure]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(get-trace)
+_arguments "${_arguments_options[@]}" : \
+'--session-id=[Session ID to retrieve]:SESSION_ID:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list-traces)
+_arguments "${_arguments_options[@]}" : \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--limit=[Maximum number of traces to return]:LIMIT:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(insights)
+_arguments "${_arguments_options[@]}" : \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(drift)
+_arguments "${_arguments_options[@]}" : \
+'--golden-dataset=[Golden dataset table name (in the same dataset)]:GOLDEN_DATASET:_default' \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--min-coverage=[Minimum coverage threshold (0.0-1.0)]:MIN_COVERAGE:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--exit-code[Return exit code 1 on drift failure]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(distribution)
+_arguments "${_arguments_options[@]}" : \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(hitl-metrics)
+_arguments "${_arguments_options[@]}" : \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--limit=[Maximum number of sessions to return]:LIMIT:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(views)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_bqx__analytics__views_commands" \
+"*::: :->views" \
+&& ret=0
+
+    case $state in
+    (views)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-analytics-views-command-$line[1]:"
+        case $line[1] in
+            (create-all)
+_arguments "${_arguments_options[@]}" : \
+'--prefix=[Prefix for view names (e.g., "adk_" → adk_llm_request)]:PREFIX:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__analytics__views__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-analytics-views-help-command-$line[1]:"
+        case $line[1] in
+            (create-all)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__analytics__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-analytics-help-command-$line[1]:"
+        case $line[1] in
+            (doctor)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(evaluate)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get-trace)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list-traces)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(insights)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(drift)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(distribution)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(hitl-metrics)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(views)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__analytics__help__views_commands" \
+"*::: :->views" \
+&& ret=0
+
+    case $state in
+    (views)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-analytics-help-views-command-$line[1]:"
+        case $line[1] in
+            (create-all)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(auth)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_bqx__auth_commands" \
+"*::: :->auth" \
+&& ret=0
+
+    case $state in
+    (auth)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-auth-command-$line[1]:"
+        case $line[1] in
+            (login)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(status)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(logout)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__auth__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-auth-help-command-$line[1]:"
+        case $line[1] in
+            (login)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(status)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(logout)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(ca)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_bqx__ca_commands" \
+"*::: :->ca" \
+&& ret=0
+
+    case $state in
+    (ca)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-ca-command-$line[1]:"
+        case $line[1] in
+            (ask)
+_arguments "${_arguments_options[@]}" : \
+'--agent=[Data agent to use (e.g. agent-analytics)]:AGENT:_default' \
+'*--tables=[Table references for context (e.g. project.dataset.table)]:TABLES:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+':question -- The question to ask:_default' \
+&& ret=0
+;;
+(create-agent)
+_arguments "${_arguments_options[@]}" : \
+'--name=[Agent name / ID (alphanumeric, hyphens, underscores, dots)]:NAME:_default' \
+'*--tables=[Table references (project.dataset.table)]:TABLES:_default' \
+'*--views=[View references to include as additional data sources]:VIEWS:_default' \
+'--verified-queries=[Path to verified queries YAML file (defaults to bundled)]:VERIFIED_QUERIES:_default' \
+'--instructions=[System instructions for the agent]:INSTRUCTIONS:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list-agents)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(add-verified-query)
+_arguments "${_arguments_options[@]}" : \
+'--agent=[Agent ID to add the query to]:AGENT:_default' \
+'--question=[Natural language question]:QUESTION:_default' \
+'--query=[SQL query to associate with the question]:QUERY:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__ca__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-ca-help-command-$line[1]:"
+        case $line[1] in
+            (ask)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(create-agent)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list-agents)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add-verified-query)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(generate-skills)
+_arguments "${_arguments_options[@]}" : \
+'--output-dir=[Output directory for generated skill files]:OUTPUT_DIR:_default' \
+'*--filter=[Generate only skills matching these names (e.g. bqx-datasets)]:FILTER:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(completions)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+':shell -- Shell to generate completions for:(bash zsh fish)' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-command-$line[1]:"
+        case $line[1] in
+            (jobs)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help__jobs_commands" \
+"*::: :->jobs" \
+&& ret=0
+
+    case $state in
+    (jobs)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-jobs-command-$line[1]:"
+        case $line[1] in
+            (query)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(analytics)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help__analytics_commands" \
+"*::: :->analytics" \
+&& ret=0
+
+    case $state in
+    (analytics)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-analytics-command-$line[1]:"
+        case $line[1] in
+            (doctor)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(evaluate)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get-trace)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list-traces)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(insights)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(drift)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(distribution)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(hitl-metrics)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(views)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help__analytics__views_commands" \
+"*::: :->views" \
+&& ret=0
+
+    case $state in
+    (views)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-analytics-views-command-$line[1]:"
+        case $line[1] in
+            (create-all)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(auth)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help__auth_commands" \
+"*::: :->auth" \
+&& ret=0
+
+    case $state in
+    (auth)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-auth-command-$line[1]:"
+        case $line[1] in
+            (login)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(status)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(logout)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(ca)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help__ca_commands" \
+"*::: :->ca" \
+&& ret=0
+
+    case $state in
+    (ca)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-ca-command-$line[1]:"
+        case $line[1] in
+            (ask)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(create-agent)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list-agents)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add-verified-query)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(generate-skills)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(completions)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_bqx_commands] )) ||
+_bqx_commands() {
+    local commands; commands=(
+'jobs:BigQuery jobs operations' \
+'analytics:Agent analytics operations' \
+'auth:Authentication management' \
+'ca:Conversational Analytics operations' \
+'generate-skills:Generate SKILL.md and agents/openai.yaml for BigQuery API commands' \
+'completions:Generate shell completion scripts' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx commands' commands "$@"
+}
+(( $+functions[_bqx__analytics_commands] )) ||
+_bqx__analytics_commands() {
+    local commands; commands=(
+'doctor:Health check on BigQuery table and configuration' \
+'evaluate:Evaluate agent sessions against a threshold' \
+'get-trace:Retrieve a session trace' \
+'list-traces:List recent traces matching filter criteria' \
+'insights:Generate comprehensive agent insights report' \
+'drift:Run drift detection against a golden question set' \
+'distribution:Analyze event distribution patterns' \
+'hitl-metrics:Show human-in-the-loop interaction metrics' \
+'views:Manage per-event-type BigQuery views' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx analytics commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__distribution_commands] )) ||
+_bqx__analytics__distribution_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics distribution commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__doctor_commands] )) ||
+_bqx__analytics__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics doctor commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__drift_commands] )) ||
+_bqx__analytics__drift_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics drift commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__evaluate_commands] )) ||
+_bqx__analytics__evaluate_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics evaluate commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__get-trace_commands] )) ||
+_bqx__analytics__get-trace_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics get-trace commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help_commands] )) ||
+_bqx__analytics__help_commands() {
+    local commands; commands=(
+'doctor:Health check on BigQuery table and configuration' \
+'evaluate:Evaluate agent sessions against a threshold' \
+'get-trace:Retrieve a session trace' \
+'list-traces:List recent traces matching filter criteria' \
+'insights:Generate comprehensive agent insights report' \
+'drift:Run drift detection against a golden question set' \
+'distribution:Analyze event distribution patterns' \
+'hitl-metrics:Show human-in-the-loop interaction metrics' \
+'views:Manage per-event-type BigQuery views' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx analytics help commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__distribution_commands] )) ||
+_bqx__analytics__help__distribution_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help distribution commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__doctor_commands] )) ||
+_bqx__analytics__help__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help doctor commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__drift_commands] )) ||
+_bqx__analytics__help__drift_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help drift commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__evaluate_commands] )) ||
+_bqx__analytics__help__evaluate_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help evaluate commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__get-trace_commands] )) ||
+_bqx__analytics__help__get-trace_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help get-trace commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__help_commands] )) ||
+_bqx__analytics__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help help commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__hitl-metrics_commands] )) ||
+_bqx__analytics__help__hitl-metrics_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help hitl-metrics commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__insights_commands] )) ||
+_bqx__analytics__help__insights_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help insights commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__list-traces_commands] )) ||
+_bqx__analytics__help__list-traces_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help list-traces commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__views_commands] )) ||
+_bqx__analytics__help__views_commands() {
+    local commands; commands=(
+'create-all:Create views for all 18 standard event types' \
+    )
+    _describe -t commands 'bqx analytics help views commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__help__views__create-all_commands] )) ||
+_bqx__analytics__help__views__create-all_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics help views create-all commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__hitl-metrics_commands] )) ||
+_bqx__analytics__hitl-metrics_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics hitl-metrics commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__insights_commands] )) ||
+_bqx__analytics__insights_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics insights commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__list-traces_commands] )) ||
+_bqx__analytics__list-traces_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics list-traces commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__views_commands] )) ||
+_bqx__analytics__views_commands() {
+    local commands; commands=(
+'create-all:Create views for all 18 standard event types' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx analytics views commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__views__create-all_commands] )) ||
+_bqx__analytics__views__create-all_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics views create-all commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__views__help_commands] )) ||
+_bqx__analytics__views__help_commands() {
+    local commands; commands=(
+'create-all:Create views for all 18 standard event types' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx analytics views help commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__views__help__create-all_commands] )) ||
+_bqx__analytics__views__help__create-all_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics views help create-all commands' commands "$@"
+}
+(( $+functions[_bqx__analytics__views__help__help_commands] )) ||
+_bqx__analytics__views__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx analytics views help help commands' commands "$@"
+}
+(( $+functions[_bqx__auth_commands] )) ||
+_bqx__auth_commands() {
+    local commands; commands=(
+'login:Authenticate with Google OAuth (opens browser)' \
+'status:Show current authentication status' \
+'logout:Clear stored credentials' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx auth commands' commands "$@"
+}
+(( $+functions[_bqx__auth__help_commands] )) ||
+_bqx__auth__help_commands() {
+    local commands; commands=(
+'login:Authenticate with Google OAuth (opens browser)' \
+'status:Show current authentication status' \
+'logout:Clear stored credentials' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx auth help commands' commands "$@"
+}
+(( $+functions[_bqx__auth__help__help_commands] )) ||
+_bqx__auth__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx auth help help commands' commands "$@"
+}
+(( $+functions[_bqx__auth__help__login_commands] )) ||
+_bqx__auth__help__login_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx auth help login commands' commands "$@"
+}
+(( $+functions[_bqx__auth__help__logout_commands] )) ||
+_bqx__auth__help__logout_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx auth help logout commands' commands "$@"
+}
+(( $+functions[_bqx__auth__help__status_commands] )) ||
+_bqx__auth__help__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx auth help status commands' commands "$@"
+}
+(( $+functions[_bqx__auth__login_commands] )) ||
+_bqx__auth__login_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx auth login commands' commands "$@"
+}
+(( $+functions[_bqx__auth__logout_commands] )) ||
+_bqx__auth__logout_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx auth logout commands' commands "$@"
+}
+(( $+functions[_bqx__auth__status_commands] )) ||
+_bqx__auth__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx auth status commands' commands "$@"
+}
+(( $+functions[_bqx__ca_commands] )) ||
+_bqx__ca_commands() {
+    local commands; commands=(
+'ask:Ask a natural language question via Conversational Analytics' \
+'create-agent:Create a new Conversational Analytics data agent' \
+'list-agents:List data agents in the project' \
+'add-verified-query:Add a verified query to an existing data agent' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx ca commands' commands "$@"
+}
+(( $+functions[_bqx__ca__add-verified-query_commands] )) ||
+_bqx__ca__add-verified-query_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx ca add-verified-query commands' commands "$@"
+}
+(( $+functions[_bqx__ca__ask_commands] )) ||
+_bqx__ca__ask_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx ca ask commands' commands "$@"
+}
+(( $+functions[_bqx__ca__create-agent_commands] )) ||
+_bqx__ca__create-agent_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx ca create-agent commands' commands "$@"
+}
+(( $+functions[_bqx__ca__help_commands] )) ||
+_bqx__ca__help_commands() {
+    local commands; commands=(
+'ask:Ask a natural language question via Conversational Analytics' \
+'create-agent:Create a new Conversational Analytics data agent' \
+'list-agents:List data agents in the project' \
+'add-verified-query:Add a verified query to an existing data agent' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx ca help commands' commands "$@"
+}
+(( $+functions[_bqx__ca__help__add-verified-query_commands] )) ||
+_bqx__ca__help__add-verified-query_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx ca help add-verified-query commands' commands "$@"
+}
+(( $+functions[_bqx__ca__help__ask_commands] )) ||
+_bqx__ca__help__ask_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx ca help ask commands' commands "$@"
+}
+(( $+functions[_bqx__ca__help__create-agent_commands] )) ||
+_bqx__ca__help__create-agent_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx ca help create-agent commands' commands "$@"
+}
+(( $+functions[_bqx__ca__help__help_commands] )) ||
+_bqx__ca__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx ca help help commands' commands "$@"
+}
+(( $+functions[_bqx__ca__help__list-agents_commands] )) ||
+_bqx__ca__help__list-agents_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx ca help list-agents commands' commands "$@"
+}
+(( $+functions[_bqx__ca__list-agents_commands] )) ||
+_bqx__ca__list-agents_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx ca list-agents commands' commands "$@"
+}
+(( $+functions[_bqx__completions_commands] )) ||
+_bqx__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx completions commands' commands "$@"
+}
+(( $+functions[_bqx__generate-skills_commands] )) ||
+_bqx__generate-skills_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx generate-skills commands' commands "$@"
+}
+(( $+functions[_bqx__help_commands] )) ||
+_bqx__help_commands() {
+    local commands; commands=(
+'jobs:BigQuery jobs operations' \
+'analytics:Agent analytics operations' \
+'auth:Authentication management' \
+'ca:Conversational Analytics operations' \
+'generate-skills:Generate SKILL.md and agents/openai.yaml for BigQuery API commands' \
+'completions:Generate shell completion scripts' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx help commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics_commands] )) ||
+_bqx__help__analytics_commands() {
+    local commands; commands=(
+'doctor:Health check on BigQuery table and configuration' \
+'evaluate:Evaluate agent sessions against a threshold' \
+'get-trace:Retrieve a session trace' \
+'list-traces:List recent traces matching filter criteria' \
+'insights:Generate comprehensive agent insights report' \
+'drift:Run drift detection against a golden question set' \
+'distribution:Analyze event distribution patterns' \
+'hitl-metrics:Show human-in-the-loop interaction metrics' \
+'views:Manage per-event-type BigQuery views' \
+    )
+    _describe -t commands 'bqx help analytics commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__distribution_commands] )) ||
+_bqx__help__analytics__distribution_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help analytics distribution commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__doctor_commands] )) ||
+_bqx__help__analytics__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help analytics doctor commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__drift_commands] )) ||
+_bqx__help__analytics__drift_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help analytics drift commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__evaluate_commands] )) ||
+_bqx__help__analytics__evaluate_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help analytics evaluate commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__get-trace_commands] )) ||
+_bqx__help__analytics__get-trace_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help analytics get-trace commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__hitl-metrics_commands] )) ||
+_bqx__help__analytics__hitl-metrics_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help analytics hitl-metrics commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__insights_commands] )) ||
+_bqx__help__analytics__insights_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help analytics insights commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__list-traces_commands] )) ||
+_bqx__help__analytics__list-traces_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help analytics list-traces commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__views_commands] )) ||
+_bqx__help__analytics__views_commands() {
+    local commands; commands=(
+'create-all:Create views for all 18 standard event types' \
+    )
+    _describe -t commands 'bqx help analytics views commands' commands "$@"
+}
+(( $+functions[_bqx__help__analytics__views__create-all_commands] )) ||
+_bqx__help__analytics__views__create-all_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help analytics views create-all commands' commands "$@"
+}
+(( $+functions[_bqx__help__auth_commands] )) ||
+_bqx__help__auth_commands() {
+    local commands; commands=(
+'login:Authenticate with Google OAuth (opens browser)' \
+'status:Show current authentication status' \
+'logout:Clear stored credentials' \
+    )
+    _describe -t commands 'bqx help auth commands' commands "$@"
+}
+(( $+functions[_bqx__help__auth__login_commands] )) ||
+_bqx__help__auth__login_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help auth login commands' commands "$@"
+}
+(( $+functions[_bqx__help__auth__logout_commands] )) ||
+_bqx__help__auth__logout_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help auth logout commands' commands "$@"
+}
+(( $+functions[_bqx__help__auth__status_commands] )) ||
+_bqx__help__auth__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help auth status commands' commands "$@"
+}
+(( $+functions[_bqx__help__ca_commands] )) ||
+_bqx__help__ca_commands() {
+    local commands; commands=(
+'ask:Ask a natural language question via Conversational Analytics' \
+'create-agent:Create a new Conversational Analytics data agent' \
+'list-agents:List data agents in the project' \
+'add-verified-query:Add a verified query to an existing data agent' \
+    )
+    _describe -t commands 'bqx help ca commands' commands "$@"
+}
+(( $+functions[_bqx__help__ca__add-verified-query_commands] )) ||
+_bqx__help__ca__add-verified-query_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help ca add-verified-query commands' commands "$@"
+}
+(( $+functions[_bqx__help__ca__ask_commands] )) ||
+_bqx__help__ca__ask_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help ca ask commands' commands "$@"
+}
+(( $+functions[_bqx__help__ca__create-agent_commands] )) ||
+_bqx__help__ca__create-agent_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help ca create-agent commands' commands "$@"
+}
+(( $+functions[_bqx__help__ca__list-agents_commands] )) ||
+_bqx__help__ca__list-agents_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help ca list-agents commands' commands "$@"
+}
+(( $+functions[_bqx__help__completions_commands] )) ||
+_bqx__help__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help completions commands' commands "$@"
+}
+(( $+functions[_bqx__help__generate-skills_commands] )) ||
+_bqx__help__generate-skills_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help generate-skills commands' commands "$@"
+}
+(( $+functions[_bqx__help__help_commands] )) ||
+_bqx__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help help commands' commands "$@"
+}
+(( $+functions[_bqx__help__jobs_commands] )) ||
+_bqx__help__jobs_commands() {
+    local commands; commands=(
+'query:Execute a SQL query' \
+    )
+    _describe -t commands 'bqx help jobs commands' commands "$@"
+}
+(( $+functions[_bqx__help__jobs__query_commands] )) ||
+_bqx__help__jobs__query_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help jobs query commands' commands "$@"
+}
+(( $+functions[_bqx__jobs_commands] )) ||
+_bqx__jobs_commands() {
+    local commands; commands=(
+'query:Execute a SQL query' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx jobs commands' commands "$@"
+}
+(( $+functions[_bqx__jobs__help_commands] )) ||
+_bqx__jobs__help_commands() {
+    local commands; commands=(
+'query:Execute a SQL query' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx jobs help commands' commands "$@"
+}
+(( $+functions[_bqx__jobs__help__help_commands] )) ||
+_bqx__jobs__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx jobs help help commands' commands "$@"
+}
+(( $+functions[_bqx__jobs__help__query_commands] )) ||
+_bqx__jobs__help__query_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx jobs help query commands' commands "$@"
+}
+(( $+functions[_bqx__jobs__query_commands] )) ||
+_bqx__jobs__query_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx jobs query commands' commands "$@"
+}
+
+if [ "$funcstack[1]" = "_bqx" ]; then
+    _bqx "$@"
+else
+    compdef _bqx bqx
+fi

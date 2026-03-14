@@ -1,6 +1,6 @@
 [package]
 name = "bqx"
-version = "0.0.1"
+version = "0.3.0"
 edition = "2021"
 description = "Agent-native BigQuery CLI"
 license = "Apache-2.0"
@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive", "env", "string"] }
+clap_complete = "4"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["json"] }
 gcp_auth = "0.12"

@@ -72,6 +72,19 @@ pub enum Command {
         #[arg(long)]
         filter: Vec<String>,
     },
+    /// Generate shell completion scripts
+    Completions {
+        /// Shell to generate completions for
+        #[arg(value_enum)]
+        shell: ShellType,
+    },
+}
+
+#[derive(Clone, ValueEnum)]
+pub enum ShellType {
+    Bash,
+    Zsh,
+    Fish,
 }
 
 #[derive(Subcommand)]

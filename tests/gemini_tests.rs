@@ -16,12 +16,12 @@ fn bundled_manifest_validates() {
 #[test]
 fn manifest_has_expected_tool_count() {
     let manifest = gemini::load_manifest().unwrap();
-    // Phase 2 curated subset: 10 tools (query, datasets list/get,
-    // tables list/get, routines list, models list, analytics doctor/evaluate/get-trace).
+    // Phase 3 curated subset: 16 tools (Phase 2's 10 + list-traces, insights,
+    // drift, distribution, hitl-metrics, ca ask).
     assert_eq!(
         manifest.tools.len(),
-        10,
-        "Expected 10 tools in Phase 2 manifest, got {}",
+        16,
+        "Expected 16 tools in Phase 3 manifest, got {}",
         manifest.tools.len()
     );
 }
