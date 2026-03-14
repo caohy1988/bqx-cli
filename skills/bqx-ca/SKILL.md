@@ -20,7 +20,8 @@ See **bqx-shared** for authentication and global flags.
 
 All CA commands require:
 - `--project-id` (or `BQX_PROJECT`)
-- `--dataset-id` (or `BQX_DATASET`)
+
+CA commands use `--location` (defaults to `US`) but do **not** require `--dataset-id`.
 
 ## Command routing
 

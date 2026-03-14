@@ -45,7 +45,7 @@ echo "Checking error rate..."
 if ! bqx analytics evaluate \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
-  --evaluator error_rate \
+  --evaluator error-rate \
   --threshold 0.05 \
   --last 1h \
   --exit-code \
@@ -152,7 +152,7 @@ jobs:
           bqx analytics evaluate \
             --project-id ${{ secrets.GCP_PROJECT }} \
             --dataset-id ${{ secrets.BQX_DATASET }} \
-            --evaluator error_rate \
+            --evaluator error-rate \
             --threshold 0.05 \
             --last 1h \
             --exit-code
@@ -178,7 +178,7 @@ bqx ca ask "Summarize the errors in the last hour and suggest root causes" \
 ## Decision rules
 
 - Use `--last 1h` for real-time alerting, `--last 24h` for daily summaries
-- Start with `error_rate` and `latency` checks — add `drift` once golden questions exist
+- Start with `error-rate` and `latency` checks — add `drift` once golden questions exist
 - Use `--exit-code` so script exit status reflects check results
 - Keep alert scripts idempotent — they may run on overlapping schedules
 - Use `--agent-id` to set per-agent thresholds for high-priority agents

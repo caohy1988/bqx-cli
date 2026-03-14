@@ -49,7 +49,7 @@ This creates 18 views (e.g., `adk_llm_request`, `adk_tool_completed`, `adk_tool_
 bqx ca create-agent \
   --name=agent-analytics \
   --tables=<PROJECT_ID>.<DATASET_ID>.agent_events \
-  --views=<PROJECT_ID>.<DATASET_ID>.adk_llm_responses,<PROJECT_ID>.<DATASET_ID>.adk_tool_completions \
+  --views=<PROJECT_ID>.<DATASET_ID>.adk_llm_response,<PROJECT_ID>.<DATASET_ID>.adk_tool_completed \
   --verified-queries=./deploy/ca/verified_queries.yaml \
   --instructions="You help analyze AI agent performance. The agent_events
     table stores traces from ADK agents. Key event types: LLM_REQUEST,

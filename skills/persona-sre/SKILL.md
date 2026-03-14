@@ -22,7 +22,7 @@ See **bqx-shared** for authentication and global flags.
 1. Check overall health:
    `bqx analytics doctor`
 2. Look for error spikes:
-   `bqx analytics evaluate --evaluator=error_rate --threshold=0.05 --last=1h`
+   `bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=1h`
 3. Identify failing sessions:
    `bqx analytics evaluate --evaluator=latency --threshold=5000 --last=1h --format=table`
 4. Inspect a specific failure:
@@ -34,7 +34,7 @@ See **bqx-shared** for authentication and global flags.
 
 ```bash
 bqx analytics doctor && \
-bqx analytics evaluate --evaluator=error_rate --threshold=0.05 --last=24h && \
+bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h && \
 bqx analytics evaluate --evaluator=latency --threshold=5000 --last=24h
 ```
 

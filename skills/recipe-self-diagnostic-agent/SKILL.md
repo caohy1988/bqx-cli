@@ -145,7 +145,7 @@ For agents that run continuously, add a background health loop:
 # Run every 5 minutes as a background check
 while true; do
   bqx analytics evaluate \
-    --evaluator=error_rate \
+    --evaluator=error-rate \
     --threshold=0.10 \
     --agent-id=my-agent \
     --last=15m \

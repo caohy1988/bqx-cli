@@ -54,7 +54,7 @@ bqx ca create-agent \
 bqx ca create-agent \
   --name=agent-analytics \
   --tables=myproject.analytics.agent_events \
-  --views=myproject.analytics.adk_llm_responses,myproject.analytics.adk_tool_completions \
+  --views=myproject.analytics.adk_llm_response,myproject.analytics.adk_tool_completed \
   --verified-queries=./deploy/ca/verified_queries.yaml \
   --instructions="You help analyze AI agent performance. The agent_events
     table stores traces from ADK agents. Key event types: LLM_REQUEST,
@@ -76,7 +76,7 @@ bqx analytics views create-all \
 bqx ca create-agent \
   --name=agent-analytics \
   --tables=myproject.analytics.agent_events \
-  --views=myproject.analytics.adk_llm_responses,myproject.analytics.adk_tool_completions
+  --views=myproject.analytics.adk_llm_response,myproject.analytics.adk_tool_completed
 ```
 
 ## Verified queries format
