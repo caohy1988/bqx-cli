@@ -142,6 +142,66 @@ pub enum AnalyticsCommand {
         limit: u32,
     },
 
+    /// Generate comprehensive agent insights report
+    Insights {
+        /// Time window (e.g., 1h, 24h, 7d)
+        #[arg(long)]
+        last: String,
+
+        /// Filter by agent name
+        #[arg(long)]
+        agent_id: Option<String>,
+    },
+
+    /// Run drift detection against a golden question set
+    Drift {
+        /// Golden dataset table name (in the same dataset)
+        #[arg(long)]
+        golden_dataset: String,
+
+        /// Time window (e.g., 1h, 24h, 7d)
+        #[arg(long, default_value = "7d")]
+        last: String,
+
+        /// Filter by agent name
+        #[arg(long)]
+        agent_id: Option<String>,
+
+        /// Minimum coverage threshold (0.0-1.0)
+        #[arg(long, default_value = "0.8")]
+        min_coverage: f64,
+
+        /// Return exit code 1 on drift failure
+        #[arg(long)]
+        exit_code: bool,
+    },
+
+    /// Analyze event distribution patterns
+    Distribution {
+        /// Time window (e.g., 1h, 24h, 7d)
+        #[arg(long)]
+        last: String,
+
+        /// Filter by agent name
+        #[arg(long)]
+        agent_id: Option<String>,
+    },
+
+    /// Show human-in-the-loop interaction metrics
+    HitlMetrics {
+        /// Time window (e.g., 1h, 24h, 7d)
+        #[arg(long)]
+        last: String,
+
+        /// Filter by agent name
+        #[arg(long)]
+        agent_id: Option<String>,
+
+        /// Maximum number of sessions to return
+        #[arg(long, default_value = "20")]
+        limit: u32,
+    },
+
     /// Manage per-event-type BigQuery views
     Views {
         #[command(subcommand)]

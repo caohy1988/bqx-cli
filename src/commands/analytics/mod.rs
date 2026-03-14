@@ -1,5 +1,9 @@
+pub mod distribution;
 pub mod doctor;
+pub mod drift;
 pub mod evaluate;
 pub mod get_trace;
+pub mod hitl_metrics;
+pub mod insights;
 pub mod list_traces;
 pub mod views;

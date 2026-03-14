@@ -118,9 +118,13 @@ pub mod text {
     use crate::ca::models::{
         AddVerifiedQueryResponse, CaQuestionResponse, CreateAgentResponse, ListAgentsResponse,
     };
+    use crate::commands::analytics::distribution::DistributionResult;
     use crate::commands::analytics::doctor::DoctorReport;
+    use crate::commands::analytics::drift::DriftResult;
     use crate::commands::analytics::evaluate::{EvalResult, SessionEval};
     use crate::commands::analytics::get_trace::{TraceEvent, TraceResult};
+    use crate::commands::analytics::hitl_metrics::HitlMetricsResult;
+    use crate::commands::analytics::insights::InsightsResult;
     use crate::commands::analytics::list_traces::ListTracesResult;
     use crate::commands::analytics::views::ViewsCreateResult;
 
@@ -375,6 +379,169 @@ pub mod text {
         }
     }
 
+    pub fn render_insights(result: &InsightsResult) {
+        let mut buf = String::new();
+        fmt_insights(&mut buf, result);
+        print!("{buf}");
+    }
+
+    pub fn fmt_insights(w: &mut dyn Write, result: &InsightsResult) {
+        let s = &result.summary;
+        let _ = write!(w, "Insights: Window={}", result.time_window);
+        if let Some(ref agent) = result.agent_id {
+            let _ = write!(w, "  Agent={agent}");
+        }
+        let _ = writeln!(w);
+        let _ = writeln!(
+            w,
+            "Sessions: {}  Events: {}  Errors: {} ({:.2}%)",
+            s.total_sessions,
+            s.total_events,
+            s.total_errors,
+            s.error_rate * 100.0
+        );
+        let _ = writeln!(
+            w,
+            "Sessions with errors: {} ({:.2}%)",
+            s.sessions_with_errors,
+            s.session_error_rate * 100.0
+        );
+        let _ = writeln!(
+            w,
+            "LLM requests: {}  Tool calls: {}",
+            s.total_llm_requests, s.total_tool_calls
+        );
+        if let Some(peak) = s.peak_latency_ms {
+            let avg = s.avg_latency_ms.unwrap_or(0.0);
+            let _ = writeln!(w, "Latency: peak={peak:.0}ms  avg={avg:.0}ms");
+        }
+        if !result.top_errors.is_empty() {
+            let _ = writeln!(w, "Top errors:");
+            for e in &result.top_errors {
+                let _ = writeln!(
+                    w,
+                    "  {:<24} {} (x{})",
+                    e.event_type, e.error_message, e.occurrences
+                );
+            }
+        }
+        if !result.top_tools.is_empty() {
+            let _ = writeln!(w, "Top tools:");
+            for t in &result.top_tools {
+                let latency = t
+                    .avg_latency_ms
+                    .map(|v| format!("avg={v:.0}ms"))
+                    .unwrap_or("-".into());
+                let _ = writeln!(
+                    w,
+                    "  {:<30} calls={}  {latency}",
+                    t.tool_name, t.call_count
+                );
+            }
+        }
+    }
+
+    pub fn render_drift(result: &DriftResult) {
+        let mut buf = String::new();
+        fmt_drift(&mut buf, result);
+        print!("{buf}");
+    }
+
+    pub fn fmt_drift(w: &mut dyn Write, result: &DriftResult) {
+        let status = if result.passed { "PASSED" } else { "FAILED" };
+        let _ = write!(
+            w,
+            "Drift: golden={}  Window={}",
+            result.golden_dataset, result.time_window
+        );
+        if let Some(ref agent) = result.agent_id {
+            let _ = write!(w, "  Agent={agent}");
+        }
+        let _ = writeln!(w);
+        let _ = writeln!(
+            w,
+            "Coverage: {}/{} ({:.2}%)  Min: {:.2}%  {}",
+            result.covered,
+            result.total_golden,
+            result.coverage * 100.0,
+            result.min_coverage * 100.0,
+            status
+        );
+        let uncovered: Vec<&_> = result.questions.iter().filter(|q| !q.covered).collect();
+        if !uncovered.is_empty() {
+            let _ = writeln!(w, "Uncovered questions:");
+            for q in uncovered {
+                let _ = writeln!(w, "  - {}", q.golden_question);
+            }
+        }
+    }
+
+    pub fn render_distribution(result: &DistributionResult) {
+        let mut buf = String::new();
+        fmt_distribution(&mut buf, result);
+        print!("{buf}");
+    }
+
+    pub fn fmt_distribution(w: &mut dyn Write, result: &DistributionResult) {
+        let _ = write!(
+            w,
+            "Distribution: Window={}  Total events={}",
+            result.time_window, result.total_events
+        );
+        if let Some(ref agent) = result.agent_id {
+            let _ = write!(w, "  Agent={agent}");
+        }
+        let _ = writeln!(w);
+        for e in &result.event_types {
+            let _ = writeln!(
+                w,
+                "  {:<28} {:>5}  sessions={:<4} {:.1}%",
+                e.event_type,
+                e.event_count,
+                e.session_count,
+                e.proportion * 100.0
+            );
+        }
+    }
+
+    pub fn render_hitl_metrics(result: &HitlMetricsResult) {
+        let mut buf = String::new();
+        fmt_hitl_metrics(&mut buf, result);
+        print!("{buf}");
+    }
+
+    pub fn fmt_hitl_metrics(w: &mut dyn Write, result: &HitlMetricsResult) {
+        let s = &result.summary;
+        let _ = write!(w, "HITL Metrics: Window={}", result.time_window);
+        if let Some(ref agent) = result.agent_id {
+            let _ = write!(w, "  Agent={agent}");
+        }
+        let _ = writeln!(w);
+        let _ = writeln!(
+            w,
+            "Total sessions: {}  Sessions with HITL: {} ({:.2}%)",
+            s.total_sessions,
+            s.sessions_with_hitl,
+            s.hitl_session_rate * 100.0
+        );
+        let _ = writeln!(
+            w,
+            "HITL required: {}  HITL received: {}",
+            s.hitl_required_count, s.hitl_received_count
+        );
+        if !result.sessions.is_empty() {
+            let _ = writeln!(w, "Sessions:");
+            for sess in &result.sessions {
+                let first = sess.first_hitl_at.as_deref().unwrap_or("-");
+                let _ = writeln!(
+                    w,
+                    "  {:<40} {:<20} required={}  received={}  {first}",
+                    sess.session_id, sess.agent, sess.required_count, sess.received_count
+                );
+            }
+        }
+    }
+
     pub fn fmt_ca_ask(w: &mut dyn Write, resp: &CaQuestionResponse) {
         let _ = writeln!(w, "Question: {}", resp.question);
         if let Some(ref agent) = resp.agent {
@@ -420,9 +587,17 @@ mod tests {
         AddVerifiedQueryResponse, CaQuestionResponse, CreateAgentResponse, DataAgentSummary,
         ListAgentsResponse,
     };
+    use crate::commands::analytics::distribution::{DistributionResult, EventDistribution};
     use crate::commands::analytics::doctor::{DoctorReport, NullChecks};
+    use crate::commands::analytics::drift::{DriftQuestion, DriftResult};
     use crate::commands::analytics::evaluate::{EvalResult, SessionEval};
     use crate::commands::analytics::get_trace::{TraceEvent, TraceResult};
+    use crate::commands::analytics::hitl_metrics::{
+        HitlMetricsResult, HitlSession, HitlSummary,
+    };
+    use crate::commands::analytics::insights::{
+        InsightsResult, InsightsSummary, TopError, TopTool,
+    };
     use crate::commands::analytics::list_traces::{ListTracesResult, TraceSummary};
     use crate::commands::analytics::views::{ViewStatus, ViewsCreateResult};
 
@@ -935,5 +1110,234 @@ mod tests {
         assert!(buf.contains("created=0  failed=1"));
         assert!(buf.contains("! adk_tool_error"));
         assert!(buf.contains("error: permission denied"));
+    }
+
+    #[test]
+    fn text_insights_with_data() {
+        let result = InsightsResult {
+            time_window: "24h".into(),
+            agent_id: Some("support_bot".into()),
+            summary: InsightsSummary {
+                total_sessions: 10,
+                total_events: 200,
+                total_errors: 5,
+                error_rate: 0.025,
+                sessions_with_errors: 3,
+                session_error_rate: 0.3,
+                avg_events_per_session: 20.0,
+                total_llm_requests: 80,
+                total_tool_calls: 40,
+                peak_latency_ms: Some(5000.0),
+                avg_latency_ms: Some(1200.0),
+                earliest_session: Some("2026-03-13 00:00:00 UTC".into()),
+                latest_session: Some("2026-03-13 23:59:00 UTC".into()),
+            },
+            top_errors: vec![TopError {
+                event_type: "TOOL_ERROR".into(),
+                error_message: "timeout".into(),
+                occurrences: 3,
+            }],
+            top_tools: vec![TopTool {
+                tool_name: "search".into(),
+                call_count: 25,
+                avg_latency_ms: Some(500.0),
+                max_latency_ms: Some(2000.0),
+            }],
+        };
+        let mut buf = String::new();
+        fmt_insights(&mut buf, &result);
+        assert!(buf.contains("Insights: Window=24h  Agent=support_bot"));
+        assert!(buf.contains("Sessions: 10  Events: 200  Errors: 5 (2.50%)"));
+        assert!(buf.contains("LLM requests: 80  Tool calls: 40"));
+        assert!(buf.contains("Latency: peak=5000ms  avg=1200ms"));
+        assert!(buf.contains("Top errors:"));
+        assert!(buf.contains("TOOL_ERROR"));
+        assert!(buf.contains("Top tools:"));
+        assert!(buf.contains("search"));
+    }
+
+    #[test]
+    fn text_insights_empty() {
+        let result = InsightsResult {
+            time_window: "7d".into(),
+            agent_id: None,
+            summary: InsightsSummary {
+                total_sessions: 0,
+                total_events: 0,
+                total_errors: 0,
+                error_rate: 0.0,
+                sessions_with_errors: 0,
+                session_error_rate: 0.0,
+                avg_events_per_session: 0.0,
+                total_llm_requests: 0,
+                total_tool_calls: 0,
+                peak_latency_ms: None,
+                avg_latency_ms: None,
+                earliest_session: None,
+                latest_session: None,
+            },
+            top_errors: vec![],
+            top_tools: vec![],
+        };
+        let mut buf = String::new();
+        fmt_insights(&mut buf, &result);
+        assert!(buf.contains("Sessions: 0  Events: 0"));
+        assert!(!buf.contains("Top errors:"));
+        assert!(!buf.contains("Top tools:"));
+    }
+
+    #[test]
+    fn text_drift_passed() {
+        let result = DriftResult {
+            golden_dataset: "golden_qs".into(),
+            time_window: "7d".into(),
+            agent_id: None,
+            total_golden: 3,
+            covered: 3,
+            uncovered: 0,
+            coverage: 1.0,
+            min_coverage: 0.8,
+            passed: true,
+            questions: vec![
+                DriftQuestion {
+                    golden_question: "What is the error rate?".into(),
+                    expected_answer: "Low".into(),
+                    covered: true,
+                    session_id: Some("s1".into()),
+                    actual_answer: Some("Very low".into()),
+                },
+            ],
+        };
+        let mut buf = String::new();
+        fmt_drift(&mut buf, &result);
+        assert!(buf.contains("Drift: golden=golden_qs  Window=7d"));
+        assert!(buf.contains("Coverage: 3/3 (100.00%)"));
+        assert!(buf.contains("PASSED"));
+        assert!(!buf.contains("Uncovered questions:"));
+    }
+
+    #[test]
+    fn text_drift_failed() {
+        let result = DriftResult {
+            golden_dataset: "golden_qs".into(),
+            time_window: "7d".into(),
+            agent_id: Some("bot".into()),
+            total_golden: 3,
+            covered: 1,
+            uncovered: 2,
+            coverage: 0.333,
+            min_coverage: 0.85,
+            passed: false,
+            questions: vec![
+                DriftQuestion {
+                    golden_question: "Q1".into(),
+                    expected_answer: "A1".into(),
+                    covered: true,
+                    session_id: Some("s1".into()),
+                    actual_answer: Some("A1b".into()),
+                },
+                DriftQuestion {
+                    golden_question: "Q2".into(),
+                    expected_answer: "A2".into(),
+                    covered: false,
+                    session_id: None,
+                    actual_answer: None,
+                },
+                DriftQuestion {
+                    golden_question: "Q3".into(),
+                    expected_answer: "A3".into(),
+                    covered: false,
+                    session_id: None,
+                    actual_answer: None,
+                },
+            ],
+        };
+        let mut buf = String::new();
+        fmt_drift(&mut buf, &result);
+        assert!(buf.contains("FAILED"));
+        assert!(buf.contains("Agent=bot"));
+        assert!(buf.contains("Coverage: 1/3"));
+        assert!(buf.contains("Uncovered questions:"));
+        assert!(buf.contains("- Q2"));
+        assert!(buf.contains("- Q3"));
+    }
+
+    #[test]
+    fn text_distribution_with_events() {
+        let result = DistributionResult {
+            time_window: "24h".into(),
+            agent_id: None,
+            total_events: 100,
+            event_types: vec![
+                EventDistribution {
+                    event_type: "LLM_REQUEST".into(),
+                    event_count: 40,
+                    session_count: 10,
+                    proportion: 0.4,
+                },
+                EventDistribution {
+                    event_type: "TOOL_CALL".into(),
+                    event_count: 30,
+                    session_count: 8,
+                    proportion: 0.3,
+                },
+            ],
+        };
+        let mut buf = String::new();
+        fmt_distribution(&mut buf, &result);
+        assert!(buf.contains("Distribution: Window=24h  Total events=100"));
+        assert!(buf.contains("LLM_REQUEST"));
+        assert!(buf.contains("40.0%"));
+        assert!(buf.contains("TOOL_CALL"));
+    }
+
+    #[test]
+    fn text_hitl_metrics_with_sessions() {
+        let result = HitlMetricsResult {
+            time_window: "7d".into(),
+            agent_id: Some("bot".into()),
+            summary: HitlSummary {
+                total_sessions: 20,
+                hitl_required_count: 5,
+                hitl_received_count: 4,
+                sessions_with_hitl: 3,
+                hitl_session_rate: 0.15,
+            },
+            sessions: vec![HitlSession {
+                session_id: "s-abc".into(),
+                agent: "bot".into(),
+                required_count: 3,
+                received_count: 2,
+                first_hitl_at: Some("2026-03-13 10:00:00 UTC".into()),
+                last_hitl_at: Some("2026-03-13 10:05:00 UTC".into()),
+            }],
+        };
+        let mut buf = String::new();
+        fmt_hitl_metrics(&mut buf, &result);
+        assert!(buf.contains("HITL Metrics: Window=7d  Agent=bot"));
+        assert!(buf.contains("Total sessions: 20  Sessions with HITL: 3 (15.00%)"));
+        assert!(buf.contains("HITL required: 5  HITL received: 4"));
+        assert!(buf.contains("s-abc"));
+        assert!(buf.contains("required=3"));
+    }
+
+    #[test]
+    fn text_hitl_metrics_empty() {
+        let result = HitlMetricsResult {
+            time_window: "24h".into(),
+            agent_id: None,
+            summary: HitlSummary {
+                total_sessions: 10,
+                hitl_required_count: 0,
+                hitl_received_count: 0,
+                sessions_with_hitl: 0,
+                hitl_session_rate: 0.0,
+            },
+            sessions: vec![],
+        };
+        let mut buf = String::new();
+        fmt_hitl_metrics(&mut buf, &result);
+        assert!(buf.contains("Sessions with HITL: 0 (0.00%)"));
+        assert!(!buf.contains("Sessions:"));
     }
 }
