@@ -4,7 +4,9 @@ use serde_json::json;
 use bqx::auth;
 use bqx::bigquery::discovery::{self, DiscoverySource};
 use bqx::bigquery::dynamic::{clap_tree, executor, model};
-use bqx::cli::{AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat};
+use bqx::cli::{
+    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat, ViewsCommand,
+};
 use bqx::commands;
 use bqx::config::Config;
 use bqx::models::BqxError;
@@ -276,6 +278,19 @@ async fn run_static(cli: Cli) {
             AnalyticsCommand::GetTrace { session_id } => {
                 commands::analytics::get_trace::run(session_id, &auth_opts, &config).await
             }
+            AnalyticsCommand::ListTraces {
+                last,
+                agent_id,
+                limit,
+            } => {
+                commands::analytics::list_traces::run(last, agent_id, limit, &auth_opts, &config)
+                    .await
+            }
+            AnalyticsCommand::Views { command } => match command {
+                ViewsCommand::CreateAll { prefix } => {
+                    commands::analytics::views::run(prefix, &auth_opts, &config).await
+                }
+            },
         },
         Command::Auth { .. } | Command::GenerateSkills { .. } => unreachable!(),
     };
