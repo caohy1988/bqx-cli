@@ -1,0 +1,7 @@
+interface:
+  display_name: "bqx CA Create Agent"
+  short_description: "Create a Conversational Analytics data agent"
+  default_prompt: "Use $bqx-ca-create-agent to create a data agent with tables, views, and verified queries."
+
+policy:
+  allow_implicit_invocation: true

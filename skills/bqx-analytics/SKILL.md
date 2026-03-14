@@ -30,6 +30,12 @@ All analytics commands require:
 | Health check on table setup | `analytics doctor` | (this skill) |
 | Policy gate: pass/fail sessions against a threshold | `analytics evaluate` | bqx-analytics-evaluate |
 | Session-level debugging | `analytics get-trace` | bqx-analytics-trace |
+| Drift detection against golden questions | `analytics drift` | bqx-analytics-drift |
+| Per-event-type BigQuery views | `analytics views create-all` | bqx-analytics-views |
+| Comprehensive insights report | `analytics insights` | (this skill) |
+| Event distribution analysis | `analytics distribution` | (this skill) |
+| Human-in-the-loop metrics | `analytics hitl-metrics` | (this skill) |
+| List recent traces | `analytics list-traces` | bqx-analytics-trace |
 
 ## Core workflow
 

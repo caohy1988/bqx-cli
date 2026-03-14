@@ -263,7 +263,7 @@ bqx ca ask "What's the p95 latency trend for support_bot?" \
 # Create a data agent with verified queries
 bqx ca create-agent \
   --name=agent-analytics \
-  --tables=myproject.analytics.agent_events,myproject.analytics.adk_llm_responses \
+  --tables=myproject.analytics.agent_events,myproject.analytics.adk_llm_response \
   --verified-queries=./deploy/ca/verified_queries.yaml \
   --instructions="This agent helps analyze AI agent performance metrics."
 
@@ -566,7 +566,7 @@ Monitor AI agent health, triage incidents, and validate fixes.
 1. Check overall health:
    `bqx analytics doctor`
 2. Look for error spikes:
-   `bqx analytics evaluate --evaluator=error_rate --threshold=0.05 --last=1h`
+   `bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=1h`
 3. Identify failing sessions:
    `bqx analytics evaluate --evaluator=latency --threshold=5000 --last=1h --format=table`
 4. Inspect a specific failure:
@@ -578,7 +578,7 @@ Monitor AI agent health, triage incidents, and validate fixes.
 
 ```bash
 bqx analytics doctor && \
-bqx analytics evaluate --evaluator=error_rate --threshold=0.05 --last=24h && \
+bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h && \
 bqx analytics evaluate --evaluator=latency --threshold=5000 --last=24h
 ```
 
@@ -629,7 +629,7 @@ drops below thresholds.
 3. Add evaluation gates:
    ```bash
    bqx analytics evaluate --evaluator=latency --threshold=5000 --last=24h --exit-code
-   bqx analytics evaluate --evaluator=error_rate --threshold=0.05 --last=24h --exit-code
+   bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h --exit-code
    bqx analytics drift --golden-dataset=golden_qs --min-coverage=0.85 --exit-code
    ```
 
@@ -672,9 +672,9 @@ provide.
 |------|-------|------------|----------|
 | Service (API) | 4 | Yes | `bqx-datasets`, `bqx-tables`, `bqx-routines`, `bqx-models` |
 | Service (static/non-Discovery) | 3 | No | `bqx-jobs`, `bqx-connections`, `bqx-analytics` |
-| Helper | 6 | No | `bqx-analytics-evaluate`, `bqx-query`, `bqx-schema` |
-| Persona | 2 | No | `persona-agent-developer`, `persona-data-analyst` |
-| Recipe | 3 | No | `recipe-eval-pipeline`, `recipe-quality-dashboard` |
+| Helper | 9 | No | `bqx-analytics-evaluate`, `bqx-query`, `bqx-schema`, `bqx-ca`, `bqx-ca-ask`, `bqx-ca-create-agent` |
+| Persona | 3 | No | `persona-agent-developer`, `persona-data-analyst`, `persona-sre` |
+| Recipe | 6 | No | `recipe-eval-pipeline`, `recipe-quality-dashboard`, `recipe-ca-data-agent-setup`, `recipe-error-alerting`, `recipe-self-diagnostic-agent` |
 | Shared | 1 | No | `bqx-shared` |
 
 ### 4.4 Skill Distribution
@@ -717,7 +717,7 @@ tuned for agent analytics:
 bqx ca create-agent \
   --name=agent-analytics \
   --tables=myproject.analytics.agent_events \
-  --views=myproject.analytics.adk_llm_responses,myproject.analytics.adk_tool_completions \
+  --views=myproject.analytics.adk_llm_response,myproject.analytics.adk_tool_completed \
   --verified-queries=./deploy/ca/verified_queries.yaml \
   --instructions="You help analyze AI agent performance. The agent_events
     table stores traces from ADK agents. Key event types: LLM_REQUEST,
@@ -849,7 +849,7 @@ bqx analytics doctor
 bqx ca ask "Which agents have error rate above 5% in the last hour?"
 
 # 3. Deep dive into the worst one
-bqx analytics evaluate --agent-id=support_bot --evaluator=error_rate --last=1h --format=table
+bqx analytics evaluate --agent-id=support_bot --evaluator=error-rate --last=1h --format=table
 
 # 4. Get the specific traces
 bqx analytics get-trace --session-id=sess-042 --format=tree
@@ -910,15 +910,15 @@ reproducible validation script.
 > sufficient stability (currently in preview). Phase 1-2 deliver value
 > independently.
 
-- [ ] `bqx ca ask` — natural language query via CA API
-- [ ] `bqx ca create-agent` — create data agents
-- [ ] `bqx ca add-verified-query` — add verified queries
-- [ ] Ship `deploy/ca/verified_queries.yaml` with SDK
-- [ ] Remaining CA-dependent skills (7 of 26): `bqx-ca`, `bqx-ca-ask`,
+- [x] `bqx ca ask` — natural language query via CA API
+- [x] `bqx ca create-agent` — create data agents
+- [x] `bqx ca add-verified-query` — add verified queries
+- [x] Ship `deploy/ca/verified_queries.yaml` with SDK
+- [x] Remaining CA-dependent skills (7 of 26): `bqx-ca`, `bqx-ca-ask`,
   `bqx-ca-create-agent`, `persona-sre` (requires `bqx-ca`),
   `recipe-ca-data-agent-setup`, `recipe-error-alerting`,
   `recipe-self-diagnostic-agent`
-- [ ] Remaining analytics commands: `insights`, `drift`, `distribution`,
+- [x] Remaining analytics commands: `insights`, `drift`, `distribution`,
   `views`, `hitl-metrics`, `list-traces`
 - [ ] Completion scripts (bash, zsh, fish)
 - [ ] Documentation and examples
