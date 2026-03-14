@@ -155,7 +155,14 @@ pub fn build_insights_query(
     interval_sql: &str,
     agent_id: Option<&str>,
 ) -> String {
-    replace_common(INSIGHTS_SQL, project, dataset, table, interval_sql, agent_id)
+    replace_common(
+        INSIGHTS_SQL,
+        project,
+        dataset,
+        table,
+        interval_sql,
+        agent_id,
+    )
 }
 
 pub fn build_top_errors_query(
@@ -224,9 +231,7 @@ fn get_opt_f64(row: &serde_json::Map<String, serde_json::Value>, key: &str) -> O
 }
 
 fn get_opt_str(row: &serde_json::Map<String, serde_json::Value>, key: &str) -> Option<String> {
-    row.get(key)
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+    row.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
 }
 
 pub fn summary_from_rows(result: &QueryResult) -> InsightsSummary {
@@ -315,9 +320,27 @@ async fn build_insights(
         agent_id,
     );
 
-    let summary_sql = build_insights_query(query_args.0, query_args.1, query_args.2, query_args.3, query_args.4);
-    let errors_sql = build_top_errors_query(query_args.0, query_args.1, query_args.2, query_args.3, query_args.4);
-    let tools_sql = build_top_tools_query(query_args.0, query_args.1, query_args.2, query_args.3, query_args.4);
+    let summary_sql = build_insights_query(
+        query_args.0,
+        query_args.1,
+        query_args.2,
+        query_args.3,
+        query_args.4,
+    );
+    let errors_sql = build_top_errors_query(
+        query_args.0,
+        query_args.1,
+        query_args.2,
+        query_args.3,
+        query_args.4,
+    );
+    let tools_sql = build_top_tools_query(
+        query_args.0,
+        query_args.1,
+        query_args.2,
+        query_args.3,
+        query_args.4,
+    );
 
     let make_req = |sql: String| QueryRequest {
         query: sql,
@@ -327,9 +350,15 @@ async fn build_insights(
         timeout_ms: Some(30000),
     };
 
-    let summary_result = executor.query(&config.project_id, make_req(summary_sql)).await?;
-    let errors_result = executor.query(&config.project_id, make_req(errors_sql)).await?;
-    let tools_result = executor.query(&config.project_id, make_req(tools_sql)).await?;
+    let summary_result = executor
+        .query(&config.project_id, make_req(summary_sql))
+        .await?;
+    let errors_result = executor
+        .query(&config.project_id, make_req(errors_sql))
+        .await?;
+    let tools_result = executor
+        .query(&config.project_id, make_req(tools_sql))
+        .await?;
 
     Ok(InsightsResult {
         time_window: last.to_string(),
@@ -347,25 +376,41 @@ fn render_insights(result: &InsightsResult, config: &Config) -> Result<()> {
         }
         OutputFormat::Table => {
             let s = &result.summary;
-            println!("Insights: Window={}  Sessions={}", result.time_window, s.total_sessions);
+            println!(
+                "Insights: Window={}  Sessions={}",
+                result.time_window, s.total_sessions
+            );
             if let Some(ref agent) = result.agent_id {
                 println!("Agent: {agent}");
             }
             println!();
 
-            let columns = vec![
-                "metric".into(),
-                "value".into(),
-            ];
+            let columns = vec!["metric".into(), "value".into()];
             let rows: Vec<Vec<String>> = vec![
                 vec!["total_events".into(), s.total_events.to_string()],
                 vec!["total_errors".into(), s.total_errors.to_string()],
                 vec!["error_rate".into(), format!("{:.4}", s.error_rate)],
-                vec!["sessions_with_errors".into(), s.sessions_with_errors.to_string()],
-                vec!["total_llm_requests".into(), s.total_llm_requests.to_string()],
+                vec![
+                    "sessions_with_errors".into(),
+                    s.sessions_with_errors.to_string(),
+                ],
+                vec![
+                    "total_llm_requests".into(),
+                    s.total_llm_requests.to_string(),
+                ],
                 vec!["total_tool_calls".into(), s.total_tool_calls.to_string()],
-                vec!["peak_latency_ms".into(), s.peak_latency_ms.map(|v| format!("{v:.1}")).unwrap_or("-".into())],
-                vec!["avg_latency_ms".into(), s.avg_latency_ms.map(|v| format!("{v:.1}")).unwrap_or("-".into())],
+                vec![
+                    "peak_latency_ms".into(),
+                    s.peak_latency_ms
+                        .map(|v| format!("{v:.1}"))
+                        .unwrap_or("-".into()),
+                ],
+                vec![
+                    "avg_latency_ms".into(),
+                    s.avg_latency_ms
+                        .map(|v| format!("{v:.1}"))
+                        .unwrap_or("-".into()),
+                ],
             ];
             output::render_rows_as_table(&columns, &rows)?;
         }

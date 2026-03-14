@@ -4,14 +4,14 @@ use serde_json::json;
 
 use bqx::bigquery::client::{QueryExecutor, QueryRequest, QueryResult, SchemaField, TableSchema};
 use bqx::cli::{EvaluatorType, OutputFormat};
+use bqx::commands::analytics::distribution::{build_distribution_query, distribution_from_rows};
 use bqx::commands::analytics::doctor::{
     build_columns_query, build_stats_query, columns_from_result, doctor_report_from_rows,
     find_missing_columns,
 };
+use bqx::commands::analytics::drift::{build_drift_query, drift_from_rows};
 use bqx::commands::analytics::evaluate::{build_evaluate_query, eval_result_from_rows};
 use bqx::commands::analytics::get_trace::{build_trace_query, trace_result_from_rows};
-use bqx::commands::analytics::distribution::{build_distribution_query, distribution_from_rows};
-use bqx::commands::analytics::drift::{build_drift_query, drift_from_rows};
 use bqx::commands::analytics::hitl_metrics::{
     build_hitl_sessions_query, build_hitl_summary_query, hitl_sessions_from_rows,
     hitl_summary_from_rows,
@@ -1263,7 +1263,10 @@ async fn drift_rejects_invalid_golden_dataset() {
     )
     .await;
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Invalid golden-dataset"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("Invalid golden-dataset"));
 }
 
 #[tokio::test]
@@ -1282,7 +1285,10 @@ async fn drift_rejects_invalid_min_coverage() {
     .await;
     assert!(result.is_err());
     assert!(
-        result.unwrap_err().to_string().contains("Invalid min-coverage"),
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid min-coverage"),
         "Should reject min-coverage > 1.0"
     );
 }
@@ -1290,8 +1296,14 @@ async fn drift_rejects_invalid_min_coverage() {
 #[test]
 fn drift_sql_deduplicates_per_golden_question() {
     let sql = build_drift_query("proj", "ds", "events", "gq", "INTERVAL 7 DAY", None);
-    assert!(sql.contains("ROW_NUMBER()"), "SQL must deduplicate with ROW_NUMBER");
-    assert!(sql.contains("WHERE rn = 1"), "SQL must keep only first match per golden question");
+    assert!(
+        sql.contains("ROW_NUMBER()"),
+        "SQL must deduplicate with ROW_NUMBER"
+    );
+    assert!(
+        sql.contains("WHERE rn = 1"),
+        "SQL must keep only first match per golden question"
+    );
 }
 
 #[test]

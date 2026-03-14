@@ -216,11 +216,7 @@ fn render_drift(result: &DriftResult, config: &Config) -> Result<()> {
                 println!("Agent: {agent}");
             }
             println!();
-            let columns = vec![
-                "question".into(),
-                "covered".into(),
-                "session_id".into(),
-            ];
+            let columns = vec!["question".into(), "covered".into(), "session_id".into()];
             let rows: Vec<Vec<String>> = result
                 .questions
                 .iter()

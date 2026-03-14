@@ -432,11 +432,7 @@ pub mod text {
                     .avg_latency_ms
                     .map(|v| format!("avg={v:.0}ms"))
                     .unwrap_or("-".into());
-                let _ = writeln!(
-                    w,
-                    "  {:<30} calls={}  {latency}",
-                    t.tool_name, t.call_count
-                );
+                let _ = writeln!(w, "  {:<30} calls={}  {latency}", t.tool_name, t.call_count);
             }
         }
     }
@@ -592,9 +588,7 @@ mod tests {
     use crate::commands::analytics::drift::{DriftQuestion, DriftResult};
     use crate::commands::analytics::evaluate::{EvalResult, SessionEval};
     use crate::commands::analytics::get_trace::{TraceEvent, TraceResult};
-    use crate::commands::analytics::hitl_metrics::{
-        HitlMetricsResult, HitlSession, HitlSummary,
-    };
+    use crate::commands::analytics::hitl_metrics::{HitlMetricsResult, HitlSession, HitlSummary};
     use crate::commands::analytics::insights::{
         InsightsResult, InsightsSummary, TopError, TopTool,
     };
@@ -1198,15 +1192,13 @@ mod tests {
             coverage: 1.0,
             min_coverage: 0.8,
             passed: true,
-            questions: vec![
-                DriftQuestion {
-                    golden_question: "What is the error rate?".into(),
-                    expected_answer: "Low".into(),
-                    covered: true,
-                    session_id: Some("s1".into()),
-                    actual_answer: Some("Very low".into()),
-                },
-            ],
+            questions: vec![DriftQuestion {
+                golden_question: "What is the error rate?".into(),
+                expected_answer: "Low".into(),
+                covered: true,
+                session_id: Some("s1".into()),
+                actual_answer: Some("Very low".into()),
+            }],
         };
         let mut buf = String::new();
         fmt_drift(&mut buf, &result);
