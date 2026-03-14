@@ -18,6 +18,16 @@ pub trait CaExecutor: Send + Sync {
     async fn ask(&self, project: &str, req: &CaQuestionRequest) -> Result<CaQuestionResponse>;
 }
 
+/// Parameters for creating a CA data agent.
+pub struct CreateAgentParams<'a> {
+    pub agent_id: &'a str,
+    pub display_name: Option<&'a str>,
+    pub tables: &'a [TableRef],
+    pub views_count: usize,
+    pub instructions: Option<&'a str>,
+    pub verified_queries: &'a [VerifiedQuery],
+}
+
 /// Trait for agent management operations (create, list, update).
 #[async_trait]
 pub trait CaAgentManager: Send + Sync {
@@ -25,12 +35,7 @@ pub trait CaAgentManager: Send + Sync {
         &self,
         project: &str,
         location: &str,
-        agent_id: &str,
-        display_name: Option<&str>,
-        tables: &[TableRef],
-        views_count: usize,
-        instructions: Option<&str>,
-        verified_queries: &[VerifiedQuery],
+        params: &CreateAgentParams<'_>,
     ) -> Result<CreateAgentResponse>;
 
     async fn list_agents(&self, project: &str, location: &str) -> Result<ListAgentsResponse>;
@@ -158,13 +163,9 @@ impl CaAgentManager for CaClient {
         &self,
         project: &str,
         location: &str,
-        agent_id: &str,
-        display_name: Option<&str>,
-        tables: &[TableRef],
-        views_count: usize,
-        instructions: Option<&str>,
-        verified_queries: &[VerifiedQuery],
+        params: &CreateAgentParams<'_>,
     ) -> Result<CreateAgentResponse> {
+        let agent_id = params.agent_id;
         let url = format!(
             "{}/projects/{project}/locations/{location}/dataAgents:createSync?dataAgentId={agent_id}",
             self.base_url
@@ -172,7 +173,8 @@ impl CaAgentManager for CaClient {
 
         let token = self.auth.token().await?;
 
-        let table_refs: Vec<serde_json::Value> = tables
+        let table_refs: Vec<serde_json::Value> = params
+            .tables
             .iter()
             .map(|t| {
                 serde_json::json!({
@@ -183,7 +185,8 @@ impl CaAgentManager for CaClient {
             })
             .collect();
 
-        let example_queries: Vec<serde_json::Value> = verified_queries
+        let example_queries: Vec<serde_json::Value> = params
+            .verified_queries
             .iter()
             .map(|vq| {
                 serde_json::json!({
@@ -202,7 +205,7 @@ impl CaAgentManager for CaClient {
             "exampleQueries": example_queries,
         });
 
-        if let Some(instr) = instructions {
+        if let Some(instr) = params.instructions {
             published_context["systemInstruction"] = serde_json::json!(instr);
         }
 
@@ -212,7 +215,7 @@ impl CaAgentManager for CaClient {
             }
         });
 
-        let name = display_name.unwrap_or(agent_id);
+        let name = params.display_name.unwrap_or(agent_id);
         body["displayName"] = serde_json::json!(name);
 
         let resp = self
@@ -232,7 +235,7 @@ impl CaAgentManager for CaClient {
 
         let agent: serde_json::Value = resp.json().await?;
 
-        let tables_count = tables.len() - views_count;
+        let tables_count = params.tables.len() - params.views_count;
         Ok(CreateAgentResponse {
             agent_id: agent_id.to_string(),
             name: agent["name"].as_str().unwrap_or("").to_string(),
@@ -240,8 +243,8 @@ impl CaAgentManager for CaClient {
             location: location.to_string(),
             create_time: agent["createTime"].as_str().map(|s| s.to_string()),
             tables_count,
-            views_count,
-            verified_queries_count: verified_queries.len(),
+            views_count: params.views_count,
+            verified_queries_count: params.verified_queries.len(),
         })
     }
 
@@ -584,17 +587,17 @@ mod tests {
             query: "SELECT COUNT(*) FROM t".into(),
         }];
 
+        let params = CreateAgentParams {
+            agent_id: "my-agent",
+            display_name: Some("my-agent"),
+            tables: &tables,
+            views_count: 0,
+            instructions: Some("Test instructions"),
+            verified_queries: &vqs,
+        };
+
         let resp = client
-            .create_agent(
-                "test-project",
-                "us",
-                "my-agent",
-                Some("my-agent"),
-                &tables,
-                0,
-                Some("Test instructions"),
-                &vqs,
-            )
+            .create_agent("test-project", "us", &params)
             .await
             .unwrap();
 

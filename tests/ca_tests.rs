@@ -1,12 +1,11 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use bqx::ca::client::{CaAgentManager, CaExecutor};
+use bqx::ca::client::{CaAgentManager, CaExecutor, CreateAgentParams};
 use bqx::ca::models::{
     AddVerifiedQueryResponse, CaQuestionRequest, CaQuestionResponse, CreateAgentResponse,
-    DataAgentSummary, ListAgentsResponse, TableRef,
+    DataAgentSummary, ListAgentsResponse,
 };
-use bqx::ca::verified_queries::VerifiedQuery;
 use bqx::cli::OutputFormat;
 use bqx::commands::ca::ask::{build_request, validate_inputs};
 use bqx::config::Config;
@@ -273,22 +272,20 @@ impl CaAgentManager for MockCaAgentManager {
         &self,
         project: &str,
         location: &str,
-        agent_id: &str,
-        display_name: Option<&str>,
-        tables: &[TableRef],
-        views_count: usize,
-        _instructions: Option<&str>,
-        verified_queries: &[VerifiedQuery],
+        params: &CreateAgentParams<'_>,
     ) -> Result<CreateAgentResponse> {
         Ok(CreateAgentResponse {
-            agent_id: agent_id.to_string(),
-            name: format!("projects/{project}/locations/{location}/dataAgents/{agent_id}"),
-            display_name: display_name.map(|s| s.to_string()),
+            agent_id: params.agent_id.to_string(),
+            name: format!(
+                "projects/{project}/locations/{location}/dataAgents/{}",
+                params.agent_id
+            ),
+            display_name: params.display_name.map(|s| s.to_string()),
             location: location.to_string(),
             create_time: Some("2026-03-13T00:00:00Z".into()),
-            tables_count: tables.len() - views_count,
-            views_count,
-            verified_queries_count: verified_queries.len(),
+            tables_count: params.tables.len() - params.views_count,
+            views_count: params.views_count,
+            verified_queries_count: params.verified_queries.len(),
         })
     }
 

@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::auth::{self, AuthOptions};
-use crate::ca::client::{parse_table_refs, CaAgentManager, CaClient};
+use crate::ca::client::{parse_table_refs, CaAgentManager, CaClient, CreateAgentParams};
 use crate::ca::models::CreateAgentResponse;
 use crate::ca::verified_queries;
 use crate::cli::OutputFormat;
@@ -51,17 +51,16 @@ pub async fn run(
 
     let resolved = auth::resolve(auth_opts).await?;
     let client = CaClient::new(resolved.clone());
+    let params = CreateAgentParams {
+        agent_id: &name,
+        display_name: Some(&name),
+        tables: &table_refs,
+        views_count,
+        instructions: instructions.as_deref(),
+        verified_queries: &vqs,
+    };
     let resp = client
-        .create_agent(
-            &config.project_id,
-            &config.location,
-            &name,
-            Some(&name),
-            &table_refs,
-            views_count,
-            instructions.as_deref(),
-            &vqs,
-        )
+        .create_agent(&config.project_id, &config.location, &params)
         .await?;
 
     if let Some(ref template) = config.sanitize_template {
@@ -97,17 +96,16 @@ pub async fn run_with_executor(
 
     let vqs = verified_queries::load(verified_queries_path.as_deref())?;
 
+    let params = CreateAgentParams {
+        agent_id: &name,
+        display_name: Some(&name),
+        tables: &table_refs,
+        views_count,
+        instructions: instructions.as_deref(),
+        verified_queries: &vqs,
+    };
     let resp = executor
-        .create_agent(
-            &config.project_id,
-            &config.location,
-            &name,
-            Some(&name),
-            &table_refs,
-            views_count,
-            instructions.as_deref(),
-            &vqs,
-        )
+        .create_agent(&config.project_id, &config.location, &params)
         .await?;
 
     render_response(&resp, &config.format)
