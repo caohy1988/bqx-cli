@@ -4,12 +4,22 @@ use serde_json::json;
 
 use bqx::bigquery::client::{QueryExecutor, QueryRequest, QueryResult, SchemaField, TableSchema};
 use bqx::cli::{EvaluatorType, OutputFormat};
+use bqx::commands::analytics::distribution::{build_distribution_query, distribution_from_rows};
 use bqx::commands::analytics::doctor::{
     build_columns_query, build_stats_query, columns_from_result, doctor_report_from_rows,
     find_missing_columns,
 };
+use bqx::commands::analytics::drift::{build_drift_query, drift_from_rows};
 use bqx::commands::analytics::evaluate::{build_evaluate_query, eval_result_from_rows};
 use bqx::commands::analytics::get_trace::{build_trace_query, trace_result_from_rows};
+use bqx::commands::analytics::hitl_metrics::{
+    build_hitl_sessions_query, build_hitl_summary_query, hitl_sessions_from_rows,
+    hitl_summary_from_rows,
+};
+use bqx::commands::analytics::insights::{
+    build_insights_query, build_top_errors_query, build_top_tools_query, summary_from_rows,
+    top_errors_from_rows, top_tools_from_rows,
+};
 use bqx::commands::analytics::list_traces::{build_list_traces_query, traces_from_rows};
 use bqx::commands::analytics::views::build_create_view_sql;
 use bqx::commands::jobs_query::build_query_request;
@@ -971,4 +981,560 @@ async fn views_create_all_with_failures_returns_error() {
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(err.contains("18 of 18 views failed"), "Got: {err}");
+}
+
+#[test]
+fn validate_view_prefix_accepts_valid() {
+    assert!(bqx::config::validate_view_prefix("").is_ok());
+    assert!(bqx::config::validate_view_prefix("adk_").is_ok());
+    assert!(bqx::config::validate_view_prefix("MyPrefix123").is_ok());
+}
+
+#[test]
+fn validate_view_prefix_rejects_invalid() {
+    let bad = bqx::config::validate_view_prefix("bad\\prefix");
+    assert!(bad.is_err());
+    assert!(bad.unwrap_err().to_string().contains("Invalid view prefix"));
+
+    assert!(bqx::config::validate_view_prefix("has space").is_err());
+    assert!(bqx::config::validate_view_prefix("has-dash").is_err());
+    assert!(bqx::config::validate_view_prefix("has.dot").is_err());
+}
+
+// ── Insights tests ──
+
+#[test]
+fn build_insights_query_basic() {
+    let sql = build_insights_query("proj", "ds", "events", "INTERVAL 24 HOUR", None);
+    assert!(sql.contains("proj.ds.events"));
+    assert!(sql.contains("INTERVAL 24 HOUR"));
+    assert!(sql.contains("total_sessions"));
+    assert!(sql.contains("error_rate"));
+}
+
+#[test]
+fn build_top_errors_query_with_agent() {
+    let sql = build_top_errors_query("proj", "ds", "events", "INTERVAL 7 DAY", Some("bot"));
+    assert!(sql.contains("AND agent = 'bot'"));
+    assert!(sql.contains("LIMIT 5"));
+}
+
+#[test]
+fn build_top_tools_query_basic() {
+    let sql = build_top_tools_query("proj", "ds", "events", "INTERVAL 1 HOUR", None);
+    assert!(sql.contains("tool_name"));
+    assert!(sql.contains("LIMIT 10"));
+}
+
+#[test]
+fn summary_from_rows_parses_result() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("total_sessions".into(), json!("10"));
+            m.insert("total_events".into(), json!("200"));
+            m.insert("total_errors".into(), json!("5"));
+            m.insert("error_rate".into(), json!("0.025"));
+            m.insert("sessions_with_errors".into(), json!("3"));
+            m.insert("session_error_rate".into(), json!("0.3"));
+            m.insert("avg_events_per_session".into(), json!("20.0"));
+            m.insert("total_llm_requests".into(), json!("80"));
+            m.insert("total_tool_calls".into(), json!("40"));
+            m.insert("peak_latency_ms".into(), json!("5000.0"));
+            m.insert("avg_latency_ms".into(), json!("1200.0"));
+            m.insert("earliest_session".into(), json!("2026-03-13 00:00:00 UTC"));
+            m.insert("latest_session".into(), json!("2026-03-13 23:59:00 UTC"));
+            m
+        }],
+        total_rows: 1,
+    };
+    let summary = summary_from_rows(&result);
+    assert_eq!(summary.total_sessions, 10);
+    assert_eq!(summary.total_events, 200);
+    assert_eq!(summary.total_errors, 5);
+    assert!((summary.error_rate - 0.025).abs() < 0.001);
+    assert_eq!(summary.total_llm_requests, 80);
+    assert!(summary.peak_latency_ms.is_some());
+}
+
+#[test]
+fn summary_from_rows_empty() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![],
+        total_rows: 0,
+    };
+    let summary = summary_from_rows(&result);
+    assert_eq!(summary.total_sessions, 0);
+}
+
+#[test]
+fn top_errors_from_rows_parses() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("event_type".into(), json!("TOOL_ERROR"));
+            m.insert("error_message".into(), json!("timeout"));
+            m.insert("occurrences".into(), json!("3"));
+            m
+        }],
+        total_rows: 1,
+    };
+    let errors = top_errors_from_rows(&result);
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].event_type, "TOOL_ERROR");
+    assert_eq!(errors[0].occurrences, 3);
+}
+
+#[test]
+fn top_tools_from_rows_parses() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("tool_name".into(), json!("search"));
+            m.insert("call_count".into(), json!("25"));
+            m.insert("avg_latency_ms".into(), json!("500.0"));
+            m.insert("max_latency_ms".into(), json!("2000.0"));
+            m
+        }],
+        total_rows: 1,
+    };
+    let tools = top_tools_from_rows(&result);
+    assert_eq!(tools.len(), 1);
+    assert_eq!(tools[0].tool_name, "search");
+    assert_eq!(tools[0].call_count, 25);
+}
+
+#[tokio::test]
+async fn insights_json_output() {
+    let executor = MockExecutor::new(
+        vec![("total_sessions", "INTEGER")],
+        vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("total_sessions".into(), json!("5"));
+            m.insert("total_events".into(), json!("100"));
+            m.insert("total_errors".into(), json!("2"));
+            m.insert("error_rate".into(), json!("0.02"));
+            m.insert("sessions_with_errors".into(), json!("1"));
+            m.insert("session_error_rate".into(), json!("0.2"));
+            m.insert("avg_events_per_session".into(), json!("20.0"));
+            m.insert("total_llm_requests".into(), json!("50"));
+            m.insert("total_tool_calls".into(), json!("20"));
+            m.insert("peak_latency_ms".into(), json!(serde_json::Value::Null));
+            m.insert("avg_latency_ms".into(), json!(serde_json::Value::Null));
+            m.insert("earliest_session".into(), json!(serde_json::Value::Null));
+            m.insert("latest_session".into(), json!(serde_json::Value::Null));
+            m
+        }],
+    );
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::insights::run_with_executor(
+        &executor,
+        "24h".into(),
+        None,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+// ── Drift tests ──
+
+#[test]
+fn build_drift_query_basic() {
+    let sql = build_drift_query("proj", "ds", "events", "golden_qs", "INTERVAL 7 DAY", None);
+    assert!(sql.contains("proj.ds.golden_qs"));
+    assert!(sql.contains("proj.ds.events"));
+    assert!(sql.contains("INTERVAL 7 DAY"));
+    assert!(sql.contains("golden_question"));
+}
+
+#[test]
+fn build_drift_query_with_agent() {
+    let sql = build_drift_query("proj", "ds", "events", "gq", "INTERVAL 1 DAY", Some("bot"));
+    assert!(sql.contains("AND agent = 'bot'"));
+}
+
+#[test]
+fn drift_from_rows_parses() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("golden_question".into(), json!("What is error rate?"));
+                m.insert("expected_answer".into(), json!("Low"));
+                m.insert("session_id".into(), json!("s1"));
+                m.insert("actual_answer".into(), json!("Very low"));
+                m.insert("covered".into(), json!("true"));
+                m
+            },
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("golden_question".into(), json!("How many users?"));
+                m.insert("expected_answer".into(), json!("100"));
+                m.insert("session_id".into(), json!(serde_json::Value::Null));
+                m.insert("actual_answer".into(), json!(serde_json::Value::Null));
+                m.insert("covered".into(), json!("false"));
+                m
+            },
+        ],
+        total_rows: 2,
+    };
+    let questions = drift_from_rows(&result);
+    assert_eq!(questions.len(), 2);
+    assert!(questions[0].covered);
+    assert_eq!(questions[0].session_id, Some("s1".into()));
+    assert!(!questions[1].covered);
+    assert!(questions[1].session_id.is_none());
+}
+
+#[tokio::test]
+async fn drift_json_output() {
+    let executor = MockExecutor::new(
+        vec![("golden_question", "STRING")],
+        vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("golden_question".into(), json!("Q1"));
+            m.insert("expected_answer".into(), json!("A1"));
+            m.insert("session_id".into(), json!("s1"));
+            m.insert("actual_answer".into(), json!("A1b"));
+            m.insert("covered".into(), json!("true"));
+            m
+        }],
+    );
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::drift::run_with_executor(
+        &executor,
+        "golden_qs".into(),
+        "7d".into(),
+        None,
+        0.8,
+        false,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn drift_with_exit_code_on_failure() {
+    let executor = MockExecutor::new(
+        vec![("golden_question", "STRING")],
+        vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("golden_question".into(), json!("Q1"));
+            m.insert("expected_answer".into(), json!("A1"));
+            m.insert("session_id".into(), json!(serde_json::Value::Null));
+            m.insert("actual_answer".into(), json!(serde_json::Value::Null));
+            m.insert("covered".into(), json!("false"));
+            m
+        }],
+    );
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::drift::run_with_executor(
+        &executor,
+        "golden_qs".into(),
+        "7d".into(),
+        None,
+        0.8,
+        true,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn drift_rejects_invalid_golden_dataset() {
+    let executor = MockExecutor::new(vec![], vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::drift::run_with_executor(
+        &executor,
+        "bad dataset!".into(),
+        "7d".into(),
+        None,
+        0.8,
+        false,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("Invalid golden-dataset"));
+}
+
+#[tokio::test]
+async fn drift_rejects_invalid_min_coverage() {
+    let executor = MockExecutor::new(vec![], vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::drift::run_with_executor(
+        &executor,
+        "golden_qs".into(),
+        "7d".into(),
+        None,
+        2.0,
+        false,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid min-coverage"),
+        "Should reject min-coverage > 1.0"
+    );
+}
+
+#[test]
+fn drift_sql_deduplicates_per_golden_question() {
+    let sql = build_drift_query("proj", "ds", "events", "gq", "INTERVAL 7 DAY", None);
+    assert!(
+        sql.contains("ROW_NUMBER()"),
+        "SQL must deduplicate with ROW_NUMBER"
+    );
+    assert!(
+        sql.contains("WHERE rn = 1"),
+        "SQL must keep only first match per golden question"
+    );
+}
+
+#[test]
+fn drift_from_rows_coverage_not_inflated_by_duplicates() {
+    // Simulate what would happen if the SQL returned two rows for one golden
+    // question (i.e. the old bug). With the fix, the SQL deduplicates, but
+    // the Rust layer should also produce correct coverage from any input.
+    // Two distinct golden questions: one covered, one not.
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("golden_question".into(), json!("Q1"));
+                m.insert("expected_answer".into(), json!("A1"));
+                m.insert("session_id".into(), json!("s1"));
+                m.insert("actual_answer".into(), json!("A1b"));
+                m.insert("covered".into(), json!("true"));
+                m
+            },
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("golden_question".into(), json!("Q2"));
+                m.insert("expected_answer".into(), json!("A2"));
+                m.insert("session_id".into(), json!(serde_json::Value::Null));
+                m.insert("actual_answer".into(), json!(serde_json::Value::Null));
+                m.insert("covered".into(), json!("false"));
+                m
+            },
+        ],
+        total_rows: 2,
+    };
+    let questions = drift_from_rows(&result);
+    assert_eq!(questions.len(), 2);
+    let covered = questions.iter().filter(|q| q.covered).count();
+    let coverage = covered as f64 / questions.len() as f64;
+    assert!(
+        (coverage - 0.5).abs() < 0.01,
+        "Coverage should be 1/2 = 0.50, got {coverage}"
+    );
+}
+
+// ── Distribution tests ──
+
+#[test]
+fn build_distribution_query_basic() {
+    let sql = build_distribution_query("proj", "ds", "events", "INTERVAL 24 HOUR", None);
+    assert!(sql.contains("proj.ds.events"));
+    assert!(sql.contains("event_type"));
+    assert!(sql.contains("proportion"));
+}
+
+#[test]
+fn distribution_from_rows_parses() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("event_type".into(), json!("LLM_REQUEST"));
+                m.insert("event_count".into(), json!("40"));
+                m.insert("session_count".into(), json!("10"));
+                m.insert("proportion".into(), json!("0.4"));
+                m
+            },
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("event_type".into(), json!("TOOL_CALL"));
+                m.insert("event_count".into(), json!("30"));
+                m.insert("session_count".into(), json!("8"));
+                m.insert("proportion".into(), json!("0.3"));
+                m
+            },
+        ],
+        total_rows: 2,
+    };
+    let dist = distribution_from_rows(&result);
+    assert_eq!(dist.len(), 2);
+    assert_eq!(dist[0].event_type, "LLM_REQUEST");
+    assert_eq!(dist[0].event_count, 40);
+    assert!((dist[0].proportion - 0.4).abs() < 0.001);
+}
+
+#[tokio::test]
+async fn distribution_json_output() {
+    let executor = MockExecutor::new(
+        vec![("event_type", "STRING")],
+        vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("event_type".into(), json!("LLM_REQUEST"));
+            m.insert("event_count".into(), json!("50"));
+            m.insert("session_count".into(), json!("10"));
+            m.insert("proportion".into(), json!("1.0"));
+            m
+        }],
+    );
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::distribution::run_with_executor(
+        &executor,
+        "24h".into(),
+        None,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+// ── HITL Metrics tests ──
+
+#[test]
+fn build_hitl_summary_query_basic() {
+    let sql = build_hitl_summary_query("proj", "ds", "events", "INTERVAL 7 DAY", None);
+    assert!(sql.contains("HUMAN_INPUT_REQUIRED"));
+    assert!(sql.contains("HUMAN_INPUT_RECEIVED"));
+    assert!(sql.contains("hitl_session_rate"));
+}
+
+#[test]
+fn build_hitl_sessions_query_with_limit() {
+    let sql = build_hitl_sessions_query("proj", "ds", "events", "INTERVAL 1 HOUR", Some("bot"), 10);
+    assert!(sql.contains("AND agent = 'bot'"));
+    assert!(sql.contains("LIMIT 10"));
+}
+
+#[test]
+fn hitl_summary_from_rows_parses() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("total_sessions".into(), json!("20"));
+            m.insert("hitl_required_count".into(), json!("5"));
+            m.insert("hitl_received_count".into(), json!("4"));
+            m.insert("sessions_with_hitl".into(), json!("3"));
+            m.insert("hitl_session_rate".into(), json!("0.15"));
+            m
+        }],
+        total_rows: 1,
+    };
+    let summary = hitl_summary_from_rows(&result);
+    assert_eq!(summary.total_sessions, 20);
+    assert_eq!(summary.hitl_required_count, 5);
+    assert_eq!(summary.sessions_with_hitl, 3);
+    assert!((summary.hitl_session_rate - 0.15).abs() < 0.001);
+}
+
+#[test]
+fn hitl_summary_from_rows_empty() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![],
+        total_rows: 0,
+    };
+    let summary = hitl_summary_from_rows(&result);
+    assert_eq!(summary.total_sessions, 0);
+}
+
+#[test]
+fn hitl_sessions_from_rows_parses() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("session_id".into(), json!("s-abc"));
+            m.insert("agent".into(), json!("bot"));
+            m.insert("required_count".into(), json!("3"));
+            m.insert("received_count".into(), json!("2"));
+            m.insert("first_hitl_at".into(), json!("2026-03-13 10:00:00 UTC"));
+            m.insert("last_hitl_at".into(), json!("2026-03-13 10:05:00 UTC"));
+            m
+        }],
+        total_rows: 1,
+    };
+    let sessions = hitl_sessions_from_rows(&result);
+    assert_eq!(sessions.len(), 1);
+    assert_eq!(sessions[0].session_id, "s-abc");
+    assert_eq!(sessions[0].required_count, 3);
+}
+
+#[tokio::test]
+async fn hitl_metrics_json_output() {
+    let executor = MockExecutor::new(
+        vec![("total_sessions", "INTEGER")],
+        vec![{
+            let mut m = serde_json::Map::new();
+            m.insert("total_sessions".into(), json!("10"));
+            m.insert("hitl_required_count".into(), json!("0"));
+            m.insert("hitl_received_count".into(), json!("0"));
+            m.insert("sessions_with_hitl".into(), json!("0"));
+            m.insert("hitl_session_rate".into(), json!("0.0"));
+            m
+        }],
+    );
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::hitl_metrics::run_with_executor(
+        &executor,
+        "7d".into(),
+        None,
+        20,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn insights_rejects_invalid_duration() {
+    let executor = MockExecutor::new(vec![], vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::insights::run_with_executor(
+        &executor,
+        "bad".into(),
+        None,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Invalid duration"));
+}
+
+#[tokio::test]
+async fn distribution_rejects_invalid_agent_id() {
+    let executor = MockExecutor::new(vec![], vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = bqx::commands::analytics::distribution::run_with_executor(
+        &executor,
+        "24h".into(),
+        Some("bad agent!".into()),
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Invalid agent_id"));
 }

@@ -286,6 +286,38 @@ async fn run_static(cli: Cli) {
                 commands::analytics::list_traces::run(last, agent_id, limit, &auth_opts, &config)
                     .await
             }
+            AnalyticsCommand::Insights { last, agent_id } => {
+                commands::analytics::insights::run(last, agent_id, &auth_opts, &config).await
+            }
+            AnalyticsCommand::Drift {
+                golden_dataset,
+                last,
+                agent_id,
+                min_coverage,
+                exit_code,
+            } => {
+                commands::analytics::drift::run(
+                    golden_dataset,
+                    last,
+                    agent_id,
+                    min_coverage,
+                    exit_code,
+                    &auth_opts,
+                    &config,
+                )
+                .await
+            }
+            AnalyticsCommand::Distribution { last, agent_id } => {
+                commands::analytics::distribution::run(last, agent_id, &auth_opts, &config).await
+            }
+            AnalyticsCommand::HitlMetrics {
+                last,
+                agent_id,
+                limit,
+            } => {
+                commands::analytics::hitl_metrics::run(last, agent_id, limit, &auth_opts, &config)
+                    .await
+            }
             AnalyticsCommand::Views { command } => match command {
                 ViewsCommand::CreateAll { prefix } => {
                     commands::analytics::views::run(prefix, &auth_opts, &config).await
