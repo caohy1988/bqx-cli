@@ -70,7 +70,65 @@ bqx analytics get-trace --session-id=$SESSION_ID \
   --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --format json
 ```
 
-## 3. Output Formats
+## 3. Phase 3 Analytics Commands
+
+```bash
+# List recent traces
+bqx analytics list-traces --last 30d \
+  --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --format json
+
+# Insights report
+bqx analytics insights --last 30d \
+  --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --format text
+
+# Event distribution
+bqx analytics distribution --last 30d \
+  --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --format table
+
+# HITL metrics
+bqx analytics hitl-metrics --last 30d \
+  --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --format json
+
+# Drift detection (requires a golden dataset table with question/expected_answer columns)
+bqx analytics drift --golden-dataset golden_questions --last 30d \
+  --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --format text
+
+# Drift with CI gate
+bqx analytics drift --golden-dataset golden_questions --min-coverage 0.8 --exit-code \
+  --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --format json
+
+# Views: create per-event-type views
+bqx analytics views create-all --prefix adk_ \
+  --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --format text
+```
+
+## 4. Phase 3 CA Commands
+
+```bash
+# List data agents
+bqx ca list-agents --project-id=$BQX_PROJECT --format json
+
+# Ask a natural language question (requires CA API access)
+bqx ca ask "What is the error rate?" --agent=agent-analytics \
+  --project-id=$BQX_PROJECT --format json
+
+# Create a data agent (requires CA API access)
+bqx ca create-agent --name=test-agent \
+  --tables=$BQX_PROJECT.$BQX_DATASET.agent_events \
+  --project-id=$BQX_PROJECT --format json
+
+# Add a verified query
+bqx ca add-verified-query --agent=test-agent \
+  --question="How many sessions today?" \
+  --query="SELECT COUNT(DISTINCT session_id) FROM agent_events WHERE DATE(timestamp) = CURRENT_DATE()" \
+  --project-id=$BQX_PROJECT --format json
+```
+
+> **Note:** CA commands require the Conversational Analytics API to be
+> enabled in your project. If unavailable, expect a 403 or 400 API error.
+> All other bqx commands work independently of CA.
+
+## 5. Output Formats
 
 ```bash
 # JSON (default)
@@ -83,7 +141,7 @@ bqx analytics doctor --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --forma
 bqx datasets list --project-id=$BQX_PROJECT --format table
 ```
 
-## 4. Model Armor Sanitization (`--sanitize`)
+## 6. Model Armor Sanitization (`--sanitize`)
 
 Requires: Model Armor API enabled, a template created in the project.
 
@@ -119,7 +177,7 @@ bqx analytics evaluate --evaluator error-rate --threshold 0.5 --last 30d --exit-
   --project-id=$BQX_PROJECT --dataset-id=$BQX_DATASET --sanitize "$TEMPLATE" --format json
 ```
 
-## 5. Skill Generation
+## 7. Skill Generation
 
 ```bash
 # Generate all skills
@@ -133,17 +191,26 @@ ls /tmp/bqx-skills/bqx-datasets/SKILL.md
 ls /tmp/bqx-skills/bqx-datasets/agents/openai.yaml
 ```
 
-## 6. Gemini Extension Manifest
+## 8. Gemini Extension Manifest
 
 The manifest is bundled at `extensions/gemini/manifest.json` and validated
-by unit tests (`tests/gemini_tests.rs`). It contains 10 curated tools
-covering the Phase 2 command surface.
+by unit tests (`tests/gemini_tests.rs`). It contains 16 curated tools
+covering a subset of the Phase 3 command surface.
 
 The manifest has not been tested with a live `gemini extensions install`
 because the Gemini CLI extension spec is still evolving. The manifest
 structure and tool definitions are validated programmatically.
 
-## 7. Auth
+## 9. Shell Completions
+
+```bash
+# Generate and install completions
+bqx completions bash > /usr/local/etc/bash_completion.d/bqx
+bqx completions zsh > "${fpath[1]}/_bqx"
+bqx completions fish > ~/.config/fish/completions/bqx.fish
+```
+
+## 10. Auth
 
 ```bash
 # Check auth status
@@ -159,11 +226,16 @@ bqx auth logout
 ## Expected Results
 
 All commands above were verified against `test-project-0728-467323` on
-2026-03-13 with gcloud ADC authentication. Key observations:
+2026-03-14 with gcloud ADC authentication. Key observations:
 
 - All dynamic commands (datasets, tables, routines, models) return valid JSON
 - All static commands (jobs query, analytics) return valid JSON
+- Phase 3 analytics commands (insights, drift, distribution, hitl-metrics, list-traces, views) all verified
+- CA commands reach the API correctly (403/400 expected when CA API not enabled)
 - `--sanitize` correctly passes clean content through and redacts flagged content
 - `--exit-code` works correctly both with and without `--sanitize`
+- `--evaluator error-rate` works; `error_rate` is correctly rejected by the CLI
+- Drift deduplication verified: coverage is not inflated by SQL join fan-out
 - Model Armor requires regional endpoints (`modelarmor.LOCATION.rep.googleapis.com`)
 - Model Armor requires `roles/modelarmor.admin` IAM role for template management
+- Shell completions generate successfully for bash, zsh, and fish

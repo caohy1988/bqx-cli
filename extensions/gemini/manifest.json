@@ -1,8 +1,8 @@
 {
   "name": "bqx",
   "display_name": "bqx – Agent-Native BigQuery CLI",
-  "description": "BigQuery CLI optimized for AI agents. Provides query execution, dataset/table/routine/model inspection, and agent analytics.",
-  "version": "0.0.1",
+  "description": "BigQuery CLI optimized for AI agents. Provides query execution, dataset/table/routine/model inspection, agent analytics, and conversational analytics.",
+  "version": "0.3.0",
   "homepage": "https://github.com/bigquery/bqx",
   "tools": [
     {
@@ -208,6 +208,168 @@
         }
       },
       "command": "bqx analytics get-trace --project-id {project_id} --dataset-id {dataset_id} --session-id {session_id} --format json"
+    },
+    {
+      "name": "bqx_analytics_list_traces",
+      "description": "List recent agent session traces with event counts.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        },
+        "dataset_id": {
+          "type": "string",
+          "description": "Dataset ID",
+          "required": true
+        },
+        "last": {
+          "type": "string",
+          "description": "Time window (e.g. 1h, 24h, 7d)",
+          "required": true
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Filter by agent name"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Maximum traces to return",
+          "default": 20
+        }
+      },
+      "command": "bqx analytics list-traces --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+    },
+    {
+      "name": "bqx_analytics_insights",
+      "description": "Generate a comprehensive agent insights report with sessions, errors, latency, and tool usage.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        },
+        "dataset_id": {
+          "type": "string",
+          "description": "Dataset ID",
+          "required": true
+        },
+        "last": {
+          "type": "string",
+          "description": "Time window (e.g. 1h, 24h, 7d)",
+          "required": true
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Filter by agent name"
+        }
+      },
+      "command": "bqx analytics insights --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+    },
+    {
+      "name": "bqx_analytics_drift",
+      "description": "Run drift detection against a golden question set and report coverage.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        },
+        "dataset_id": {
+          "type": "string",
+          "description": "Dataset ID",
+          "required": true
+        },
+        "golden_dataset": {
+          "type": "string",
+          "description": "Golden dataset table name (in same dataset)",
+          "required": true
+        },
+        "last": {
+          "type": "string",
+          "description": "Time window (e.g. 1h, 24h, 7d)",
+          "default": "7d"
+        },
+        "min_coverage": {
+          "type": "number",
+          "description": "Minimum coverage threshold (0.0-1.0)",
+          "default": 0.8
+        }
+      },
+      "command": "bqx analytics drift --project-id {project_id} --dataset-id {dataset_id} --golden-dataset {golden_dataset} --last {last} --format json"
+    },
+    {
+      "name": "bqx_analytics_distribution",
+      "description": "Analyze event type distribution patterns across agent sessions.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        },
+        "dataset_id": {
+          "type": "string",
+          "description": "Dataset ID",
+          "required": true
+        },
+        "last": {
+          "type": "string",
+          "description": "Time window (e.g. 1h, 24h, 7d)",
+          "required": true
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Filter by agent name"
+        }
+      },
+      "command": "bqx analytics distribution --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+    },
+    {
+      "name": "bqx_analytics_hitl_metrics",
+      "description": "Show human-in-the-loop interaction metrics for agent sessions.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        },
+        "dataset_id": {
+          "type": "string",
+          "description": "Dataset ID",
+          "required": true
+        },
+        "last": {
+          "type": "string",
+          "description": "Time window (e.g. 1h, 24h, 7d)",
+          "required": true
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Filter by agent name"
+        }
+      },
+      "command": "bqx analytics hitl-metrics --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+    },
+    {
+      "name": "bqx_ca_ask",
+      "description": "Ask a natural language question over BigQuery data using Conversational Analytics.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        },
+        "question": {
+          "type": "string",
+          "description": "Natural language question",
+          "required": true
+        },
+        "agent": {
+          "type": "string",
+          "description": "Data agent to use (e.g. agent-analytics)"
+        }
+      },
+      "command": "bqx ca ask {question} --project-id {project_id} --format json"
     }
   ]
 }

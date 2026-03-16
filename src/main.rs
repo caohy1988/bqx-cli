@@ -5,14 +5,22 @@ use bqx::auth;
 use bqx::bigquery::discovery::{self, DiscoverySource};
 use bqx::bigquery::dynamic::{clap_tree, executor, model};
 use bqx::cli::{
-    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat, ViewsCommand,
+    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat, ShellType,
+    ViewsCommand,
 };
 use bqx::commands;
 use bqx::config::Config;
 use bqx::models::BqxError;
 
 /// Names of static (derive-based) top-level subcommands.
-const STATIC_COMMANDS: &[&str] = &["jobs", "analytics", "ca", "auth", "generate-skills"];
+const STATIC_COMMANDS: &[&str] = &[
+    "jobs",
+    "analytics",
+    "ca",
+    "auth",
+    "generate-skills",
+    "completions",
+];
 
 #[tokio::main]
 async fn main() {
@@ -205,6 +213,28 @@ async fn run_static(cli: Cli) {
         return;
     }
 
+    // completions doesn't need project/dataset config
+    if let Command::Completions { ref shell } = cli.command {
+        let shell = match shell {
+            ShellType::Bash => clap_complete::Shell::Bash,
+            ShellType::Zsh => clap_complete::Shell::Zsh,
+            ShellType::Fish => clap_complete::Shell::Fish,
+        };
+        // Build the augmented command tree (static + dynamic) so that
+        // completions cover the full CLI surface including API commands.
+        let mut app = Cli::command();
+        if let Ok((cmds, _)) = load_generated_commands() {
+            let dynamic_clap = clap_tree::build_dynamic_commands(&cmds);
+            for sub in dynamic_clap {
+                if !STATIC_COMMANDS.contains(&sub.get_name()) {
+                    app = app.subcommand(sub);
+                }
+            }
+        }
+        clap_complete::generate(shell, &mut app, "bqx", &mut std::io::stdout());
+        return;
+    }
+
     let config = match Config::from_cli(&cli) {
         Ok(c) => c,
         Err(e) => {
@@ -324,7 +354,9 @@ async fn run_static(cli: Cli) {
                 }
             },
         },
-        Command::Auth { .. } | Command::GenerateSkills { .. } => unreachable!(),
+        Command::Auth { .. } | Command::GenerateSkills { .. } | Command::Completions { .. } => {
+            unreachable!()
+        }
     };
 
     if let Err(e) = result {
