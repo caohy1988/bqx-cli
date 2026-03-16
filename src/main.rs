@@ -220,7 +220,17 @@ async fn run_static(cli: Cli) {
             ShellType::Zsh => clap_complete::Shell::Zsh,
             ShellType::Fish => clap_complete::Shell::Fish,
         };
+        // Build the augmented command tree (static + dynamic) so that
+        // completions cover the full CLI surface including API commands.
         let mut app = Cli::command();
+        if let Ok((cmds, _)) = load_generated_commands() {
+            let dynamic_clap = clap_tree::build_dynamic_commands(&cmds);
+            for sub in dynamic_clap {
+                if !STATIC_COMMANDS.contains(&sub.get_name()) {
+                    app = app.subcommand(sub);
+                }
+            }
+        }
         clap_complete::generate(shell, &mut app, "bqx", &mut std::io::stdout());
         return;
     }

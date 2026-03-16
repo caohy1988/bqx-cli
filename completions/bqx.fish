@@ -42,6 +42,10 @@ complete -c bqx -n "__fish_bqx_needs_command" -f -a "auth" -d 'Authentication ma
 complete -c bqx -n "__fish_bqx_needs_command" -f -a "ca" -d 'Conversational Analytics operations'
 complete -c bqx -n "__fish_bqx_needs_command" -f -a "generate-skills" -d 'Generate SKILL.md and agents/openai.yaml for BigQuery API commands'
 complete -c bqx -n "__fish_bqx_needs_command" -f -a "completions" -d 'Generate shell completion scripts'
+complete -c bqx -n "__fish_bqx_needs_command" -f -a "datasets" -d 'BigQuery datasets operations (generated from API)'
+complete -c bqx -n "__fish_bqx_needs_command" -f -a "models" -d 'BigQuery models operations (generated from API)'
+complete -c bqx -n "__fish_bqx_needs_command" -f -a "routines" -d 'BigQuery routines operations (generated from API)'
+complete -c bqx -n "__fish_bqx_needs_command" -f -a "tables" -d 'BigQuery tables operations (generated from API)'
 complete -c bqx -n "__fish_bqx_needs_command" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c bqx -n "__fish_bqx_using_subcommand jobs; and not __fish_seen_subcommand_from query help" -l project-id -d 'GCP project ID' -r
 complete -c bqx -n "__fish_bqx_using_subcommand jobs; and not __fish_seen_subcommand_from query help" -l dataset-id -d 'BigQuery dataset' -r
@@ -377,13 +381,201 @@ complete -c bqx -n "__fish_bqx_using_subcommand completions" -l token -d 'Bearer
 complete -c bqx -n "__fish_bqx_using_subcommand completions" -l credentials-file -d 'Path to service account credentials JSON file' -r
 complete -c bqx -n "__fish_bqx_using_subcommand completions" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
 complete -c bqx -n "__fish_bqx_using_subcommand completions" -s h -l help -d 'Print help'
-complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions help" -f -a "jobs" -d 'BigQuery jobs operations'
-complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions help" -f -a "analytics" -d 'Agent analytics operations'
-complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions help" -f -a "auth" -d 'Authentication management'
-complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions help" -f -a "ca" -d 'Conversational Analytics operations'
-complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions help" -f -a "generate-skills" -d 'Generate SKILL.md and agents/openai.yaml for BigQuery API commands'
-complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions help" -f -a "completions" -d 'Generate shell completion scripts'
-complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -f -a "get" -d 'Returns the dataset specified by datasetID.'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -f -a "list" -d 'Lists all datasets in the specified project to which the user has been granted the READER dataset role.'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and not __fish_seen_subcommand_from get list help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l access-policy-version -d 'Optional. The version of the access policy schema to fetch. Valid values are 0, 1, and 3. Requests specifying an invalid value will be rejected. Requests for conditional access policy binding in datasets must specify version 3. Dataset with no conditional role bindings in access policy may specify any valid value or leave the field unset. This field will be mapped to [IAM Policy version] (https://cloud.google.com/iam/docs/policies#versions) and will be used to fetch policy from IAM. If unset or if 0 or 1 value is used for dataset with conditional bindings, access entry with condition will have role string appended by \'withcond\' string followed by a hash value. For example : { "access": [ { "role": "roles/bigquery.dataViewer_with_conditionalbinding_7a34awqsda", "userByEmail": "user@example.com", } ] } Please refer https://cloud.google.com/iam/docs/troubleshooting-withcond for more details.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l dataset-view -d 'Optional. Specifies the view that determines which dataset information is returned. By default, metadata and ACL information are returned.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -l dry-run -d 'Show the request that would be sent without executing it'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l filter -d 'An expression for filtering the results of the request by label. The syntax is `labels.[:]`. Multiple filters can be AND-ed together by connecting with a space. Example: `labels.department:receiving labels.active`. See [Filtering datasets using labels](https://cloud.google.com/bigquery/docs/filtering-labels#filtering_datasets_using_labels) for details.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l max-results -d 'The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l page-token -d 'Page token, returned by a previous call, to request the next page of results' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l all -d 'Whether to list all datasets, including hidden ones'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -l dry-run -d 'Show the request that would be sent without executing it'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from help" -f -a "get" -d 'Returns the dataset specified by datasetID.'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from help" -f -a "list" -d 'Lists all datasets in the specified project to which the user has been granted the READER dataset role.'
+complete -c bqx -n "__fish_bqx_using_subcommand datasets; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -f -a "get" -d 'Gets the specified model resource by model ID.'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -f -a "list" -d 'Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and not __fish_seen_subcommand_from get list help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l model-id -d 'Required. Model ID of the requested model.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -l dry-run -d 'Show the request that would be sent without executing it'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l max-results -d 'The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l page-token -d 'Page token, returned by a previous call to request the next page of results' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -l dry-run -d 'Show the request that would be sent without executing it'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from help" -f -a "get" -d 'Gets the specified model resource by model ID.'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from help" -f -a "list" -d 'Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.'
+complete -c bqx -n "__fish_bqx_using_subcommand models; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -f -a "get" -d 'Gets the specified routine resource by routine ID.'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -f -a "list" -d 'Lists all routines in the specified dataset. Requires the READER dataset role.'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and not __fish_seen_subcommand_from get list help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l routine-id -d 'Required. Routine ID of the requested routine' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l read-mask -d 'If set, only the Routine fields in the field mask are returned in the response. If unset, all Routine fields are returned.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -l dry-run -d 'Show the request that would be sent without executing it'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l filter -d 'If set, then only the Routines matching this filter are returned. The supported format is `routineType:{RoutineType}`, where `{RoutineType}` is a RoutineType enum. For example: `routineType:SCALAR_FUNCTION`.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l max-results -d 'The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l page-token -d 'Page token, returned by a previous call, to request the next page of results' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l read-mask -d 'If set, then only the Routine fields in the field mask, as well as project_id, dataset_id and routine_id, are returned in the response. If unset, then the following Routine fields are returned: etag, project_id, dataset_id, routine_id, routine_type, creation_time, last_modified_time, and language.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -l dry-run -d 'Show the request that would be sent without executing it'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from help" -f -a "get" -d 'Gets the specified routine resource by routine ID.'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from help" -f -a "list" -d 'Lists all routines in the specified dataset. Requires the READER dataset role.'
+complete -c bqx -n "__fish_bqx_using_subcommand routines; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -f -a "get" -d 'Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -f -a "list" -d 'Lists all tables in the specified dataset. Requires the READER dataset role.'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and not __fish_seen_subcommand_from get list help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l table-id -d 'Required. Table ID of the requested table' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l selected-fields -d 'List of table schema fields to return (comma-separated). If unspecified, all fields are returned. A fieldMask cannot be used here because the fields will automatically be converted from camelCase to snake_case and the conversion will fail if there are underscores. Since these are fields in BigQuery table schemas, underscores are allowed.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l view -d 'Optional. Specifies the view that determines which table information is returned. By default, basic table information and storage statistics (STORAGE_STATS) are returned.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -l dry-run -d 'Show the request that would be sent without executing it'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l max-results -d 'The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l page-token -d 'Page token, returned by a previous call, to request the next page of results' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l project-id -d 'GCP project ID' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l dataset-id -d 'BigQuery dataset' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l location -d 'BigQuery location' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l table -d 'Table name' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l format -d 'Output format' -r -f -a "json\t''
+table\t''
+text\t''"
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l token -d 'Bearer token for authentication (overrides all other auth methods)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l credentials-file -d 'Path to service account credentials JSON file' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l sanitize -d 'Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)' -r
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -l dry-run -d 'Show the request that would be sent without executing it'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from help" -f -a "get" -d 'Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from help" -f -a "list" -d 'Lists all tables in the specified dataset. Requires the READER dataset role.'
+complete -c bqx -n "__fish_bqx_using_subcommand tables; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "jobs" -d 'BigQuery jobs operations'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "analytics" -d 'Agent analytics operations'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "auth" -d 'Authentication management'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "ca" -d 'Conversational Analytics operations'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "generate-skills" -d 'Generate SKILL.md and agents/openai.yaml for BigQuery API commands'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "completions" -d 'Generate shell completion scripts'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "datasets" -d 'BigQuery datasets operations (generated from API)'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "models" -d 'BigQuery models operations (generated from API)'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "routines" -d 'BigQuery routines operations (generated from API)'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "tables" -d 'BigQuery tables operations (generated from API)'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and not __fish_seen_subcommand_from jobs analytics auth ca generate-skills completions datasets models routines tables help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from jobs" -f -a "query" -d 'Execute a SQL query'
 complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from analytics" -f -a "doctor" -d 'Health check on BigQuery table and configuration'
 complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from analytics" -f -a "evaluate" -d 'Evaluate agent sessions against a threshold'
@@ -401,3 +593,11 @@ complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand
 complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from ca" -f -a "create-agent" -d 'Create a new Conversational Analytics data agent'
 complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from ca" -f -a "list-agents" -d 'List data agents in the project'
 complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from ca" -f -a "add-verified-query" -d 'Add a verified query to an existing data agent'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from datasets" -f -a "get" -d 'Returns the dataset specified by datasetID.'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from datasets" -f -a "list" -d 'Lists all datasets in the specified project to which the user has been granted the READER dataset role.'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from models" -f -a "get" -d 'Gets the specified model resource by model ID.'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from models" -f -a "list" -d 'Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from routines" -f -a "get" -d 'Gets the specified routine resource by routine ID.'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from routines" -f -a "list" -d 'Lists all routines in the specified dataset. Requires the READER dataset role.'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from tables" -f -a "get" -d 'Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.'
+complete -c bqx -n "__fish_bqx_using_subcommand help; and __fish_seen_subcommand_from tables" -f -a "list" -d 'Lists all tables in the specified dataset. Requires the READER dataset role.'

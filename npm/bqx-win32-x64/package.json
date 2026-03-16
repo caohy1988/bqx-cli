@@ -1,6 +1,6 @@
 {
   "name": "@bqx-cli/win32-x64",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "bqx binary for Windows x64",
   "license": "Apache-2.0",
   "repository": {

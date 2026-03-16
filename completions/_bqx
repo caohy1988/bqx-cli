@@ -659,6 +659,362 @@ _arguments "${_arguments_options[@]}" : \
 ':shell -- Shell to generate completions for:(bash zsh fish)' \
 && ret=0
 ;;
+(datasets)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_bqx__datasets_commands" \
+"*::: :->datasets" \
+&& ret=0
+
+    case $state in
+    (datasets)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-datasets-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'--access-policy-version=[Optional. The version of the access policy schema to fetch. Valid values are 0, 1, and 3. Requests specifying an invalid value will be rejected. Requests for conditional access policy binding in datasets must specify version 3. Dataset with no conditional role bindings in access policy may specify any valid value or leave the field unset. This field will be mapped to \[IAM Policy version\] (https\://cloud.google.com/iam/docs/policies#versions) and will be used to fetch policy from IAM. If unset or if 0 or 1 value is used for dataset with conditional bindings, access entry with condition will have role string appended by '\''withcond'\'' string followed by a hash value. For example \: { "access"\: \[ { "role"\: "roles/bigquery.dataViewer_with_conditionalbinding_7a34awqsda", "userByEmail"\: "user@example.com", } \] } Please refer https\://cloud.google.com/iam/docs/troubleshooting-withcond for more details.]: :_default' \
+'--dataset-view=[Optional. Specifies the view that determines which dataset information is returned. By default, metadata and ACL information are returned.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--filter=[An expression for filtering the results of the request by label. The syntax is \`labels.\[\:\]\`. Multiple filters can be AND-ed together by connecting with a space. Example\: \`labels.department\:receiving labels.active\`. See \[Filtering datasets using labels\](https\://cloud.google.com/bigquery/docs/filtering-labels#filtering_datasets_using_labels) for details.]: :_default' \
+'--max-results=[The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.]: :_default' \
+'--page-token=[Page token, returned by a previous call, to request the next page of results]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--all[Whether to list all datasets, including hidden ones]' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__datasets__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-datasets-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(models)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_bqx__models_commands" \
+"*::: :->models" \
+&& ret=0
+
+    case $state in
+    (models)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-models-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'--model-id=[Required. Model ID of the requested model.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--max-results=[The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.]: :_default' \
+'--page-token=[Page token, returned by a previous call to request the next page of results]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__models__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-models-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(routines)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_bqx__routines_commands" \
+"*::: :->routines" \
+&& ret=0
+
+    case $state in
+    (routines)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-routines-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'--routine-id=[Required. Routine ID of the requested routine]: :_default' \
+'--read-mask=[If set, only the Routine fields in the field mask are returned in the response. If unset, all Routine fields are returned.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--filter=[If set, then only the Routines matching this filter are returned. The supported format is \`routineType\:{RoutineType}\`, where \`{RoutineType}\` is a RoutineType enum. For example\: \`routineType\:SCALAR_FUNCTION\`.]: :_default' \
+'--max-results=[The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.]: :_default' \
+'--page-token=[Page token, returned by a previous call, to request the next page of results]: :_default' \
+'--read-mask=[If set, then only the Routine fields in the field mask, as well as project_id, dataset_id and routine_id, are returned in the response. If unset, then the following Routine fields are returned\: etag, project_id, dataset_id, routine_id, routine_type, creation_time, last_modified_time, and language.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__routines__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-routines-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(tables)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_bqx__tables_commands" \
+"*::: :->tables" \
+&& ret=0
+
+    case $state in
+    (tables)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-tables-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'--table-id=[Required. Table ID of the requested table]: :_default' \
+'--selected-fields=[List of table schema fields to return (comma-separated). If unspecified, all fields are returned. A fieldMask cannot be used here because the fields will automatically be converted from camelCase to snake_case and the conversion will fail if there are underscores. Since these are fields in BigQuery table schemas, underscores are allowed.]: :_default' \
+'--view=[Optional. Specifies the view that determines which table information is returned. By default, basic table information and storage statistics (STORAGE_STATS) are returned.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--max-results=[The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.]: :_default' \
+'--page-token=[Page token, returned by a previous call, to request the next page of results]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__tables__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-tables-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
 (help)
 _arguments "${_arguments_options[@]}" : \
 ":: :_bqx__help_commands" \
@@ -827,6 +1183,102 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(datasets)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help__datasets_commands" \
+"*::: :->datasets" \
+&& ret=0
+
+    case $state in
+    (datasets)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-datasets-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(models)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help__models_commands" \
+"*::: :->models" \
+&& ret=0
+
+    case $state in
+    (models)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-models-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(routines)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help__routines_commands" \
+"*::: :->routines" \
+&& ret=0
+
+    case $state in
+    (routines)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-routines-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(tables)
+_arguments "${_arguments_options[@]}" : \
+":: :_bqx__help__tables_commands" \
+"*::: :->tables" \
+&& ret=0
+
+    case $state in
+    (tables)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bqx-help-tables-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
 (help)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -849,6 +1301,10 @@ _bqx_commands() {
 'ca:Conversational Analytics operations' \
 'generate-skills:Generate SKILL.md and agents/openai.yaml for BigQuery API commands' \
 'completions:Generate shell completion scripts' \
+'datasets:BigQuery datasets operations (generated from API)' \
+'models:BigQuery models operations (generated from API)' \
+'routines:BigQuery routines operations (generated from API)' \
+'tables:BigQuery tables operations (generated from API)' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'bqx commands' commands "$@"
@@ -1140,6 +1596,49 @@ _bqx__completions_commands() {
     local commands; commands=()
     _describe -t commands 'bqx completions commands' commands "$@"
 }
+(( $+functions[_bqx__datasets_commands] )) ||
+_bqx__datasets_commands() {
+    local commands; commands=(
+'get:Returns the dataset specified by datasetID.' \
+'list:Lists all datasets in the specified project to which the user has been granted the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx datasets commands' commands "$@"
+}
+(( $+functions[_bqx__datasets__get_commands] )) ||
+_bqx__datasets__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx datasets get commands' commands "$@"
+}
+(( $+functions[_bqx__datasets__help_commands] )) ||
+_bqx__datasets__help_commands() {
+    local commands; commands=(
+'get:Returns the dataset specified by datasetID.' \
+'list:Lists all datasets in the specified project to which the user has been granted the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx datasets help commands' commands "$@"
+}
+(( $+functions[_bqx__datasets__help__get_commands] )) ||
+_bqx__datasets__help__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx datasets help get commands' commands "$@"
+}
+(( $+functions[_bqx__datasets__help__help_commands] )) ||
+_bqx__datasets__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx datasets help help commands' commands "$@"
+}
+(( $+functions[_bqx__datasets__help__list_commands] )) ||
+_bqx__datasets__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx datasets help list commands' commands "$@"
+}
+(( $+functions[_bqx__datasets__list_commands] )) ||
+_bqx__datasets__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx datasets list commands' commands "$@"
+}
 (( $+functions[_bqx__generate-skills_commands] )) ||
 _bqx__generate-skills_commands() {
     local commands; commands=()
@@ -1154,6 +1653,10 @@ _bqx__help_commands() {
 'ca:Conversational Analytics operations' \
 'generate-skills:Generate SKILL.md and agents/openai.yaml for BigQuery API commands' \
 'completions:Generate shell completion scripts' \
+'datasets:BigQuery datasets operations (generated from API)' \
+'models:BigQuery models operations (generated from API)' \
+'routines:BigQuery routines operations (generated from API)' \
+'tables:BigQuery tables operations (generated from API)' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'bqx help commands' commands "$@"
@@ -1284,6 +1787,24 @@ _bqx__help__completions_commands() {
     local commands; commands=()
     _describe -t commands 'bqx help completions commands' commands "$@"
 }
+(( $+functions[_bqx__help__datasets_commands] )) ||
+_bqx__help__datasets_commands() {
+    local commands; commands=(
+'get:Returns the dataset specified by datasetID.' \
+'list:Lists all datasets in the specified project to which the user has been granted the READER dataset role.' \
+    )
+    _describe -t commands 'bqx help datasets commands' commands "$@"
+}
+(( $+functions[_bqx__help__datasets__get_commands] )) ||
+_bqx__help__datasets__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help datasets get commands' commands "$@"
+}
+(( $+functions[_bqx__help__datasets__list_commands] )) ||
+_bqx__help__datasets__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help datasets list commands' commands "$@"
+}
 (( $+functions[_bqx__help__generate-skills_commands] )) ||
 _bqx__help__generate-skills_commands() {
     local commands; commands=()
@@ -1305,6 +1826,60 @@ _bqx__help__jobs_commands() {
 _bqx__help__jobs__query_commands() {
     local commands; commands=()
     _describe -t commands 'bqx help jobs query commands' commands "$@"
+}
+(( $+functions[_bqx__help__models_commands] )) ||
+_bqx__help__models_commands() {
+    local commands; commands=(
+'get:Gets the specified model resource by model ID.' \
+'list:Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.' \
+    )
+    _describe -t commands 'bqx help models commands' commands "$@"
+}
+(( $+functions[_bqx__help__models__get_commands] )) ||
+_bqx__help__models__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help models get commands' commands "$@"
+}
+(( $+functions[_bqx__help__models__list_commands] )) ||
+_bqx__help__models__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help models list commands' commands "$@"
+}
+(( $+functions[_bqx__help__routines_commands] )) ||
+_bqx__help__routines_commands() {
+    local commands; commands=(
+'get:Gets the specified routine resource by routine ID.' \
+'list:Lists all routines in the specified dataset. Requires the READER dataset role.' \
+    )
+    _describe -t commands 'bqx help routines commands' commands "$@"
+}
+(( $+functions[_bqx__help__routines__get_commands] )) ||
+_bqx__help__routines__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help routines get commands' commands "$@"
+}
+(( $+functions[_bqx__help__routines__list_commands] )) ||
+_bqx__help__routines__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help routines list commands' commands "$@"
+}
+(( $+functions[_bqx__help__tables_commands] )) ||
+_bqx__help__tables_commands() {
+    local commands; commands=(
+'get:Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.' \
+'list:Lists all tables in the specified dataset. Requires the READER dataset role.' \
+    )
+    _describe -t commands 'bqx help tables commands' commands "$@"
+}
+(( $+functions[_bqx__help__tables__get_commands] )) ||
+_bqx__help__tables__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help tables get commands' commands "$@"
+}
+(( $+functions[_bqx__help__tables__list_commands] )) ||
+_bqx__help__tables__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx help tables list commands' commands "$@"
 }
 (( $+functions[_bqx__jobs_commands] )) ||
 _bqx__jobs_commands() {
@@ -1336,6 +1911,135 @@ _bqx__jobs__help__query_commands() {
 _bqx__jobs__query_commands() {
     local commands; commands=()
     _describe -t commands 'bqx jobs query commands' commands "$@"
+}
+(( $+functions[_bqx__models_commands] )) ||
+_bqx__models_commands() {
+    local commands; commands=(
+'get:Gets the specified model resource by model ID.' \
+'list:Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx models commands' commands "$@"
+}
+(( $+functions[_bqx__models__get_commands] )) ||
+_bqx__models__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx models get commands' commands "$@"
+}
+(( $+functions[_bqx__models__help_commands] )) ||
+_bqx__models__help_commands() {
+    local commands; commands=(
+'get:Gets the specified model resource by model ID.' \
+'list:Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx models help commands' commands "$@"
+}
+(( $+functions[_bqx__models__help__get_commands] )) ||
+_bqx__models__help__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx models help get commands' commands "$@"
+}
+(( $+functions[_bqx__models__help__help_commands] )) ||
+_bqx__models__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx models help help commands' commands "$@"
+}
+(( $+functions[_bqx__models__help__list_commands] )) ||
+_bqx__models__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx models help list commands' commands "$@"
+}
+(( $+functions[_bqx__models__list_commands] )) ||
+_bqx__models__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx models list commands' commands "$@"
+}
+(( $+functions[_bqx__routines_commands] )) ||
+_bqx__routines_commands() {
+    local commands; commands=(
+'get:Gets the specified routine resource by routine ID.' \
+'list:Lists all routines in the specified dataset. Requires the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx routines commands' commands "$@"
+}
+(( $+functions[_bqx__routines__get_commands] )) ||
+_bqx__routines__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx routines get commands' commands "$@"
+}
+(( $+functions[_bqx__routines__help_commands] )) ||
+_bqx__routines__help_commands() {
+    local commands; commands=(
+'get:Gets the specified routine resource by routine ID.' \
+'list:Lists all routines in the specified dataset. Requires the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx routines help commands' commands "$@"
+}
+(( $+functions[_bqx__routines__help__get_commands] )) ||
+_bqx__routines__help__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx routines help get commands' commands "$@"
+}
+(( $+functions[_bqx__routines__help__help_commands] )) ||
+_bqx__routines__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx routines help help commands' commands "$@"
+}
+(( $+functions[_bqx__routines__help__list_commands] )) ||
+_bqx__routines__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx routines help list commands' commands "$@"
+}
+(( $+functions[_bqx__routines__list_commands] )) ||
+_bqx__routines__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx routines list commands' commands "$@"
+}
+(( $+functions[_bqx__tables_commands] )) ||
+_bqx__tables_commands() {
+    local commands; commands=(
+'get:Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.' \
+'list:Lists all tables in the specified dataset. Requires the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx tables commands' commands "$@"
+}
+(( $+functions[_bqx__tables__get_commands] )) ||
+_bqx__tables__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx tables get commands' commands "$@"
+}
+(( $+functions[_bqx__tables__help_commands] )) ||
+_bqx__tables__help_commands() {
+    local commands; commands=(
+'get:Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.' \
+'list:Lists all tables in the specified dataset. Requires the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bqx tables help commands' commands "$@"
+}
+(( $+functions[_bqx__tables__help__get_commands] )) ||
+_bqx__tables__help__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx tables help get commands' commands "$@"
+}
+(( $+functions[_bqx__tables__help__help_commands] )) ||
+_bqx__tables__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx tables help help commands' commands "$@"
+}
+(( $+functions[_bqx__tables__help__list_commands] )) ||
+_bqx__tables__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx tables help list commands' commands "$@"
+}
+(( $+functions[_bqx__tables__list_commands] )) ||
+_bqx__tables__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'bqx tables list commands' commands "$@"
 }
 
 if [ "$funcstack[1]" = "_bqx" ]; then
