@@ -921,11 +921,7 @@ in GitHub Actions; 5 skills installable via `npx skills add`.
 See [docs/e2e-validation.md](docs/e2e-validation.md) for the full
 reproducible validation script.
 
-### Phase 3: Conversational Analytics + Polish (v0.3)
-
-> **Note:** This phase depends on the Conversational Analytics API reaching
-> sufficient stability (currently in preview). Phase 1-2 deliver value
-> independently.
+### Phase 3: Conversational Analytics + Polish (v0.3) — Complete
 
 - [x] `bqx ca ask` — natural language query via CA API
 - [x] `bqx ca create-agent` — create data agents
