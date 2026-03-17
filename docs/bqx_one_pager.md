@@ -34,7 +34,7 @@ an agent cannot know what a CLI can do or how to call it correctly.
 |---|---|---|
 | **Discovery** | No skill files. The agent must be pre-programmed with `bq` syntax, or parse `--help` text and guess. | Ships 26 skills in the open SKILL.md format. An agent reads the skill file and knows exactly what parameters to pass. |
 | **Integration** | Every agent platform (OpenClaw, Gemini CLI, Claude Code) writes its own `bq` wrapper with hardcoded knowledge of which flags to use. | One stable skill surface. All agent platforms integrate BigQuery the same way — no per-platform wrapper code. |
-| **Example** | Agent has no way to discover that `bq query` exists or what flags it needs. Team writes a custom tool definition for each agent framework. | Agent loads `skills/jobs-query.md`, sees the command template, parameters, and output schema. Runs it directly. |
+| **Example** | Agent has no way to discover that `bq query` exists or what flags it needs. Team writes a custom tool definition for each agent framework. | Agent loads `skills/bqx-query/SKILL.md`, sees the command template, parameters, and output schema. Runs it directly. |
 
 ### Gap 2 — Formatting
 
@@ -58,7 +58,7 @@ scripts the agent has to invent each time.
 |---|---|---|
 | **Workflows** | Only exposes low-level CRUD. To answer "what is the error rate?", the agent must: find the table, write the SQL, run `bq query`, parse the text output. 4 fragile steps. | `bqx ca ask "What is the error rate for support_bot?" --agent=agent-analytics` — one command, structured JSON response with SQL, results, and explanation. |
 | **Analytics** | No built-in analytics commands. Want drift detection? Write a SQL pipeline yourself. | `bqx analytics drift`, `bqx analytics evaluate`, `bqx analytics insights` — real operational workflows. An agent detects regression without writing any SQL. |
-| **API coverage** | Fixed command set. New API methods require waiting for a `bq` release. | Dynamic commands generated from the BigQuery Discovery document. New API methods get CLI support automatically. |
+| **API coverage** | Fixed command set. New API methods require waiting for a `bq` release. | Dynamic commands generated from the BigQuery Discovery document. Adding a new API method to the CLI is a one-line allowlist change, not a new command implementation. |
 
 With `bq`, the agent invents the workflow. With `bqx`, the workflow is part
 of the product.
