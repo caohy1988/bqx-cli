@@ -2,19 +2,68 @@
 
 **Author:** Haiyuan Cao
 
-## Summary
+[Prototype](https://github.com/haiyuan-eng-google/bqx-cli/tree/main/src) — inspired by [GWS CLI](https://github.com/googleworkspace/cli)
 
-I built `bqx` because I kept hitting the same problem: every time an agent
-needs to use BigQuery, someone has to write a custom wrapper around `bq` or
-the REST API. The output is inconsistent, the auth story is painful in
-ephemeral environments, and there is no CLI path to Conversational Analytics
-at all.
+## Summary
 
 `bq` was built for humans typing database commands. `bqx` is built for a
 world where agents and humans both use CLI as the control plane. That is a
 different design target, and it needs a different tool.
 
-## What exists today
+`bq` keeps BigQuery usable. `bqx` makes BigQuery agent-usable. This is
+the same thesis behind the GWS CLI effort: a strong CLI becomes a shared
+control plane across humans, automation, and agents.
+
+Recent signals from Perplexity and the industry trajectory toward coding
+agents with VM execution environments confirm this direction. Local
+orchestrators like OpenClaw demonstrate that the control plane is shifting.
+
+## Today's gaps in `bq` CLI
+
+`bq` works fine for what it was designed to do. But it was designed in a
+different era. The easiest way to see the gap is a concrete example. Say an
+OpenClaw-style agent needs to answer: **"what is the error rate for
+support_bot?"**
+
+### Gap 1 — Skill support
+
+Agents discover capabilities through skill files (SKILL.md). Without them,
+an agent cannot know what a CLI can do or how to call it correctly.
+
+| | `bq` CLI | `bqx` CLI |
+|---|---|---|
+| **Discovery** | No skill files. The agent must be pre-programmed with `bq` syntax, or parse `--help` text and guess. | Ships 26 skills in the open SKILL.md format. An agent reads the skill file and knows exactly what parameters to pass. |
+| **Integration** | Every agent platform (OpenClaw, Gemini CLI, Claude Code) writes its own `bq` wrapper with hardcoded knowledge of which flags to use. | One stable skill surface. All agent platforms integrate BigQuery the same way — no per-platform wrapper code. |
+| **Example** | Agent has no way to discover that `bq query` exists or what flags it needs. Team writes a custom tool definition for each agent framework. | Agent loads `skills/jobs-query.md`, sees the command template, parameters, and output schema. Runs it directly. |
+
+### Gap 2 — Formatting
+
+Agents consume structured data. When output is human-readable text, every
+agent has to write its own parser — and those parsers break whenever the
+format changes.
+
+| | `bq` CLI | `bqx` CLI |
+|---|---|---|
+| **Output** | ASCII tables and mixed text/status lines. No guaranteed schema. | Every command returns structured JSON with a predictable schema. |
+| **Parsing** | Agent must regex-parse table borders, handle wrapped rows, strip status messages. Fragile across `bq` versions. | Agent calls `JSON.parse()` on stdout. Done. |
+| **Example** | `bq query "SELECT ..."` returns a human-formatted table. Agent needs ~30 lines of parsing logic to extract rows, and breaks if column widths change. | `bqx jobs query --query "SELECT ..." --format json` returns `{"rows": [...], "schema": {...}}`. Zero parsing code. |
+
+### Gap 3 — Extensibility
+
+Agents need high-level workflows, not just raw API primitives. "Check agent
+health" or "detect metric drift" should be single commands, not multi-step
+scripts the agent has to invent each time.
+
+| | `bq` CLI | `bqx` CLI |
+|---|---|---|
+| **Workflows** | Only exposes low-level CRUD. To answer "what is the error rate?", the agent must: find the table, write the SQL, run `bq query`, parse the text output. 4 fragile steps. | `bqx ca ask "What is the error rate for support_bot?" --agent=agent-analytics` — one command, structured JSON response with SQL, results, and explanation. |
+| **Analytics** | No built-in analytics commands. Want drift detection? Write a SQL pipeline yourself. | `bqx analytics drift`, `bqx analytics evaluate`, `bqx analytics insights` — real operational workflows. An agent detects regression without writing any SQL. |
+| **API coverage** | Fixed command set. New API methods require waiting for a `bq` release. | Dynamic commands generated from the BigQuery Discovery document. New API methods get CLI support automatically. |
+
+With `bq`, the agent invents the workflow. With `bqx`, the workflow is part
+of the product.
+
+## Prototype
 
 This is not a proposal. I have already built and shipped a working prototype.
 
@@ -33,89 +82,6 @@ It also ships with Model Armor integration, npm distribution, shell
 completions, a Gemini extension manifest, and end-to-end validation against a
 live GCP project.
 
-The engineering is done. The question is whether BigQuery wants to own this
-as a product direction.
-
-## Why this matters strategically
-
-BigQuery is already where agent-era data ends up: warehouse data, telemetry,
-traces, evaluations, structured application state. But the interface layer
-has not kept up.
-
-Right now, if an agent platform like OpenClaw wants to use BigQuery, every
-team builds their own wrapper. That means BigQuery is the backend, but
-someone else owns the developer experience.
-
-A strong agent-native CLI changes that. BigQuery stops being "the database
-behind custom glue code" and becomes "the data system agents already know
-how to use." That is a meaningful difference for adoption.
-
-If BigQuery does not provide this surface, agent platforms will still use
-BigQuery — but through third-party tooling and brittle wrappers that we do
-not control.
-
-## The gap with `bq`
-
-`bq` works fine for what it was designed to do. But it was designed in a
-different era.
-
-The easiest way to see the gap is a concrete example. Say an OpenClaw-style
-agent needs to answer: "what is the error rate for support_bot?"
-
-**Today with `bq`**, the agent has to:
-
-1. figure out which table to query
-2. generate the SQL itself
-3. call `bq query` and handle its text output
-4. parse the response back into something structured
-5. deal with auth and formatting inconsistencies
-
-That works, but it is fragile. Every step is a place where the integration
-can break.
-
-**With `bqx`**, it is one command:
-
-```bash
-bqx ca ask "What is the error rate for support_bot?" --agent=agent-analytics
-```
-
-The agent gets back structured JSON with the generated SQL, results, and
-explanation. No wrapper code. No output parsing.
-
-For raw SQL access, the story is similarly cleaner:
-
-```bash
-bqx jobs query --query "SELECT ..." --format json
-```
-
-With `bq`, the agent invents the workflow. With `bqx`, the workflow is part
-of the product.
-
-## How `bqx` delivers
-
-Four things make `bqx` work for agents in practice:
-
-**JSON-first output.** Every command returns predictable, structured JSON.
-Agents do not have to parse human-readable text.
-
-**Workflow commands, not just primitives.** `bqx analytics evaluate`,
-`bqx analytics drift`, `bqx analytics insights` — these are real operational
-workflows, not raw API calls. An agent can run a health check or detect
-regression without generating any SQL.
-
-**Conversational Analytics via CLI.** `bqx ca ask` turns BigQuery into a
-system agents can question directly in natural language. That is a capability
-`bq` simply does not have.
-
-**Reusable skill surface.** bqx ships 26 skills in the open SKILL.md format.
-OpenClaw, Gemini CLI, Claude Code, and similar systems can integrate BigQuery
-through one stable surface instead of each building their own.
-
-This is the same thesis behind the GWS CLI effort: a strong CLI becomes a
-shared control plane across humans, automation, and agents.
-
-`bq` keeps BigQuery usable. `bqx` makes BigQuery agent-usable.
-
 ## Ask
 
 Tomas, I would like your sponsorship to pilot `bqx` with the OpenClaw team
@@ -123,7 +89,6 @@ as a real integration test — give agents a proper BigQuery CLI and measure
 whether it actually reduces wrapper complexity and improves reliability.
 
 If that pilot validates the direction, the next step is to position `bqx`
-as BigQuery's official agent-native CLI, not just an interesting side
-project.
+as BigQuery's official agent-native CLI.
 
 I am prepared to lead this effort.
