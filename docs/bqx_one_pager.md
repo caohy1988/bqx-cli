@@ -50,14 +50,52 @@ support_bot?"**
 
 ### Gap 1 — Skill support
 
-Agents discover capabilities through skill files (SKILL.md). Without them,
-an agent cannot know what a CLI can do or how to call it correctly.
+Agents discover capabilities through skill files (SKILL.md). A skill file
+is a structured markdown document that tells an agent **when** to use a
+command, **how** to call it (flags, parameters, examples), and **what** the
+output looks like — all in a format every major agent platform already
+reads. Without skill files, an agent cannot know what a CLI can do or how
+to call it correctly.
 
 | | `bq` CLI | `bqx` CLI |
 |---|---|---|
 | **Discovery** | No skill files. The agent must be pre-programmed with `bq` syntax, or parse `--help` text and guess. | Ships 26 skills in the open SKILL.md format. An agent reads the skill file and knows exactly what parameters to pass. |
 | **Integration** | Every agent platform (OpenClaw, Gemini CLI, Claude Code) writes its own `bq` wrapper with hardcoded knowledge of which flags to use. | One stable skill surface. All agent platforms integrate BigQuery the same way — no per-platform wrapper code. |
 | **Example** | Agent has no way to discover that `bq query` exists or what flags it needs. Team writes a custom tool definition for each agent framework. | Agent loads `skills/bqx-query/SKILL.md`, sees the command template, parameters, and output schema. Runs it directly. |
+
+**What a skill file looks like** — `skills/bqx-query/SKILL.md` (abridged):
+
+```markdown
+---
+name: bqx-query
+description: Run raw BigQuery SQL queries via bqx CLI.
+---
+## When to use this skill
+- "run this SQL through bqx"
+- "dry-run this BigQuery query"
+
+## Core workflow
+  bqx jobs query --query "<SQL>" [--dry-run] [--format json|table|text]
+
+## Flags
+| Flag         | Description                    |
+|--------------|--------------------------------|
+| --query      | SQL query string (required)    |
+| --dry-run    | Show request without executing |
+| --format     | json (default), table, or text |
+
+## Output
+JSON: {"total_rows": N, "rows": [...]}  — each row as key-value object.
+```
+
+An agent reads this file and immediately knows: what the command does,
+which flags to pass, what JSON shape to expect back. Compare this to `bq`,
+where every team reverse-engineers the same information from `--help` text
+and builds a bespoke wrapper. Skills like `bqx-analytics` go further —
+they include **routing tables** that tell the agent which subcommand to
+pick based on the user's goal (health check → `doctor`, threshold gate →
+`evaluate`, debug a session → `get-trace`), turning multi-step triage into
+a guided workflow.
 
 ### Gap 2 — Formatting
 
