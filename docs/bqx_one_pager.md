@@ -164,7 +164,8 @@ pub const ALLOWED_METHODS: &[&str] = &[
 No new handler, no new struct, no new tests for the command itself — the
 Discovery document already defines the parameters (`projectId`,
 `datasetId`, `deleteContents`) and bqx generates the CLI surface
-automatically. `bqx datasets delete --dataset-id=foo` works immediately.
+automatically. `bqx datasets delete --project-id=my-proj --dataset-id=foo`
+works immediately.
 
 With `bq`, the agent invents the workflow. With `bqx`, the workflow is part
 of the product.
