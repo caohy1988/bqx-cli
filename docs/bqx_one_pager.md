@@ -81,7 +81,31 @@ scripts the agent has to invent each time.
 |---|---|---|
 | **Workflows** | Only exposes low-level CRUD. To answer "what is the error rate?", the agent must: find the table, write the SQL, run `bq query`, parse the text output. 4 fragile steps. | `bqx ca ask "What is the error rate for support_bot?" --agent=agent-analytics` — one command, structured JSON response with SQL, results, and explanation. |
 | **Analytics** | No built-in analytics commands. Want drift detection? Write a SQL pipeline yourself. | `bqx analytics drift`, `bqx analytics evaluate`, `bqx analytics insights` — real operational workflows. An agent detects regression without writing any SQL. |
-| **API coverage** | Fixed command set. New API methods require waiting for a `bq` release. | Dynamic commands generated from the BigQuery Discovery document. Adding a new API method to the CLI is a one-line allowlist change, not a new command implementation. |
+| **API coverage** | Fixed command set. New API methods require waiting for a `bq` release. | Dynamic commands generated from the BigQuery Discovery document. Adding a new API method is a one-line allowlist change — see example below. |
+
+**Example — adding `datasets.delete` to bqx:**
+
+bqx bundles Google's BigQuery Discovery document, which already describes
+every API method: URL path, HTTP verb, parameters, and types. At startup,
+bqx parses the document, builds clap subcommands for each allowlisted
+method, and wires them to a generic HTTP executor. Today's allowlist covers
+8 read-only methods. To add `datasets.delete`:
+
+```rust
+// src/bigquery/dynamic/model.rs — one line added
+pub const ALLOWED_METHODS: &[&str] = &[
+    "bigquery.datasets.list",
+    "bigquery.datasets.get",
++   "bigquery.datasets.delete",   // ← this is the entire change
+    "bigquery.tables.list",
+    ...
+];
+```
+
+No new handler, no new struct, no new tests for the command itself — the
+Discovery document already defines the parameters (`projectId`,
+`datasetId`, `deleteContents`) and bqx generates the CLI surface
+automatically. `bqx datasets delete --dataset-id=foo` works immediately.
 
 With `bq`, the agent invents the workflow. With `bqx`, the workflow is part
 of the product.
