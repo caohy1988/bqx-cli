@@ -41,6 +41,26 @@ registered even when the agent only needs `execute_sql`. bqx avoids this
 entirely: the agent calls `bqx jobs query --query "..." --format json`
 through the bash tool it already has.
 
+### Do agents need their own CLI?
+
+Not necessarily a separate binary — but they do need a different
+**interface contract**. Humans and agents use the same commands, but they
+disagree on three things:
+
+| | What humans want | What agents want |
+|---|---|---|
+| **Output** | Readable ASCII tables | Structured JSON with a predictable schema |
+| **Discovery** | `--help` text and man pages | Machine-readable skill files (SKILL.md) that declare when to use each command, what flags to pass, and what the output shape is |
+| **Errors** | A descriptive message they can read | A JSON object with an error code they can branch on |
+
+You could add `--format json` and skill files to `bq` — the interface
+requirements are not tied to a binary name. What matters is that
+**someone ships the agent-native interface layer**: JSON-first output,
+skill files for discovery, structured errors. bqx is a working proof
+of what that layer looks like. Whether it ships standalone or as an
+agent mode on top of `bq` is an implementation decision that comes after
+validating the design.
+
 ## Today's gaps in `bq` CLI
 
 `bq` works fine for what it was designed to do. But it was designed in a
