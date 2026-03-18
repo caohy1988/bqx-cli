@@ -73,14 +73,15 @@ format changes.
 
 ### Gap 3 — Extensibility
 
-Agents need high-level workflows, not just raw API primitives. "Check agent
-health" or "detect metric drift" should be single commands, not multi-step
-scripts the agent has to invent each time.
+Agents need high-level workflows, not just raw API primitives. The right
+architecture is: CLI commands map 1:1 to APIs, and Skills orchestrate those
+commands into workflows. As new APIs land (e.g., agent ops), the CLI
+surface grows automatically, and Skills define how agents use them.
 
 | | `bq` CLI | `bqx` CLI |
 |---|---|---|
-| **Workflows** | Only exposes low-level CRUD. To check agent health, the agent must: query trace tables, compute error rates, check latency percentiles, compare to thresholds — 4+ fragile steps with hand-written SQL. | `bqx analytics doctor` — one command returns a structured health report (error rate, p50/p95 latency, anomalies) with no SQL required. |
-| **Analytics** | No built-in analytics commands. Want drift detection? Write a SQL pipeline yourself. | `bqx analytics drift`, `bqx analytics evaluate`, `bqx analytics insights` — real operational workflows. An agent detects regression without writing any SQL. |
+| **Skills as orchestration** | No skill layer. Every agent team writes ad-hoc scripts to chain `bq` calls into workflows. No reuse across teams. | Skills (SKILL.md) orchestrate CLI commands into workflows. Example: the `bqx-analytics` skill tells an agent to call `bqx analytics doctor`, then `bqx analytics drift` if anomalies are found. New API → new CLI command → Skills compose it immediately. |
+| **API → CLI → Skill pipeline** | Adding a workflow means writing a new script from scratch for each agent platform. | Once agent ops APIs land, bqx adds the corresponding CLI commands (one-line allowlist change via Discovery). Skills then define the orchestration — e.g., "run evaluate, if score drops below threshold run drift, then file a bug." No agent-side code changes. |
 | **API coverage** | Fixed command set. New API methods require waiting for a `bq` release. | Dynamic commands generated from the BigQuery Discovery document. Adding a new API method is a one-line allowlist change — see example below. |
 
 **Example — adding `datasets.delete` to bqx:**
@@ -121,7 +122,8 @@ three command domains:
 - **Dynamic BigQuery API** — datasets, tables, routines, models, generated
   from the Discovery document
 - **Agent Analytics** — doctor, evaluate, drift, insights, distribution,
-  traces, HITL metrics, views
+  traces, HITL metrics, views. These prototype the workflow patterns that
+  will migrate to Skills over agent ops APIs as those APIs land.
 - **Conversational Analytics** — `ca ask`, `ca create-agent`,
   `ca add-verified-query`, `ca list-agents`
 
