@@ -18,6 +18,29 @@ Recent signals from Perplexity and the industry trajectory toward coding
 agents with VM execution environments confirm this direction. Local
 orchestrators like OpenClaw demonstrate that the control plane is shifting.
 
+### Why CLI instead of MCP?
+
+MCP servers register every operation as a separate tool. Each tool
+definition is sent to the LLM on every call — a per-turn tax that grows
+with tool count. A CLI is equivalent to one tool: the agent already has
+`bash`. Adding BigQuery via bqx costs zero additional tool definitions.
+
+**Task:** `SELECT status, COUNT(*) FROM traces WHERE agent_id='support_bot' GROUP BY status`
+
+| | BigQuery MCP server | MCP Toolbox for Databases | bqx CLI |
+|---|---|---|---|
+| **Tools registered** | 5 (list/get datasets, tables, execute\_sql) | 9 (+ search\_catalog, forecast, analyze\_contribution, ask\_data\_insights) | 0 extra (uses bash) |
+| **Tool-def tokens per LLM call** | ~660 | ~1,880 | 0 |
+| **Total tokens for one query** | ~1,570 | ~4,000 | ~460 |
+| **Tool-def overhead in a 10-turn session** | ~13,200 | ~37,500 | 0 |
+
+Token counts are calculated from the actual JSON tool schemas sent to the
+LLM. MCP Toolbox pays the highest tax because all 9 tools — including
+`forecast` and `analyze_contribution` with 5–6 parameters each — are
+registered even when the agent only needs `execute_sql`. bqx avoids this
+entirely: the agent calls `bqx jobs query --query "..." --format json`
+through the bash tool it already has.
+
 ## Today's gaps in `bq` CLI
 
 `bq` works fine for what it was designed to do. But it was designed in a
