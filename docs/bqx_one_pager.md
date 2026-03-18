@@ -79,7 +79,7 @@ scripts the agent has to invent each time.
 
 | | `bq` CLI | `bqx` CLI |
 |---|---|---|
-| **Workflows** | Only exposes low-level CRUD. To answer "what is the error rate?", the agent must: find the table, write the SQL, run `bq query`, parse the text output. 4 fragile steps. | `bqx ca ask "What is the error rate for support_bot?" --agent=agent-analytics` — one command, structured JSON response with SQL, results, and explanation. |
+| **Workflows** | Only exposes low-level CRUD. To check agent health, the agent must: query trace tables, compute error rates, check latency percentiles, compare to thresholds — 4+ fragile steps with hand-written SQL. | `bqx analytics doctor` — one command returns a structured health report (error rate, p50/p95 latency, anomalies) with no SQL required. |
 | **Analytics** | No built-in analytics commands. Want drift detection? Write a SQL pipeline yourself. | `bqx analytics drift`, `bqx analytics evaluate`, `bqx analytics insights` — real operational workflows. An agent detects regression without writing any SQL. |
 | **API coverage** | Fixed command set. New API methods require waiting for a `bq` release. | Dynamic commands generated from the BigQuery Discovery document. Adding a new API method is a one-line allowlist change — see example below. |
 
@@ -124,6 +124,12 @@ three command domains:
   traces, HITL metrics, views
 - **Conversational Analytics** — `ca ask`, `ca create-agent`,
   `ca add-verified-query`, `ca list-agents`
+
+The CA integration currently targets BigQuery as the data source. I agree
+with the feedback that a CA CLI tool should not be restricted to BigQuery —
+it should support all CA agent data sources including Looker and external
+databases. bqx is a natural place to prototype this broader CA CLI surface
+and validate the interaction model before expanding to other sources.
 
 It also ships with Model Armor integration, npm distribution, shell
 completions, a Gemini extension manifest, and end-to-end validation against a
