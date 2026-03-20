@@ -1,0 +1,5 @@
+name: bigquery-demo
+source_type: bigquery
+project: my-project
+location: US
+agent: agent-analytics

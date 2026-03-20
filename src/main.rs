@@ -235,6 +235,44 @@ async fn run_static(cli: Cli) {
         return;
     }
 
+    // ca ask --profile bypasses Config::from_cli() because the profile
+    // supplies its own project/location — no --project-id required.
+    if let Command::Ca {
+        command:
+            CaCommand::Ask {
+                ref question,
+                profile: Some(ref profile_ref),
+                ref agent,
+                ref tables,
+            },
+    } = cli.command
+    {
+        if agent.is_some() || tables.is_some() {
+            eprintln!(
+                "{}",
+                json!({"error": "--profile cannot be combined with --agent or --tables"})
+            );
+            std::process::exit(1);
+        }
+        let auth_opts = auth::AuthOptions {
+            token: cli.token.clone(),
+            credentials_file: cli.credentials_file.clone(),
+        };
+        let result = commands::ca::ask::run_profile(
+            question.clone(),
+            profile_ref,
+            &auth_opts,
+            &cli.format,
+            cli.sanitize.as_deref(),
+        )
+        .await;
+        if let Err(e) = result {
+            eprintln!("{}", json!({"error": e.to_string()}));
+            std::process::exit(1);
+        }
+        return;
+    }
+
     let config = match Config::from_cli(&cli) {
         Ok(c) => c,
         Err(e) => {
@@ -260,6 +298,7 @@ async fn run_static(cli: Cli) {
         Command::Ca { command } => match command {
             CaCommand::Ask {
                 question,
+                profile: _, // already handled above
                 agent,
                 tables,
             } => commands::ca::ask::run(question, agent, tables, &auth_opts, &config).await,

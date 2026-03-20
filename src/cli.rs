@@ -240,6 +240,10 @@ pub enum CaCommand {
         #[arg()]
         question: String,
 
+        /// CA source profile name or path to profile YAML file
+        #[arg(long)]
+        profile: Option<String>,
+
         /// Data agent to use (e.g. agent-analytics)
         #[arg(long)]
         agent: Option<String>,

@@ -1,0 +1,8 @@
+name: looker-sales
+source_type: looker
+project: my-project
+location: us-central1
+looker_instance_url: https://looker.example.com
+looker_explores:
+  - sales_model/orders
+  - sales_model/customers
