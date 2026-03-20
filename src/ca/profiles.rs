@@ -83,6 +83,12 @@ pub struct CaProfile {
     pub looker_instance_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub looker_explores: Option<Vec<String>>,
+    /// Looker OAuth client ID (for inline credentials).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub looker_client_id: Option<String>,
+    /// Looker OAuth client secret (for inline credentials).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub looker_client_secret: Option<String>,
 
     // ── Looker Studio (Chat/DataAgent) ──
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -116,7 +122,11 @@ impl CaProfile {
                 // BigQuery needs either agent or tables (or neither for bare ask)
             }
             SourceType::Looker => {
-                if self.looker_instance_url.is_none() {
+                if self
+                    .looker_instance_url
+                    .as_ref()
+                    .map_or(true, |u| u.is_empty())
+                {
                     bail!(
                         "Profile '{}': looker_instance_url is required for Looker sources",
                         self.name
@@ -136,9 +146,32 @@ impl CaProfile {
                         explores.len()
                     );
                 }
+                for explore in explores {
+                    if parse_looker_explore(explore).is_err() {
+                        bail!(
+                            "Profile '{}': invalid explore format '{}'. \
+                             Expected 'model/explore' (e.g. 'sales_model/orders')",
+                            self.name,
+                            explore
+                        );
+                    }
+                }
+                // OAuth credentials must be both present or both absent.
+                let has_id = self.looker_client_id.is_some();
+                let has_secret = self.looker_client_secret.is_some();
+                if has_id != has_secret {
+                    bail!(
+                        "Profile '{}': looker_client_id and looker_client_secret must be provided together",
+                        self.name
+                    );
+                }
             }
             SourceType::LookerStudio => {
-                if self.studio_datasource_id.is_none() {
+                if self
+                    .studio_datasource_id
+                    .as_ref()
+                    .map_or(true, |id| id.is_empty())
+                {
                     bail!(
                         "Profile '{}': studio_datasource_id is required for Looker Studio sources",
                         self.name
@@ -187,6 +220,17 @@ impl CaProfile {
     }
 }
 
+/// Parse a Looker explore reference like "model/explore" into (model, explore).
+///
+/// Exactly one `/` is required — values like `model/explore/extra` are rejected.
+pub fn parse_looker_explore(s: &str) -> Result<(&str, &str)> {
+    let parts: Vec<&str> = s.split('/').collect();
+    if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
+        bail!("Invalid Looker explore: '{s}'. Expected format: model/explore");
+    }
+    Ok((parts[0], parts[1]))
+}
+
 /// Load a profile from a YAML file.
 pub fn load_profile(path: &Path) -> Result<CaProfile> {
     let contents = std::fs::read_to_string(path)
@@ -228,6 +272,8 @@ mod tests {
             tables: None,
             looker_instance_url: None,
             looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
             datasource_ref: None,
@@ -298,7 +344,9 @@ mod tests {
             agent: None,
             tables: None,
             looker_instance_url: None,
-            looker_explores: Some(vec!["model/explore".into()]),
+            looker_explores: Some(vec!["sales_model/orders".into()]),
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
             datasource_ref: None,
@@ -320,6 +368,8 @@ mod tests {
             tables: None,
             looker_instance_url: Some("https://looker.example.com".into()),
             looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
             datasource_ref: None,
@@ -341,13 +391,15 @@ mod tests {
             tables: None,
             looker_instance_url: Some("https://looker.example.com".into()),
             looker_explores: Some(vec![
-                "a".into(),
-                "b".into(),
-                "c".into(),
-                "d".into(),
-                "e".into(),
-                "f".into(),
+                "a/a".into(),
+                "b/b".into(),
+                "c/c".into(),
+                "d/d".into(),
+                "e/e".into(),
+                "f/f".into(),
             ]),
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
             datasource_ref: None,
@@ -369,6 +421,8 @@ mod tests {
             tables: None,
             looker_instance_url: None,
             looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
             datasource_ref: None,
@@ -390,6 +444,8 @@ mod tests {
             tables: None,
             looker_instance_url: None,
             looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
             datasource_ref: Some("ref".into()),
@@ -411,6 +467,8 @@ mod tests {
             tables: None,
             looker_instance_url: None,
             looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: Some("ctx-123".into()),
             datasource_ref: None,
@@ -432,6 +490,8 @@ mod tests {
             tables: None,
             looker_instance_url: None,
             looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: Some("ctx-123".into()),
             datasource_ref: Some("ref".into()),
@@ -453,6 +513,8 @@ mod tests {
             tables: None,
             looker_instance_url: None,
             looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: Some("ctx-finance".into()),
             datasource_ref: Some("projects/my-project/instances/fin/databases/ledger".into()),
@@ -493,6 +555,8 @@ mod tests {
             tables: None,
             looker_instance_url: Some("https://looker.example.com".into()),
             looker_explores: Some(vec!["sales_model/orders".into()]),
+            looker_client_id: None,
+            looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
             datasource_ref: None,
@@ -517,5 +581,147 @@ mod tests {
         assert_eq!(SourceType::AlloyDb.to_string(), "alloydb");
         assert_eq!(SourceType::Spanner.to_string(), "spanner");
         assert_eq!(SourceType::CloudSql.to_string(), "cloud_sql");
+    }
+
+    #[test]
+    fn parse_looker_explore_valid() {
+        let (model, explore) = parse_looker_explore("sales_model/orders").unwrap();
+        assert_eq!(model, "sales_model");
+        assert_eq!(explore, "orders");
+    }
+
+    #[test]
+    fn parse_looker_explore_rejects_extra_slashes() {
+        assert!(parse_looker_explore("model/explore/sub").is_err());
+    }
+
+    #[test]
+    fn parse_looker_explore_invalid_no_slash() {
+        assert!(parse_looker_explore("just_explore").is_err());
+    }
+
+    #[test]
+    fn parse_looker_explore_invalid_empty_parts() {
+        assert!(parse_looker_explore("/explore").is_err());
+        assert!(parse_looker_explore("model/").is_err());
+    }
+
+    #[test]
+    fn looker_partial_oauth_id_only_fails() {
+        let p = CaProfile {
+            name: "bad-looker".into(),
+            source_type: SourceType::Looker,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: Some("https://looker.example.com".into()),
+            looker_explores: Some(vec!["sales_model/orders".into()]),
+            looker_client_id: Some("my-client-id".into()),
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("looker_client_id and looker_client_secret must be provided together"));
+    }
+
+    #[test]
+    fn looker_partial_oauth_secret_only_fails() {
+        let p = CaProfile {
+            name: "bad-looker".into(),
+            source_type: SourceType::Looker,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: Some("https://looker.example.com".into()),
+            looker_explores: Some(vec!["sales_model/orders".into()]),
+            looker_client_id: None,
+            looker_client_secret: Some("my-secret".into()),
+            studio_datasource_id: None,
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("looker_client_id and looker_client_secret must be provided together"));
+    }
+
+    #[test]
+    fn looker_empty_instance_url_fails() {
+        let p = CaProfile {
+            name: "bad-looker".into(),
+            source_type: SourceType::Looker,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: Some("".into()),
+            looker_explores: Some(vec!["sales_model/orders".into()]),
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("looker_instance_url"));
+    }
+
+    #[test]
+    fn studio_empty_datasource_id_fails() {
+        let p = CaProfile {
+            name: "bad-studio".into(),
+            source_type: SourceType::LookerStudio,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: Some("".into()),
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("studio_datasource_id"));
+    }
+
+    #[test]
+    fn looker_invalid_explore_format_fails() {
+        let p = CaProfile {
+            name: "bad-looker".into(),
+            source_type: SourceType::Looker,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: Some("https://looker.example.com".into()),
+            looker_explores: Some(vec!["no_slash".into()]),
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("invalid explore format"));
     }
 }

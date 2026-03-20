@@ -7,6 +7,7 @@ use super::models::{
     extract_response, AddVerifiedQueryResponse, CaChatMessage, CaQuestionRequest,
     CaQuestionResponse, CreateAgentResponse, DataAgentSummary, ListAgentsResponse, TableRef,
 };
+use super::profiles::{parse_looker_explore, CaProfile};
 use super::verified_queries::VerifiedQuery;
 
 const CA_BASE_URL: &str = "https://geminidataanalytics.googleapis.com/v1beta";
@@ -366,6 +367,144 @@ impl CaAgentManager for CaClient {
     }
 }
 
+impl CaClient {
+    /// Ask using a Looker profile (explore references + optional OAuth credentials).
+    pub async fn ask_looker(
+        &self,
+        profile: &CaProfile,
+        question: &str,
+    ) -> Result<CaQuestionResponse> {
+        let location = profile.location.as_deref().unwrap_or("us");
+        let project = &profile.project;
+        let url = format!(
+            "{}/projects/{project}/locations/{location}:chat",
+            self.base_url
+        );
+
+        let token = self.auth.token().await?;
+
+        let user_message = serde_json::json!({
+            "userMessage": { "text": question }
+        });
+
+        // Build explore references from profile
+        let instance_url = profile.looker_instance_url.as_deref().unwrap_or("");
+        let explores = profile.looker_explores.as_deref().unwrap_or(&[]);
+        let explore_refs: Vec<serde_json::Value> = explores
+            .iter()
+            .filter_map(|e| {
+                let (model, explore) = parse_looker_explore(e).ok()?;
+                Some(serde_json::json!({
+                    "lookerInstanceUri": instance_url,
+                    "lookmlModel": model,
+                    "explore": explore,
+                }))
+            })
+            .collect();
+
+        let mut looker_context = serde_json::json!({
+            "exploreReferences": explore_refs,
+        });
+
+        // Add OAuth credentials if provided
+        if let (Some(client_id), Some(client_secret)) =
+            (&profile.looker_client_id, &profile.looker_client_secret)
+        {
+            looker_context["credentials"] = serde_json::json!({
+                "oauth": {
+                    "secret": {
+                        "clientId": client_id,
+                        "clientSecret": client_secret,
+                    }
+                }
+            });
+        }
+
+        let body = serde_json::json!({
+            "messages": [user_message],
+            "inlineContext": {
+                "datasourceReferences": {
+                    "looker": looker_context,
+                }
+            }
+        });
+
+        let resp = self
+            .http
+            .post(&url)
+            .bearer_auth(&token)
+            .header("x-server-timeout", "300")
+            .json(&body)
+            .send()
+            .await?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            bail!("CA API error {status}: {body}");
+        }
+
+        let response_text = resp.text().await?;
+        let messages: Vec<CaChatMessage> = parse_streaming_response(&response_text)?;
+
+        Ok(extract_response(&messages, question, None))
+    }
+
+    /// Ask using a Looker Studio profile (datasource reference).
+    pub async fn ask_studio(
+        &self,
+        profile: &CaProfile,
+        question: &str,
+    ) -> Result<CaQuestionResponse> {
+        let location = profile.location.as_deref().unwrap_or("us");
+        let project = &profile.project;
+        let url = format!(
+            "{}/projects/{project}/locations/{location}:chat",
+            self.base_url
+        );
+
+        let token = self.auth.token().await?;
+
+        let user_message = serde_json::json!({
+            "userMessage": { "text": question }
+        });
+
+        let datasource_id = profile.studio_datasource_id.as_deref().unwrap_or("");
+        let body = serde_json::json!({
+            "messages": [user_message],
+            "inlineContext": {
+                "datasourceReferences": {
+                    "studio": {
+                        "studioReferences": [{
+                            "datasourceId": datasource_id,
+                        }]
+                    }
+                }
+            }
+        });
+
+        let resp = self
+            .http
+            .post(&url)
+            .bearer_auth(&token)
+            .header("x-server-timeout", "300")
+            .json(&body)
+            .send()
+            .await?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            bail!("CA API error {status}: {body}");
+        }
+
+        let response_text = resp.text().await?;
+        let messages: Vec<CaChatMessage> = parse_streaming_response(&response_text)?;
+
+        Ok(extract_response(&messages, question, None))
+    }
+}
+
 /// Parse the CA API streaming response.
 /// The API returns either a JSON array of messages or newline-delimited JSON.
 fn parse_streaming_response(text: &str) -> Result<Vec<CaChatMessage>> {
@@ -715,5 +854,173 @@ mod tests {
         assert_eq!(resp.question, "New question?");
         assert_eq!(resp.total_verified_queries, 2); // 1 existing + 1 new
         assert_eq!(resp.status, "added");
+    }
+
+    fn looker_profile() -> CaProfile {
+        CaProfile {
+            name: "test-looker".into(),
+            source_type: super::super::profiles::SourceType::Looker,
+            project: "test-project".into(),
+            location: Some("us".into()),
+            agent: None,
+            tables: None,
+            looker_instance_url: Some("https://looker.example.com".into()),
+            looker_explores: Some(vec!["sales_model/orders".into()]),
+            looker_client_id: Some("my-client-id".into()),
+            looker_client_secret: Some("my-client-secret".into()),
+            studio_datasource_id: None,
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        }
+    }
+
+    fn studio_profile() -> CaProfile {
+        CaProfile {
+            name: "test-studio".into(),
+            source_type: super::super::profiles::SourceType::LookerStudio,
+            project: "test-project".into(),
+            location: Some("us".into()),
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: Some("ds-12345".into()),
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn ask_looker_sends_explore_references() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!([
+            {
+                "systemMessage": {
+                    "data": {
+                        "query": {
+                            "looker": {
+                                "queryUrl": "https://looker.example.com/explore/sales_model/orders?q=..."
+                            }
+                        },
+                        "result": {
+                            "data": [{"order_id": 1, "total": 100.0}],
+                            "schema": {
+                                "fields": [{"name": "order_id"}, {"name": "total"}]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "systemMessage": {
+                    "text": {
+                        "parts": ["There is 1 order totaling $100."],
+                        "textType": "FINAL_RESPONSE"
+                    }
+                }
+            }
+        ]);
+
+        Mock::given(method("POST"))
+            .and(path("/projects/test-project/locations/us:chat"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = looker_profile();
+        let resp = client
+            .ask_looker(&profile, "how many orders?")
+            .await
+            .unwrap();
+
+        assert_eq!(resp.question, "how many orders?");
+        assert!(resp.sql.is_some()); // Looker query URL
+        assert!(resp.sql.unwrap().contains("looker.example.com"));
+        assert_eq!(resp.results.len(), 1);
+        assert_eq!(resp.results[0]["order_id"], 1);
+        assert_eq!(
+            resp.explanation.as_deref(),
+            Some("There is 1 order totaling $100.")
+        );
+    }
+
+    #[tokio::test]
+    async fn ask_looker_handles_api_error() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/projects/test-project/locations/us:chat"))
+            .respond_with(
+                ResponseTemplate::new(403)
+                    .set_body_string(r#"{"error":"Looker permission denied"}"#),
+            )
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = looker_profile();
+        let result = client.ask_looker(&profile, "test?").await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("CA API error"));
+    }
+
+    #[tokio::test]
+    async fn ask_studio_sends_datasource_reference() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!([
+            {
+                "systemMessage": {
+                    "data": {
+                        "generatedSql": "SELECT metric FROM studio_data",
+                        "result": {
+                            "data": [{"metric": "views", "value": 5000}],
+                            "schema": {
+                                "fields": [{"name": "metric"}, {"name": "value"}]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "systemMessage": {
+                    "text": {
+                        "parts": ["The dashboard shows 5000 views."],
+                        "textType": "FINAL_RESPONSE"
+                    }
+                }
+            }
+        ]);
+
+        Mock::given(method("POST"))
+            .and(path("/projects/test-project/locations/us:chat"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = studio_profile();
+        let resp = client.ask_studio(&profile, "show me views").await.unwrap();
+
+        assert_eq!(resp.question, "show me views");
+        assert_eq!(resp.sql.as_deref(), Some("SELECT metric FROM studio_data"));
+        assert_eq!(resp.results.len(), 1);
+        assert_eq!(resp.results[0]["value"], 5000);
+        assert_eq!(
+            resp.explanation.as_deref(),
+            Some("The dashboard shows 5000 views.")
+        );
     }
 }

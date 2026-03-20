@@ -203,11 +203,41 @@ async fn run_chat_profile(
 
             render_response(&resp, format)
         }
-        SourceType::Looker | SourceType::LookerStudio => {
-            bail!(
-                "Looker/Looker Studio sources are not yet supported. \
-                 This will be implemented in Phase 4 Milestone 2."
-            );
+        SourceType::Looker => {
+            let resolved = auth::resolve(auth_opts).await?;
+            let client = CaClient::new(resolved.clone());
+            let resp = client.ask_looker(profile, &question).await?;
+
+            if let Some(template) = sanitize_template {
+                let json_val = serde_json::to_value(&resp)?;
+                let sanitize_result =
+                    crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val)
+                        .await?;
+                crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+                if sanitize_result.sanitized {
+                    return crate::output::render(&sanitize_result.content, format);
+                }
+            }
+
+            render_response(&resp, format)
+        }
+        SourceType::LookerStudio => {
+            let resolved = auth::resolve(auth_opts).await?;
+            let client = CaClient::new(resolved.clone());
+            let resp = client.ask_studio(profile, &question).await?;
+
+            if let Some(template) = sanitize_template {
+                let json_val = serde_json::to_value(&resp)?;
+                let sanitize_result =
+                    crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val)
+                        .await?;
+                crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+                if sanitize_result.sanitized {
+                    return crate::output::render(&sanitize_result.content, format);
+                }
+            }
+
+            render_response(&resp, format)
         }
         _ => unreachable!("Non-ChatDataAgent source in run_chat_profile"),
     }

@@ -109,7 +109,22 @@ pub(crate) struct TextContent {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DataContent {
     pub generated_sql: Option<String>,
+    /// Looker responses return the query under `query.looker` instead of `generatedSql`.
+    pub query: Option<QueryContent>,
     pub result: Option<DataResult>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct QueryContent {
+    pub looker: Option<LookerQuery>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct LookerQuery {
+    /// The generated Looker query URL or description.
+    pub query_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -181,6 +196,16 @@ pub(crate) fn extract_response(
         if let Some(ref data) = sys.data {
             if data.generated_sql.is_some() {
                 sql = data.generated_sql.clone();
+            }
+            // Looker responses use query.looker.query_url instead of generatedSql
+            if sql.is_none() {
+                if let Some(ref q) = data.query {
+                    if let Some(ref looker) = q.looker {
+                        if let Some(ref url) = looker.query_url {
+                            sql = Some(url.clone());
+                        }
+                    }
+                }
             }
             if let Some(ref result) = data.result {
                 // The CA API returns results as an array of row objects in `data`
@@ -258,6 +283,7 @@ mod tests {
                     text: None,
                     data: Some(DataContent {
                         generated_sql: Some("SELECT agent, COUNT(*) FROM t GROUP BY 1".into()),
+                        query: None,
                         result: Some(DataResult {
                             data: Some(vec![{
                                 let mut map = serde_json::Map::new();

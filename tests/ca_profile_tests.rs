@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use bqx::ca::profiles::{self, ProfileFamily, SourceType};
+use bqx::ca::profiles::{self, parse_looker_explore, ProfileFamily, SourceType};
 
 #[test]
 fn load_bigquery_demo_profile() {
@@ -24,6 +24,12 @@ fn load_looker_sales_profile() {
     );
     assert_eq!(p.looker_explores.as_ref().unwrap().len(), 2);
     assert_eq!(p.source_type.family(), ProfileFamily::ChatDataAgent);
+
+    // Verify explore parsing
+    let explores = p.looker_explores.as_ref().unwrap();
+    let (model, explore) = parse_looker_explore(&explores[0]).unwrap();
+    assert_eq!(model, "sales_model");
+    assert_eq!(explore, "orders");
 }
 
 #[test]
@@ -136,6 +142,50 @@ fn profile_rejects_conflicting_agent_flag() {
         stderr.contains("--profile cannot be combined with --agent or --tables"),
         "Should reject --profile + --agent, got: {stderr}"
     );
+}
+
+#[test]
+fn looker_profile_does_not_return_unsupported() {
+    // Looker profiles should NOT fail with "not yet supported" (M2 implemented).
+    let output = std::process::Command::new("cargo")
+        .args([
+            "run",
+            "--quiet",
+            "--",
+            "ca",
+            "ask",
+            "--profile",
+            "deploy/ca/profiles/looker-sales.yaml",
+            "test question",
+        ])
+        .env("BQX_TOKEN", "fake-token")
+        .output()
+        .expect("failed to run bqx");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    // Must NOT fail with the old "not yet supported" message
+    assert!(
+        !stderr.contains("not yet supported"),
+        "Looker should be supported now, got: {stderr}"
+    );
+    // Must NOT fail with "unexpected argument"
+    assert!(
+        !stderr.contains("unexpected argument"),
+        "CLI should accept Looker profile, got: {stderr}"
+    );
+}
+
+#[test]
+fn looker_profile_rejects_invalid_explore_format() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("bad-explore.yaml");
+    std::fs::write(
+        &path,
+        "name: bad\nsource_type: looker\nproject: p\nlooker_instance_url: https://x.com\nlooker_explores:\n  - no_slash\n",
+    )
+    .unwrap();
+    let err = profiles::load_profile(&path).unwrap_err();
+    assert!(err.to_string().contains("invalid explore format"));
 }
 
 #[test]
