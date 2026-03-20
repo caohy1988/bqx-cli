@@ -84,10 +84,10 @@ fn invalid_profile_yaml_returns_error() {
 #[test]
 fn profile_missing_required_field_returns_error() {
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("missing-context.yaml");
+    let path = dir.path().join("missing-cluster.yaml");
     std::fs::write(&path, "name: bad\nsource_type: alloy_db\nproject: p\n").unwrap();
     let err = profiles::load_profile(&path).unwrap_err();
-    assert!(err.to_string().contains("context_set_id"));
+    assert!(err.to_string().contains("cluster_id"));
 }
 
 #[test]

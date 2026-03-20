@@ -185,18 +185,18 @@ impl CaProfile {
                 }
             }
             SourceType::AlloyDb => {
-                self.require_nonempty("context_set_id", &self.context_set_id)?;
+                self.reject_empty("context_set_id", &self.context_set_id)?;
                 self.require_nonempty("cluster_id", &self.cluster_id)?;
                 self.require_nonempty("instance_id", &self.instance_id)?;
                 self.require_nonempty("database_id", &self.database_id)?;
             }
             SourceType::Spanner => {
-                self.require_nonempty("context_set_id", &self.context_set_id)?;
+                self.reject_empty("context_set_id", &self.context_set_id)?;
                 self.require_nonempty("instance_id", &self.instance_id)?;
                 self.require_nonempty("database_id", &self.database_id)?;
             }
             SourceType::CloudSql => {
-                self.require_nonempty("context_set_id", &self.context_set_id)?;
+                self.reject_empty("context_set_id", &self.context_set_id)?;
                 self.require_nonempty("instance_id", &self.instance_id)?;
                 self.require_nonempty("database_id", &self.database_id)?;
                 self.require_nonempty("db_type", &self.db_type)?;
@@ -223,6 +223,21 @@ impl CaProfile {
                 field,
                 self.source_type
             );
+        }
+        Ok(())
+    }
+
+    /// Return an error if the field is Some but empty (None is allowed).
+    fn reject_empty(&self, field: &str, value: &Option<String>) -> Result<()> {
+        if let Some(v) = value {
+            if v.is_empty() {
+                bail!(
+                    "Profile '{}': {} must not be empty when provided for {} sources",
+                    self.name,
+                    field,
+                    self.source_type
+                );
+            }
         }
         Ok(())
     }
@@ -447,9 +462,10 @@ mod tests {
     }
 
     #[test]
-    fn alloydb_missing_context_set_fails() {
+    fn alloydb_optional_context_set_passes() {
+        // context_set_id is optional — None should pass validation
         let p = CaProfile {
-            name: "bad-alloy".into(),
+            name: "ok-alloy".into(),
             source_type: SourceType::AlloyDb,
             project: "my-project".into(),
             location: None,
@@ -466,8 +482,7 @@ mod tests {
             database_id: Some("mydb".into()),
             db_type: None,
         };
-        let err = p.validate().unwrap_err();
-        assert!(err.to_string().contains("context_set_id"));
+        p.validate().unwrap();
     }
 
     #[test]

@@ -555,19 +555,21 @@ impl CaClient {
 
     /// Build the datasourceReferences object for a database profile.
     fn build_querydata_datasource_ref(&self, profile: &CaProfile) -> Result<serde_json::Value> {
-        let context_set_id = profile.context_set_id.as_deref().unwrap_or("");
         let location = profile.location.as_deref().unwrap_or("us");
 
-        let agent_context = serde_json::json!({
-            "contextSetId": format!(
-                "projects/{}/locations/{}/contextSets/{}",
-                profile.project, location, context_set_id
-            )
+        // agentContextReference is optional — only include when context_set_id is provided
+        let agent_context = profile.context_set_id.as_deref().map(|ctx_id| {
+            serde_json::json!({
+                "contextSetId": format!(
+                    "projects/{}/locations/{}/contextSets/{}",
+                    profile.project, location, ctx_id
+                )
+            })
         });
 
         match profile.source_type {
-            SourceType::AlloyDb => Ok(serde_json::json!({
-                "alloydb": {
+            SourceType::AlloyDb => {
+                let mut inner = serde_json::json!({
                     "databaseReference": {
                         "projectId": profile.project,
                         "region": location,
@@ -575,38 +577,45 @@ impl CaClient {
                         "instanceId": profile.instance_id.as_deref().unwrap_or(""),
                         "databaseId": profile.database_id.as_deref().unwrap_or(""),
                     },
-                    "agentContextReference": agent_context,
+                });
+                if let Some(ctx) = &agent_context {
+                    inner["agentContextReference"] = ctx.clone();
                 }
-            })),
-            SourceType::Spanner => Ok(serde_json::json!({
-                "spannerReference": {
+                Ok(serde_json::json!({ "alloydb": inner }))
+            }
+            SourceType::Spanner => {
+                let mut inner = serde_json::json!({
                     "databaseReference": {
                         "engine": "GOOGLE_SQL",
                         "projectId": profile.project,
                         "instanceId": profile.instance_id.as_deref().unwrap_or(""),
                         "databaseId": profile.database_id.as_deref().unwrap_or(""),
                     },
-                    "agentContextReference": agent_context,
+                });
+                if let Some(ctx) = &agent_context {
+                    inner["agentContextReference"] = ctx.clone();
                 }
-            })),
+                Ok(serde_json::json!({ "spannerReference": inner }))
+            }
             SourceType::CloudSql => {
                 let engine = match profile.db_type.as_deref() {
                     Some("mysql") => "MYSQL",
                     Some("postgresql") => "POSTGRESQL",
                     _ => "POSTGRESQL",
                 };
-                Ok(serde_json::json!({
-                    "cloudSqlReference": {
-                        "databaseReference": {
-                            "engine": engine,
-                            "projectId": profile.project,
-                            "region": location,
-                            "instanceId": profile.instance_id.as_deref().unwrap_or(""),
-                            "databaseId": profile.database_id.as_deref().unwrap_or(""),
-                        },
-                        "agentContextReference": agent_context,
-                    }
-                }))
+                let mut inner = serde_json::json!({
+                    "databaseReference": {
+                        "engine": engine,
+                        "projectId": profile.project,
+                        "region": location,
+                        "instanceId": profile.instance_id.as_deref().unwrap_or(""),
+                        "databaseId": profile.database_id.as_deref().unwrap_or(""),
+                    },
+                });
+                if let Some(ctx) = &agent_context {
+                    inner["agentContextReference"] = ctx.clone();
+                }
+                Ok(serde_json::json!({ "cloudSqlReference": inner }))
             }
             _ => bail!("Source type {} does not use QueryData", profile.source_type),
         }
