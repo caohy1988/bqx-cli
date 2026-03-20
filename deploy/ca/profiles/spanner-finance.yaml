@@ -3,4 +3,5 @@ source_type: spanner
 project: my-project
 location: us-central1
 context_set_id: ctx-finance-spanner
-datasource_ref: projects/my-project/instances/finance/databases/ledger
+instance_id: finance
+database_id: ledger

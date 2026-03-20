@@ -3,4 +3,6 @@ source_type: alloy_db
 project: my-project
 location: us-central1
 context_set_id: ctx-ops-alloydb
-datasource_ref: projects/my-project/locations/us-central1/clusters/ops/instances/primary
+cluster_id: ops
+instance_id: primary
+database_id: opsdb

@@ -4,10 +4,11 @@ use async_trait::async_trait;
 use crate::auth::ResolvedAuth;
 
 use super::models::{
-    extract_response, AddVerifiedQueryResponse, CaChatMessage, CaQuestionRequest,
-    CaQuestionResponse, CreateAgentResponse, DataAgentSummary, ListAgentsResponse, TableRef,
+    convert_querydata_response, extract_response, AddVerifiedQueryResponse, CaChatMessage,
+    CaQuestionRequest, CaQuestionResponse, CreateAgentResponse, DataAgentSummary,
+    ListAgentsResponse, QueryDataApiResponse, TableRef,
 };
-use super::profiles::{parse_looker_explore, CaProfile};
+use super::profiles::{parse_looker_explore, CaProfile, SourceType};
 use super::verified_queries::VerifiedQuery;
 
 const CA_BASE_URL: &str = "https://geminidataanalytics.googleapis.com/v1beta";
@@ -503,6 +504,113 @@ impl CaClient {
 
         Ok(extract_response(&messages, question, None))
     }
+
+    /// Ask using a database profile (AlloyDB, Spanner, Cloud SQL) via the QueryData API.
+    pub async fn ask_querydata(
+        &self,
+        profile: &CaProfile,
+        question: &str,
+    ) -> Result<CaQuestionResponse> {
+        let location = profile.location.as_deref().unwrap_or("us");
+        let project = &profile.project;
+        let url = format!(
+            "{}/projects/{project}/locations/{location}:queryData",
+            self.base_url
+        );
+
+        let token = self.auth.token().await?;
+
+        let datasource_ref = self.build_querydata_datasource_ref(profile)?;
+
+        let body = serde_json::json!({
+            "prompt": question,
+            "context": {
+                "datasourceReferences": datasource_ref,
+            },
+            "generationOptions": {
+                "generateQueryResult": true,
+                "generateNaturalLanguageAnswer": true,
+                "generateExplanation": true,
+            }
+        });
+
+        let resp = self
+            .http
+            .post(&url)
+            .bearer_auth(&token)
+            .header("x-server-timeout", "300")
+            .json(&body)
+            .send()
+            .await?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            bail!("CA API error {status}: {body}");
+        }
+
+        let api_resp: QueryDataApiResponse = resp.json().await?;
+        Ok(convert_querydata_response(&api_resp, question))
+    }
+
+    /// Build the datasourceReferences object for a database profile.
+    fn build_querydata_datasource_ref(&self, profile: &CaProfile) -> Result<serde_json::Value> {
+        let context_set_id = profile.context_set_id.as_deref().unwrap_or("");
+        let location = profile.location.as_deref().unwrap_or("us");
+
+        let agent_context = serde_json::json!({
+            "contextSetId": format!(
+                "projects/{}/locations/{}/contextSets/{}",
+                profile.project, location, context_set_id
+            )
+        });
+
+        match profile.source_type {
+            SourceType::AlloyDb => Ok(serde_json::json!({
+                "alloydb": {
+                    "databaseReference": {
+                        "projectId": profile.project,
+                        "region": location,
+                        "clusterId": profile.cluster_id.as_deref().unwrap_or(""),
+                        "instanceId": profile.instance_id.as_deref().unwrap_or(""),
+                        "databaseId": profile.database_id.as_deref().unwrap_or(""),
+                    },
+                    "agentContextReference": agent_context,
+                }
+            })),
+            SourceType::Spanner => Ok(serde_json::json!({
+                "spannerReference": {
+                    "databaseReference": {
+                        "engine": "GOOGLE_SQL",
+                        "projectId": profile.project,
+                        "instanceId": profile.instance_id.as_deref().unwrap_or(""),
+                        "databaseId": profile.database_id.as_deref().unwrap_or(""),
+                    },
+                    "agentContextReference": agent_context,
+                }
+            })),
+            SourceType::CloudSql => {
+                let engine = match profile.db_type.as_deref() {
+                    Some("mysql") => "MYSQL",
+                    Some("postgresql") => "POSTGRESQL",
+                    _ => "POSTGRESQL",
+                };
+                Ok(serde_json::json!({
+                    "cloudSqlReference": {
+                        "databaseReference": {
+                            "engine": engine,
+                            "projectId": profile.project,
+                            "region": location,
+                            "instanceId": profile.instance_id.as_deref().unwrap_or(""),
+                            "databaseId": profile.database_id.as_deref().unwrap_or(""),
+                        },
+                        "agentContextReference": agent_context,
+                    }
+                }))
+            }
+            _ => bail!("Source type {} does not use QueryData", profile.source_type),
+        }
+    }
 }
 
 /// Parse the CA API streaming response.
@@ -870,9 +978,10 @@ mod tests {
             looker_client_secret: Some("my-client-secret".into()),
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         }
     }
 
@@ -890,9 +999,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: Some("ds-12345".into()),
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         }
     }
 
@@ -1022,5 +1132,128 @@ mod tests {
             resp.explanation.as_deref(),
             Some("The dashboard shows 5000 views.")
         );
+    }
+
+    fn alloydb_profile() -> CaProfile {
+        CaProfile {
+            name: "test-alloydb".into(),
+            source_type: super::super::profiles::SourceType::AlloyDb,
+            project: "test-project".into(),
+            location: Some("us-central1".into()),
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx-ops".into()),
+            cluster_id: Some("ops-cluster".into()),
+            instance_id: Some("primary".into()),
+            database_id: Some("opsdb".into()),
+            db_type: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_sends_alloydb_request() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!({
+            "generatedQuery": "SELECT error_type, COUNT(*) FROM errors GROUP BY 1",
+            "queryResult": {
+                "columns": [
+                    {"name": "error_type"},
+                    {"name": "count"}
+                ],
+                "rows": [
+                    {"values": [{"value": "timeout"}, {"value": "42"}]},
+                    {"values": [{"value": "auth_fail"}, {"value": "7"}]}
+                ],
+                "totalRowCount": "2"
+            },
+            "naturalLanguageAnswer": "There are 42 timeout errors and 7 auth failures.",
+            "intentExplanation": "Counting errors grouped by type."
+        });
+
+        Mock::given(method("POST"))
+            .and(path(
+                "/projects/test-project/locations/us-central1:queryData",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = alloydb_profile();
+        let resp = client
+            .ask_querydata(&profile, "top error categories")
+            .await
+            .unwrap();
+
+        assert_eq!(resp.question, "top error categories");
+        assert_eq!(
+            resp.sql.as_deref(),
+            Some("SELECT error_type, COUNT(*) FROM errors GROUP BY 1")
+        );
+        assert_eq!(resp.results.len(), 2);
+        assert_eq!(resp.results[0]["error_type"], "timeout");
+        assert_eq!(resp.results[0]["count"], "42");
+        assert_eq!(
+            resp.explanation.as_deref(),
+            Some("There are 42 timeout errors and 7 auth failures.")
+        );
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_handles_api_error() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/projects/test-project/locations/us-central1:queryData"))
+            .respond_with(ResponseTemplate::new(400).set_body_string(
+                r#"{"error":{"code":400,"message":"Invalid context_set_id","status":"INVALID_ARGUMENT"}}"#,
+            ))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = alloydb_profile();
+        let err = client.ask_querydata(&profile, "test").await.unwrap_err();
+        assert!(err.to_string().contains("400"));
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_handles_query_execution_error() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!({
+            "generatedQuery": "SELECT * FROM nonexistent",
+            "queryResult": {
+                "queryExecutionError": "Table 'nonexistent' does not exist"
+            }
+        });
+
+        Mock::given(method("POST"))
+            .and(path(
+                "/projects/test-project/locations/us-central1:queryData",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = alloydb_profile();
+        let resp = client.ask_querydata(&profile, "test").await.unwrap();
+
+        assert!(resp.results.is_empty());
+        assert!(resp
+            .explanation
+            .as_deref()
+            .unwrap()
+            .contains("does not exist"));
     }
 }

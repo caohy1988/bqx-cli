@@ -38,7 +38,9 @@ fn load_alloydb_ops_profile() {
     assert_eq!(p.name, "alloydb-ops");
     assert_eq!(p.source_type, SourceType::AlloyDb);
     assert_eq!(p.context_set_id.as_deref(), Some("ctx-ops-alloydb"));
-    assert!(p.datasource_ref.is_some());
+    assert_eq!(p.cluster_id.as_deref(), Some("ops"));
+    assert_eq!(p.instance_id.as_deref(), Some("primary"));
+    assert_eq!(p.database_id.as_deref(), Some("opsdb"));
     assert_eq!(p.source_type.family(), ProfileFamily::QueryData);
 }
 
@@ -48,7 +50,8 @@ fn load_spanner_finance_profile() {
     assert_eq!(p.name, "spanner-finance");
     assert_eq!(p.source_type, SourceType::Spanner);
     assert_eq!(p.context_set_id.as_deref(), Some("ctx-finance-spanner"));
-    assert!(p.datasource_ref.is_some());
+    assert_eq!(p.instance_id.as_deref(), Some("finance"));
+    assert_eq!(p.database_id.as_deref(), Some("ledger"));
     assert_eq!(p.source_type.family(), ProfileFamily::QueryData);
 }
 
