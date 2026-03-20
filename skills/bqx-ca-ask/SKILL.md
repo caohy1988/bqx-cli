@@ -1,15 +1,16 @@
 ---
 name: bqx-ca-ask
-description: Ask natural language questions over BigQuery data using Conversational Analytics. Translates plain English to SQL, runs it, and returns structured results.
+description: Ask natural language questions over Data Cloud sources (BigQuery, Looker, AlloyDB, Spanner, Cloud SQL) using Conversational Analytics. Translates plain English to SQL, runs it, and returns structured results.
 ---
 
 ## When to use this skill
 
 Use when the user wants to:
-- Ask a question about their BigQuery data in natural language
+- Ask a question about their data in natural language
 - Get SQL generated from a plain English question
-- Query through a pre-configured data agent
-- Run ad-hoc natural language queries against specific tables
+- Query through a pre-configured data agent (BigQuery)
+- Run ad-hoc natural language queries against specific tables (BigQuery)
+- Query Looker, AlloyDB, Spanner, or Cloud SQL via a profile
 
 ## Prerequisites
 
@@ -20,7 +21,11 @@ See **bqx-shared** for authentication and global flags.
 ## Usage
 
 ```bash
+# BigQuery (flags)
 bqx ca ask "<question>" [--agent=<AGENT>] [--tables=<TABLE_REFS>]
+
+# Any source (profile)
+bqx ca ask --profile <PROFILE> "<question>"
 ```
 
 ## Flags
@@ -28,41 +33,59 @@ bqx ca ask "<question>" [--agent=<AGENT>] [--tables=<TABLE_REFS>]
 | Flag | Required | Default | Description |
 |------|----------|---------|-------------|
 | `<question>` | Yes | — | Natural language question (positional argument) |
-| `--agent` | No | — | Data agent to route the question through |
-| `--tables` | No | — | Comma-separated table references for ad-hoc context |
+| `--agent` | No | — | Data agent to route the question through (BigQuery) |
+| `--tables` | No | — | Comma-separated table references for ad-hoc context (BigQuery) |
+| `--profile` | No | — | Path to a source profile YAML file |
+| `--format` | No | `json` | Output format: `json`, `text`, or `table` |
 
 ## Examples
 
-### With a data agent
+### BigQuery with a data agent
 
 ```bash
-# Ask through a pre-configured agent
 bqx ca ask "What were the top errors for support_bot yesterday?" \
   --agent=agent-analytics
-
-# Chain with other commands
-bqx ca ask "Which agent had the worst performance today?" \
-  --agent=agent-analytics \
-  --format json \
-  | jq -r '.results[0].agent' \
-  | xargs -I{} bqx analytics evaluate --agent-id={} --evaluator=latency --threshold=5000 --last=24h
 ```
 
-### With inline tables (no agent)
+### BigQuery with inline tables
 
 ```bash
 bqx ca ask "How many sessions were there yesterday?" \
   --tables=myproject.analytics.agent_events
 ```
 
+### Looker via profile
+
+```bash
+bqx ca ask --profile sales-looker.yaml "top selling products last month"
+```
+
+### Spanner via profile
+
+```bash
+bqx ca ask --profile finance-spanner.yaml "total revenue by region"
+```
+
+### AlloyDB via profile
+
+```bash
+bqx ca ask --profile ops-alloydb.yaml "show all tables in the database"
+```
+
+### Cloud SQL via profile
+
+```bash
+bqx ca ask --profile app-cloudsql.yaml "active users today"
+```
+
 ### Output formats
 
 ```bash
-# Structured JSON (default) — best for piping
-bqx ca ask "error rate by agent" --agent=agent-analytics --format json
+# JSON (default) — best for piping
+bqx ca ask --profile finance-spanner.yaml --format json "top customers" | jq '.results'
 
 # Human-readable text
-bqx ca ask "error rate by agent" --agent=agent-analytics --format text
+bqx ca ask --profile ops-alloydb.yaml --format text "largest tables"
 ```
 
 ## Response structure
@@ -72,12 +95,15 @@ The JSON response includes:
 - `sql` — the generated SQL query
 - `results` — query result rows
 - `explanation` — natural language explanation of the results
+- `agent` — the agent used (BigQuery only, when applicable)
 
 ## Decision rules
 
-- Use `--agent` when a data agent has been set up with context and verified queries
-- Use `--tables` for one-off exploratory queries without agent setup
-- Never combine `--agent` and `--tables` — they are mutually exclusive
+- Use `--agent` when a BigQuery data agent has been set up with verified queries
+- Use `--tables` for one-off BigQuery queries without agent setup
+- Use `--profile` for Looker, AlloyDB, Spanner, Cloud SQL, or BigQuery profiles
+- Never combine `--profile` with `--agent` or `--tables`
+- Never combine `--agent` and `--tables`
 - Pipe `--format json` output to `jq` for scripted analysis
 - Use `--format text` for interactive exploration
 
@@ -86,4 +112,5 @@ The JSON response includes:
 - Questions must not be empty
 - Agent names are validated (alphanumeric, hyphens, underscores, dots)
 - CA API must be available in your project's region
+- `--profile` cannot be combined with `--agent` or `--tables`
 - This is a **read-only** command — safe to run without confirmation
