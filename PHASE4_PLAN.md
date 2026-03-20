@@ -281,21 +281,32 @@ for each source until the model proves stable:
 ```rust
 struct CaProfile {
     name: String,
-    source_type: SourceType,        // BigQuery | Looker | AlloyDb | Spanner | ...
+    source_type: SourceType,        // BigQuery | Looker | LookerStudio | AlloyDb | Spanner | CloudSql
     project: String,
     location: Option<String>,
-    // BigQuery / Looker / Studio (Chat/DataAgent)
+    // BigQuery (Chat/DataAgent)
     agent: Option<String>,
     tables: Option<Vec<String>>,
+    // Looker (Chat/DataAgent)
     looker_instance_url: Option<String>,
-    looker_explores: Option<Vec<String>>,
-    // Database (QueryData)
+    looker_explores: Option<Vec<String>>,   // max 5 per official docs
+    // Looker Studio (Chat/DataAgent)
+    studio_datasource_id: Option<String>,
+    // Database sources: AlloyDB, Spanner, Cloud SQL (QueryData)
     context_set_id: Option<String>,
     datasource_ref: Option<String>,
+    // Cloud SQL-specific
+    db_type: Option<String>,                // "mysql" | "postgresql"
+    connection_name: Option<String>,
 }
 ```
 
-Split into specialized structs only when the single struct becomes unwieldy.
+The struct intentionally has optional fields for all six source types.
+Validation at profile-load time ensures that source-specific required
+fields are present (e.g., `looker_instance_url` is required when
+`source_type == Looker`, `context_set_id` is required for database
+sources). Split into specialized structs only when the single struct
+becomes unwieldy.
 
 ### 2. Command Surface
 
@@ -309,8 +320,11 @@ Recommended Phase 4 command surface:
     - BigQuery, Looker, Looker Studio → `Chat` / `DataAgent` API
     - AlloyDB, Spanner, Cloud SQL → `QueryData` API
   - agents and users never need to know the API split — the profile handles it
-- `bqx ca create-agent`
-  - for BigQuery, Looker, Looker Studio only (Chat/DataAgent sources)
+- `bqx ca create-agent --profile <name>`
+  - accepts a profile to set the source context
+  - validates source type: only Chat/DataAgent sources (BigQuery, Looker,
+    Looker Studio) support agent creation
+  - returns a clear error if the profile points to a database source
 - `bqx ca list-agents`
 - `bqx ca add-verified-query`
 - `bqx ca profiles add`
@@ -324,8 +338,6 @@ Recommended rule:
 - model the `Chat`/`DataAgent` vs `QueryData` split honestly **in code**
   (`ca/bigquery.rs` vs `ca/databases/query_data.rs`), but do not expose it as
   two separate commands
-- if `ca create-agent` is called with a database profile, return a clear error
-  explaining that DataAgent is not supported for database sources
 
 ### 3. Profile Model
 
@@ -493,10 +505,10 @@ expand the skill story from BigQuery-only to Data Cloud source workflows.
 Tasks:
 
 - add CA source-specific skills:
-  - `bqx-ca-looker`
-  - `bqx-ca-query-data`
-  - `bqx-ca-alloydb`
-  - `bqx-ca-spanner`
+  - `bqx-ca-looker` — Looker explore profile setup and CA usage
+  - `bqx-ca-database` — database source profiles (AlloyDB, Spanner, Cloud SQL)
+  - `bqx-ca-alloydb` — AlloyDB-specific context and troubleshooting patterns
+  - `bqx-ca-spanner` — Spanner-specific query patterns
 - update routing skills to select the right `--profile` for the user's data
   source
 - add recipes for:
