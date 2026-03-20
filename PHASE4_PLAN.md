@@ -1,53 +1,125 @@
-# Phase 4 Plan: v0.3 to v0.4 (Proposed)
+# Phase 4 Plan: bqx to Agentic Data Cloud CLI (Proposed)
 
 ## Goal
 
-Move `bqx` from the current Phase 3 state to a proposed Phase 4 focused on
-safe operations, broader distribution, and higher-confidence automation.
+Repurpose `bqx` from a BigQuery-first agent CLI into a broader **agentic Data
+Cloud CLI** for Google Cloud.
 
-Unlike [PHASE1_PLAN.md](/Users/haiyuancao/bqx-cli/PHASE1_PLAN.md),
-[PHASE2_PLAN.md](/Users/haiyuancao/bqx-cli/PHASE2_PLAN.md), and
-[PHASE3_PLAN.md](/Users/haiyuancao/bqx-cli/PHASE3_PLAN.md), this plan is **not**
-derived from a committed roadmap section in
-[README.md](/Users/haiyuancao/bqx-cli/README.md). The README currently ends at
-Phase 3, so this document is a proposed next-phase plan based on:
+This is a proposed Phase 4 direction. The committed roadmap in
+[README.md](/Users/haiyuancao/bqx-cli/README.md) currently ends at Phase 3, so
+this document is a forward-looking plan based on:
 
-- the current repo state after Phase 3
-- the existing architecture boundaries
-- the most natural next steps for product value and release impact
+- the current Phase 3 repo state
+- the official Conversational Analytics API support matrix
+- the Data Cloud product direction across BigQuery, Looker, AlloyDB, Spanner,
+  and related database surfaces
 
-Recommended Phase 4 theme:
+The main reason to change direction is that Conversational Analytics is no
+longer just a BigQuery story.
 
-- safe BigQuery write and mutation workflows
-- broader installation surface beyond npm-only
-- live CA validation in CI
-- a lightweight watch mode for operational dashboards
-- an initial migration/bootstrap workflow for common analytics setups
+As of March 19, 2026, official Google Cloud documentation says the
+Conversational Analytics API supports:
+
+- BigQuery
+- Looker
+- Looker Studio
+- AlloyDB for PostgreSQL
+- GoogleSQL for Spanner
+- Cloud SQL
+- Cloud SQL for PostgreSQL
+
+But the support model is split:
+
+- `Chat` and `DataAgent` are for BigQuery, Looker, and Looker Studio
+- `QueryData` is for database sources such as AlloyDB, Spanner, and Cloud SQL
+
+That means the current Phase 3 framing - "BigQuery CLI with CA support" - is no
+longer enough. Phase 4 should turn `bqx` into the CLI layer for **agent access
+to Google Cloud Data Cloud sources**, starting with CA and source-aware
+workflows.
 
 Versioning note:
 the repo is currently at `0.3.0` in
-[Cargo.toml](/Users/haiyuancao/bqx-cli/Cargo.toml). This proposal treats
-Phase 4 as the path to `0.4.0`.
+[Cargo.toml](/Users/haiyuancao/bqx-cli/Cargo.toml). This proposal treats Phase
+4 as the path to `0.4.0`.
 
-## Proposed Outcome
+## Recommended Phase 4 Positioning
 
-By the end of the proposed Phase 4, `bqx` should be able to:
+Short version:
 
-- safely create, update, and delete a small curated set of BigQuery resources
-- expose explicit mutation safety rails for both humans and agents
-- install through Homebrew in addition to npm
-- run a scheduled live CA smoke check in CI
-- support a basic `watch` mode for recurring analytics views
-- bootstrap or evolve a standard analytics dataset layout through an initial
-  migration workflow
+- keep `bqx` as the implementation vehicle and binary for continuity
+- reposition it as an **agentic Data Cloud CLI**
+- broaden CA support from BigQuery-only to multi-source CA across Data Cloud
+- defer broad admin/CRUD ambitions for AlloyDB and Spanner until after the CA
+  and source-model story is stable
 
-This phase should **not** attempt full BigQuery parity. The right target is a
-small, high-signal operational surface that complements the current read,
-analytics, and CA workflows.
+This is the most pragmatic path because the current repo already has:
+
+- working CLI infrastructure
+- auth, packaging, skills, completions, and release automation
+- a CA client and command surface
+- strong output and test patterns
+
+The right Phase 4 move is to generalize the CA and workflow layer first, not to
+rebuild the tool from scratch.
+
+## Research Summary
+
+Official Google Cloud documentation supports the following planning assumptions:
+
+### 1. Conversational Analytics API is already multi-source
+
+The official overview says the API answers questions about structured data in
+BigQuery, Looker, and Looker Studio, and also supports querying AlloyDB,
+GoogleSQL for Spanner, Cloud SQL, and Cloud SQL for PostgreSQL through the new
+`QueryData` method.
+
+### 2. The API has two distinct source models
+
+Known limitations explicitly state:
+
+- `QueryData` does **not** support BigQuery or Looker data sources
+- `Chat` and `DataAgent` do **not** support database data sources such as
+  AlloyDB, Spanner, and Cloud SQL
+
+This is the most important product and architecture constraint for Phase 4.
+There is not one universal CA command implementation today. We need a CLI
+surface that normalizes two official API patterns.
+
+### 3. Looker support is real, but has source-specific constraints
+
+Official docs require:
+
+- Looker instance URL
+- model + explore references
+- Looker-specific permissions
+- a maximum of five explores in context
+
+So Looker cannot be treated as "BigQuery with another flag." It needs a proper
+source profile and validation path.
+
+### 4. Database sources need authored context, not just connection info
+
+For AlloyDB, Spanner, Cloud SQL, and Cloud SQL for PostgreSQL, the official
+database authored-context docs say:
+
+- database CA flows go through `QueryData`
+- context is referenced through database-specific datasource references
+- database sources require an `agentContextReference` / `context_set_id`
+
+This means Phase 4 cannot just reuse `ca create-agent` unchanged for database
+sources. Database source support needs its own profile/context model.
+
+### 5. Data Cloud is the right umbrella
+
+The Google Cloud Data Cloud page positions BigQuery, Looker, and database
+products such as AlloyDB within one broader data-to-AI platform story. That
+makes a broader "agentic Data Cloud CLI" story more aligned than a
+BigQuery-only framing once multi-source CA becomes the center of the product.
 
 ## Baseline (post-Phase 3)
 
-Phase 3 established a complete observability and CA baseline:
+Phase 3 established the current starting point:
 
 - static command tree for:
   - `jobs query`
@@ -56,13 +128,13 @@ Phase 3 established a complete observability and CA baseline:
   - `ca ask|create-agent|list-agents|add-verified-query`
   - `generate-skills`
   - `completions`
-- dynamic read-only BigQuery API commands generated from Discovery:
+- dynamic BigQuery API commands generated from Discovery:
   - `datasets list|get`
   - `tables list|get`
   - `routines list|get`
   - `models list|get`
 - JSON-first output plus `table` and `text`
-- shared auth, config, sanitize, output, and BigQuery client layers under
+- shared auth, config, sanitize, output, and client layers under
   [src/](/Users/haiyuancao/bqx-cli/src)
 - 26 checked-in skills under [skills/](/Users/haiyuancao/bqx-cli/skills)
 - Gemini extension manifest and release automation
@@ -71,572 +143,611 @@ Phase 3 established a complete observability and CA baseline:
 - live e2e validation docs in
   [docs/e2e-validation.md](/Users/haiyuancao/bqx-cli/docs/e2e-validation.md)
 
-What the current repo still does **not** provide:
+What the current repo does **not** provide:
 
-- safe write or delete coverage for BigQuery resources through the dynamic API
-- an explicit mutation policy layer
-- Homebrew distribution
-- automated live CA validation in CI
-- a first-class `watch` command for recurring analytics refresh
-- migration/bootstrap commands for analytics schema and view setup
+- no Looker or Looker Studio CA support
+- no AlloyDB CA support
+- no Spanner CA support
+- no Cloud SQL CA support
+- no unified "Data Cloud source profile" model
+- no source-aware CA routing that understands `Chat` versus `QueryData`
+- no non-BigQuery product story in the skill layer
+- no naming or docs framing for `bqx` as a broader Data Cloud CLI
 
 ## Scope
 
 In scope:
 
-- a curated write/mutation surface for BigQuery resources
-- mutation-specific safety UX and policy enforcement
-- Homebrew distribution and release automation
-- scheduled or manually triggered live CA e2e workflow in CI
-- a narrow watch mode for existing analytics commands
-- an initial migration/bootstrap workflow for common agent analytics resources
-- docs, examples, and release validation for the Phase 4 surface
+- broaden CA support from BigQuery-only to multi-source Data Cloud support
+- support the official CA source classes:
+  - BigQuery
+  - Looker
+  - Looker Studio
+  - AlloyDB
+  - Spanner
+  - Cloud SQL / Cloud SQL for PostgreSQL
+- introduce a source-profile model for CA requests
+- keep `bqx` as the binary while broadening the product framing
+- add the source-aware command surface, skills, docs, and validation needed to
+  make the CLI feel intentionally multi-source
 
 Out of scope:
 
-- full CRUD coverage for every Discovery method
-- arbitrary DDL orchestration for all BigQuery resource types
-- replacing the current static analytics or CA command families
-- long-running daemon infrastructure
-- a general-purpose migration engine for every possible user schema
-- additional conversational features beyond the existing CA flows
+- becoming the full admin CLI for AlloyDB, Spanner, or Looker
+- replacing `gcloud`, `bq`, or product-native CLIs for generic CRUD
+- broad dynamic discovery across every Google Cloud Data product in Phase 4
+- full write/mutation coverage for non-BigQuery products
+- broad Homebrew/watch/migrate work from the previous Phase 4 draft
+
+The previous proposed Phase 4 items such as mutation safety, watch mode, and
+Homebrew are still valid backlog ideas, but they are no longer the top Phase 4
+priority if the product direction becomes "agentic Data Cloud CLI."
 
 ## Architecture Direction
 
-Keep the existing split:
+Keep the current split:
 
-- dynamic resource-oriented BigQuery API commands remain the right place for
-  generic BigQuery resource operations
-- analytics and CA commands remain hand-written static commands
-- mutation support should extend the Phase 2 dynamic system with policy and
-  request-body support, not bypass it
-- watch and migrate should remain static command domains because they encode
-  product workflows, not raw API method exposure
+- BigQuery dynamic API commands stay in the Phase 2 system
+- analytics commands stay hand-written and BigQuery-specific for now; these
+  prototype the workflow patterns that will migrate to Skills once agent ops
+  APIs land (see the one-pager Skills-over-APIs architecture)
+- CA becomes a **source-aware multi-provider layer**
+
+Recommended implementation rule:
+
+- do not try to hide the official API split internally
+- normalize it at the CLI boundary, but model it honestly in the code
+- treat BigQuery/Looker/Looker Studio as one CA family (`chat` / `dataAgent`)
+- treat AlloyDB/Spanner/Cloud SQL as a second CA family (`queryData`)
 
 Target modules:
 
 ```text
 src/
-├── bigquery/
+├── ca/
+│   ├── mod.rs
 │   ├── client.rs
-│   ├── discovery.rs
-│   ├── dynamic/
-│   │   ├── mod.rs
-│   │   ├── model.rs
-│   │   ├── clap_tree.rs
-│   │   ├── request_builder.rs
-│   │   ├── executor.rs
-│   │   ├── body_builder.rs
-│   │   └── policy.rs
+│   ├── models.rs
+│   ├── profiles.rs
+│   ├── provider.rs
+│   ├── bigquery.rs
+│   ├── looker.rs
+│   ├── studio.rs
+│   └── databases/
+│       ├── mod.rs
+│       ├── alloydb.rs
+│       ├── spanner.rs
+│       ├── cloudsql.rs
+│       └── query_data.rs
 ├── commands/
 │   ├── analytics/
 │   ├── ca/
-│   ├── jobs_query.rs
+│   │   ├── ask.rs              # unified entry point; dispatches by profile source type
+│   │   ├── create_agent.rs
+│   │   ├── list_agents.rs
+│   │   ├── add_verified_query.rs
+│   │   └── profiles.rs
 │   ├── generate_skills.rs
-│   ├── watch.rs
-│   └── migrate/
-│       ├── mod.rs
-│       ├── init.rs
-│       ├── plan.rs
-│       └── apply.rs
+│   └── jobs_query.rs
 ├── cli.rs
 ├── config.rs
 ├── output.rs
 └── main.rs
-brew/
-└── bqx.rb                     # generated or checked-in formula, depending on release model
-docs/
-├── e2e-validation.md
-├── homebrew.md
-└── migrations.md
+deploy/
+└── ca/
+    ├── verified_queries.yaml
+    └── profiles/
+        ├── bigquery/
+        ├── looker/
+        └── databases/
 tests/
-├── dynamic_mutation_tests.rs
-├── watch_tests.rs
-├── migration_tests.rs
-└── ca_live_docs_checks.rs     # doc/example validation, not live API CI
+├── ca_tests.rs
+├── ca_profile_tests.rs
+├── ca_looker_tests.rs
+├── ca_database_tests.rs
+├── fixtures/
+│   └── ca/
+│       ├── bigquery/
+│       ├── looker/
+│       ├── alloydb/
+│       └── spanner/
+└── snapshots/
 ```
-
-Recommended implementation rule:
-
-- Phase 4 should extend the current architecture, not introduce a fourth
-  competing command-generation path
-- every mutating path must have a non-executing preview mode
-- every mutation must validate locally before auth and network
-- release and CI automation should remain deterministic even if live CA tests
-  are flaky or preview-limited
 
 ## Core Design
 
-### 1. Mutation Safety Model
+### 1. Source Model
 
-Phase 4 should begin by making the dynamic command layer safe for a curated set
-of write operations.
+Phase 4 should introduce an explicit CA source model.
 
-Recommended command behavior for mutating dynamic commands:
+Recommended source classes:
 
-- `--dry-run`: print the exact HTTP method, URL, query params, and request body
-  without sending the request
-- `--yes`: skip confirmation prompt in interactive contexts
-- non-TTY mutation runs without `--yes` should fail with a clear error rather
-  than implicitly proceeding
-- JSON error envelope remains `{"error":"..."}`
+- `BigQuery`
+- `Looker`
+- `LookerStudio`
+- `AlloyDb`
+- `Spanner`
+- `CloudSql`
 
-Recommended policy metadata on generated commands:
+Recommended internal split:
 
-- `read`
-- `write`
-- `delete`
-- `destructive`
+- `ChatSource`: BigQuery, Looker, Looker Studio
+- `QueryDataSource`: AlloyDB, Spanner, Cloud SQL
 
-Suggested internal fields:
+Start with a single `CaProfile` struct that has a `source_type` discriminator
+and optional source-specific fields. Do not build separate profile structs
+for each source until the model proves stable:
 
-- `GeneratedCommand::safety_class`
-- `GeneratedCommand::supports_body`
-- `GeneratedCommand::requires_confirmation`
+```rust
+struct CaProfile {
+    name: String,
+    source_type: SourceType,        // BigQuery | Looker | LookerStudio | AlloyDb | Spanner | CloudSql
+    project: String,
+    location: Option<String>,
+    // BigQuery (Chat/DataAgent)
+    agent: Option<String>,
+    tables: Option<Vec<String>>,
+    // Looker (Chat/DataAgent)
+    looker_instance_url: Option<String>,
+    looker_explores: Option<Vec<String>>,   // max 5 per official docs
+    // Looker Studio (Chat/DataAgent)
+    studio_datasource_id: Option<String>,
+    // Database sources: AlloyDB, Spanner, Cloud SQL (QueryData)
+    context_set_id: Option<String>,
+    datasource_ref: Option<String>,
+    // Cloud SQL-specific
+    db_type: Option<String>,                // "mysql" | "postgresql"
+    connection_name: Option<String>,
+}
+```
 
-### 2. Curated Mutation Surface
+The struct intentionally has optional fields for all six source types.
+Validation at profile-load time ensures that source-specific required
+fields are present (e.g., `looker_instance_url` is required when
+`source_type == Looker`, `context_set_id` is required for database
+sources). Split into specialized structs only when the single struct
+becomes unwieldy.
 
-Do not broaden Discovery coverage blindly. Start with a short allowlist that
-maps to real operational tasks:
+### 2. Command Surface
 
-- `datasets insert`
-- `datasets delete`
-- `tables delete`
-- `tables patch` for low-risk metadata updates
-- `jobs cancel`
+The current `ca` commands should expand carefully instead of being replaced.
 
-Optional second wave:
+Recommended Phase 4 command surface:
 
-- `routines delete`
-- `models delete`
-- `tables insert` for simple logical views only
+- `bqx ca ask --profile <name> "<question>"`
+  - unified entry point for all CA sources
+  - the CLI reads the source type from the profile and routes internally:
+    - BigQuery, Looker, Looker Studio → `Chat` / `DataAgent` API
+    - AlloyDB, Spanner, Cloud SQL → `QueryData` API
+  - agents and users never need to know the API split — the profile handles it
+- `bqx ca create-agent --profile <name>`
+  - accepts a profile to set the source context
+  - validates source type: only Chat/DataAgent sources (BigQuery, Looker,
+    Looker Studio) support agent creation
+  - returns a clear error if the profile points to a database source
+- `bqx ca list-agents`
+- `bqx ca add-verified-query`
+- `bqx ca profiles add`
+- `bqx ca profiles list`
+- `bqx ca profiles get`
 
 Recommended rule:
 
-- Phase 4 should support only those write methods for which the CLI can expose
-  a clear, validated, minimally surprising contract
+- present **one command** (`ca ask`) to users and agents — the profile
+  determines which API family is called
+- model the `Chat`/`DataAgent` vs `QueryData` split honestly **in code**
+  (`ca/bigquery.rs` vs `ca/databases/query_data.rs`), but do not expose it as
+  two separate commands
 
-### 3. Request Body Strategy
+### 3. Profile Model
 
-Phase 2 only needed path and query params. Phase 4 mutations require request
-body support.
+Profiles are the key Phase 4 abstraction.
 
-Recommended design:
+BigQuery today mostly gets by with flags like `--agent` and `--tables`. That is
+not enough for Looker or database sources.
 
-- keep generated flags scalar and explicit for the first mutation wave
-- avoid accepting raw JSON blobs as the primary UX for common operations
-- use hand-written body builders for the initial write allowlist where the body
-  shape would otherwise become confusing
+Recommended profile types:
 
-Examples:
+- BigQuery agent profile
+- Looker explore profile
+- Looker Studio datasource profile
+- AlloyDB database profile
+- Spanner database profile
+- Cloud SQL database profile
 
-- `datasets insert --dataset-id analytics --location US`
-- `tables patch --table-id agent_events --description "..." --expiration-ms 86400000`
-- `jobs cancel --job-id ... --location us`
+Each profile should capture:
 
-This keeps mutations understandable and safer than passing opaque payloads.
+- source type
+- project / billing project
+- location if applicable
+- source-specific identifiers
+- auth mode or required credential hints
+- authored context references
+- default output mode or safe defaults where useful
 
-### 4. Watch Mode
+Recommended initial file format:
 
-The repo already has strong `text` and `table` renderers. Phase 4 can reuse
-those for a lightweight refresh loop rather than inventing a dashboard stack.
+- checked-in YAML or JSON under `deploy/ca/profiles/`
+- optional local user profile directory later
 
-Recommended initial command surface:
+### 4. BigQuery / Looker / Looker Studio CA Family
 
-- `bqx watch insights --last=1h --every=60s`
-- `bqx watch evaluate --evaluator latency --threshold 5000 --last=1h`
-- `bqx watch list-traces --last=15m --limit=20`
+This family uses `Chat` and `DataAgent`.
 
-Recommended behavior:
+Phase 4 should support:
 
-- clear and redraw for `text` and `table`
-- disable `watch` for `json`
-- support `--iterations` for CI/demo determinism
+- BigQuery inline tables and agents
+- Looker explores
+- Looker Studio datasources
 
-### 5. Migration Workflow
+Important constraints from official docs:
 
-The migration story should stay narrow and opinionated at first.
+- Looker requires instance URL plus model/explore references
+- Looker has additional permissions requirements
+- Looker supports up to five explores in context
+- Looker Studio is a distinct datasource type from Looker
 
-Recommended initial command surface:
+Recommended Phase 4 outcome:
 
-- `bqx migrate init`
-- `bqx migrate plan`
-- `bqx migrate apply`
+- a user can create or reference a source profile for Looker or Studio
+- `bqx ca ask --profile sales-looker "..."` works
+- response rendering remains stable across these source types
 
-Recommended first use cases:
+### 5. Database CA Family
 
-- create or update the standard `agent_events` dataset/table contract
-- create standard analytics views
-- create or validate `golden_questions` support tables
+This family uses `QueryData`, not `Chat`.
 
-Recommended state model:
+Phase 4 should support:
 
-- file-backed migration specs in a checked-in directory such as `migrations/`
-- deterministic plan output before apply
-- no automatic destructive schema rewrites in the initial version
+- AlloyDB
+- Spanner
+- Cloud SQL / Cloud SQL for PostgreSQL
 
-### 6. Homebrew Distribution
+Important constraints from official docs:
 
-M7/M8 from Phase 1 made npm the primary install path. Phase 4 should add one
-more mainstream install surface without exploding packaging complexity.
+- database sources require datasource references inside `QueryData`
+- authored context is referenced through `context_set_id`
+- database source support is preview and source-specific
+- building data agents and rendering visualizations are not supported for
+  database sources in the same way as for chat/data-agent sources
 
-Recommended approach:
+Recommended Phase 4 outcome:
 
-- publish GitHub Release binaries as the source of truth
-- generate or maintain a Homebrew formula that installs the released binary
-- keep Homebrew as install-only; do not duplicate release build logic there
+- `bqx ca ask --profile ops-alloydb "top error categories last 24h"`
+- `bqx ca ask --profile finance-spanner "daily failed payments by region"`
+- stable JSON shape that includes generated SQL, result rows, and reasoning if
+  returned by the API
 
-Recommended non-goal:
+### 6. Branding and Product Framing
 
-- skip apt/yum in Phase 4 unless Homebrew is already stable and cheap
+The repo can stay on the `bqx` binary in Phase 4.
 
-### 7. Live CA Validation in CI
+Recommended framing:
 
-The repo already documents live CA validation. Phase 4 should automate a small
-slice of it.
+- short term: "`bqx` is evolving into an agentic Data Cloud CLI"
+- medium term: validate whether the broader Data Cloud scope warrants a rename
+  or alias
 
-Recommended workflow:
-
-- scheduled job using Workload Identity Federation
-- dedicated test project, dataset, and CA agent
-- run:
-  - `bqx ca list-agents`
-  - `bqx ca ask ...`
-  - optionally `bqx ca add-verified-query` against a disposable agent
-
-Recommended reliability rule:
-
-- live CA checks should start as non-blocking scheduled or manually triggered
-  workflows, not required PR gates
+Do not front-load a rename. Validate the broader source model first.
 
 ## Proposed Milestones
 
-### Milestone 1: Mutation Foundation
+### Milestone 1: Multi-Source CA Foundation
 
 Objective:
-extend the dynamic API layer to support a safe curated set of mutation methods.
+introduce the source model, provider abstraction, and profile system.
 
 Tasks:
 
-- add safety metadata to generated commands in
-  [src/bigquery/dynamic/model.rs](/Users/haiyuancao/bqx-cli/src/bigquery/dynamic/model.rs)
-- add request-body support in a new
-  [src/bigquery/dynamic/body_builder.rs](/Users/haiyuancao/bqx-cli/src/bigquery/dynamic/body_builder.rs)
-- add mutation policy checks in
-  [src/bigquery/dynamic/policy.rs](/Users/haiyuancao/bqx-cli/src/bigquery/dynamic/policy.rs)
-- extend dynamic clap generation for:
-  - `--dry-run`
-  - `--yes`
-  - explicit mutation flags per allowlisted method
-- keep validation-before-auth for all mutation inputs
+- add source/profile types under
+  [src/ca/](/Users/haiyuancao/bqx-cli/src/ca)
+- split the CA client into chat/data-agent and query-data families
+- add source-aware validation before auth/network
+- add profile loading and profile schema tests
+- keep current BigQuery CA behavior working unchanged
 
 Done when:
 
-- at least 3 write/delete commands work end to end
-- all mutating commands support `--dry-run`
-- destructive commands do not proceed in TTY mode without explicit confirmation
-- destructive commands fail in non-TTY mode without `--yes`
+- the codebase has an explicit source model
+- BigQuery CA still works
+- source profiles can be parsed and validated for at least BigQuery, Looker,
+  AlloyDB, and Spanner
 
-### Milestone 2: First-Class Mutation Commands
+### Milestone 2: Looker + Looker Studio CA
 
 Objective:
-ship a useful operational write surface, not just mutation plumbing.
-
-Recommended first command set:
-
-- `datasets insert`
-- `datasets delete`
-- `tables delete`
-- `tables patch`
-- `jobs cancel`
+add non-BigQuery analytic source support through the `Chat`/`DataAgent` path.
 
 Tasks:
 
-- add allowlist coverage and tests per method
-- add explicit request-body builders where needed
-- add `json`, `table`, and `text` output rules for mutation results
-- add docs and examples for each new operation
+- implement Looker explore references
+- implement Looker Studio datasource references
+- add `ca ask --profile ...` for these sources
+- add text/json output coverage
+- document Looker-specific permission and explore-count constraints
 
 Done when:
 
-- all initial mutation commands work against live BigQuery
-- error messages clearly identify missing confirmation or invalid body fields
-- tests cover dry-run, confirm, and non-interactive failure cases
+- `bqx ca ask` works against Looker profiles
+- `bqx ca ask` works against Looker Studio profiles
+- docs clearly explain what is different from BigQuery CA
 
-### Milestone 3: Homebrew Distribution
+### Milestone 3: AlloyDB + Spanner + Cloud SQL QueryData
 
 Objective:
-make `bqx` installable through Homebrew in addition to npm.
+support database-source CA through the `QueryData` API, routed via
+`ca ask --profile`.
 
 Tasks:
 
-- choose formula location:
-  - in-repo formula
-  - separate tap repo
-- generate or update formula from release metadata
-- add release automation for formula refresh
-- document Homebrew install and upgrade flow
+- implement QueryData provider behind the existing `ca ask` command
+- support AlloyDB profile references
+- support Spanner profile references
+- support Cloud SQL profile references
+- model `context_set_id` / authored context references
+- add tests for source-specific request construction
 
 Done when:
 
-- `brew install bqx` or `brew install <tap>/bqx` works on a clean macOS machine
-- Homebrew install path uses the same released binaries as npm
-- release docs explain npm vs Homebrew support
+- `bqx ca ask --profile ops-alloydb "..."` routes to QueryData and returns
+  results
+- Spanner profiles work the same way
+- Cloud SQL support is either working or explicitly deferred with a clear
+  reason
+- docs explain that database sources use QueryData under the hood, but users
+  interact through the same `ca ask` command
 
-### Milestone 4: Live CA CI Validation
+### Milestone 4: Data Cloud Skill Layer
 
 Objective:
-automate the most important live CA smoke checks.
+expand the skill story from BigQuery-only to Data Cloud source workflows.
 
 Tasks:
 
-- provision a dedicated CI CA project/dataset/agent
-- add scheduled or manual GitHub Actions workflow with WIF auth
-- validate:
-  - `ca list-agents`
-  - `ca ask`
-  - one verified-query workflow
-- record failure handling and retry policy
+- add CA source-specific skills:
+  - `bqx-ca-looker` — Looker explore profile setup and CA usage
+  - `bqx-ca-database` — database source profiles (AlloyDB, Spanner, Cloud SQL)
+  - `bqx-ca-alloydb` — AlloyDB-specific context and troubleshooting patterns
+  - `bqx-ca-spanner` — Spanner-specific query patterns
+- update routing skills to select the right `--profile` for the user's data
+  source
+- add recipes for:
+  - Looker conversational exploration
+  - AlloyDB operational troubleshooting
+  - Spanner business query workflows
 
 Done when:
 
-- CI can run a documented live CA workflow without local secrets
-- failures are visible but do not block unrelated PRs by default
-- docs distinguish unit/integration coverage from live CA smoke coverage
+- the skill tree no longer implies that CA is only a BigQuery feature
+- a tool-using agent can discover the right CA command for each source family
 
-### Milestone 5: Watch Mode
+### Milestone 5: Docs, Positioning, and Validation
 
 Objective:
-add a lightweight recurring refresh workflow for operations and demos.
+make the product story intentionally broader than BigQuery while staying
+accurate to the current implementation.
 
 Tasks:
 
-- add `watch` command family in [src/cli.rs](/Users/haiyuancao/bqx-cli/src/cli.rs)
-- implement:
-  - `watch insights`
-  - `watch evaluate`
-  - `watch list-traces`
-- add `--every`, `--iterations`, and `--no-clear`
-- reuse existing `text` and `table` renderers
+- update [README.md](/Users/haiyuancao/bqx-cli/README.md) framing from
+  BigQuery-only CA to Data Cloud CA support
+- update one-pagers and proposal docs
+- add e2e docs for:
+  - BigQuery CA
+  - Looker CA
+  - AlloyDB / Spanner query-data flows
+- add validation docs for source-specific prerequisites and limitations
 
 Done when:
 
-- watch mode works in terminal for at least 3 analytics commands
-- CI/demo can run deterministic watch tests with `--iterations`
-- watch mode handles failures without leaking terminal state
+- the docs make the Data Cloud story explicit
+- limitations are documented honestly
+- the product pitch no longer reads like a BigQuery-only CA tool
 
-### Milestone 6: Migrate Alpha + Docs Closeout
+### Milestone 6: Release Closure and `0.4.0`
 
 Objective:
-ship a narrow migration/bootstrap workflow and close the proposed Phase 4 docs.
+ship the broadened Data Cloud CA surface as the first `0.4.0` release.
 
 Tasks:
 
-- add `migrate init|plan|apply`
-- define migration file layout under `migrations/`
-- support bootstrap of:
-  - analytics dataset/table contract
-  - standard views
-  - optional golden questions support objects
-- update:
-  - [README.md](/Users/haiyuancao/bqx-cli/README.md)
-  - [docs/e2e-validation.md](/Users/haiyuancao/bqx-cli/docs/e2e-validation.md)
-  - new docs for Homebrew and migrations
-- bump version to `0.4.0`
+- complete version bump and release notes
+- refresh package/docs/manifest metadata as needed
+- validate the final supported source matrix
+- decide whether to keep the `bqx` name only or add a broader product alias in
+  docs
 
 Done when:
 
-- a user can initialize and apply the supported bootstrap migrations
-- release docs cover npm, Homebrew, live CI validation, and mutation safety
-- `0.4.0` release artifacts and package metadata are in sync
+- `0.4.0` reflects the broadened Data Cloud positioning
+- BigQuery, Looker, AlloyDB, and Spanner are all represented in the shipped
+  command/docs/skill surface
 
 ## Recommended Build Order
 
-1. Mutation foundation
-2. First-class mutation commands
-3. Homebrew distribution
-4. Live CA CI validation
-5. Watch mode
-6. Migrate alpha and release closeout
+1. Multi-source CA foundation
+2. Looker + Looker Studio support
+3. AlloyDB + Spanner + Cloud SQL `query-data`
+4. Data Cloud skill layer
+5. Docs and product repositioning
+6. Release closeout
 
 Rationale:
 
-- mutation support is the highest product-value gap after Phase 3
-- Homebrew is simpler once release artifacts are already stable
-- live CA CI depends on the existing CA surface, not on watch or migrate
-- watch mode is useful but not foundational
-- migrate should come last because it is the most opinionated and easiest to
-  overbuild
+- the source model is the hardest architectural dependency
+- Looker can reuse more of the existing chat/data-agent shape than databases
+- database support is the real differentiator, but it should land on a stable
+  profile model
+- skills and messaging should follow the actual product surface, not lead it
 
 ## Testing Strategy
 
-Mutation coverage:
+BigQuery / Looker / Studio:
 
-- unit tests for body builders and safety policies
-- fixture-backed command tests for validation-before-auth behavior
-- wiremock or mock executor tests for request shape
-- live manual/e2e checks for the first allowlisted mutation set
+- unit tests for source-profile parsing
+- fixture-backed request builder tests
+- integration tests for response mapping and rendering
 
-Homebrew coverage:
+Database QueryData:
 
-- formula lint or install smoke check in CI
-- install-from-release validation on macOS
+- request-construction tests per source
+- profile validation tests for required context-set identifiers
+- mocked API tests for `queryData` result mapping
 
-CA live CI:
+Fixture capture:
 
-- scheduled workflow, not PR-blocking
-- clear separation between mock tests and live smoke results
+- capture real API response samples from each source type early in the
+  milestone (even manually via curl)
+- store them under `tests/fixtures/ca/{bigquery,looker,alloydb,spanner}/`
+- build snapshot tests from these fixtures so CI coverage is not gated on live
+  access
 
-Watch mode:
+Live validation:
 
-- deterministic snapshot tests using `--iterations=1`
-- renderer tests for cleared and non-cleared output
+- BigQuery CA smoke checks remain the easiest live path
+- Looker and database source validation should begin as documented manual or
+  scheduled workflows, not required PR gates
 
-Migration coverage:
+Docs validation:
 
-- plan/apply unit tests on fixture migration directories
-- dry-run style tests before any live apply examples
+- every example command in docs should be runnable against a test profile or
+  explicitly marked illustrative
 
 ## Open Decisions
 
-### 1. Mutation breadth
+### 1. Naming
 
 Question:
-how many write methods should Phase 4 actually ship?
+should the binary remain `bqx` once it stops being BigQuery-only?
 
 Recommended answer:
-start with 5 or fewer methods and prove the safety model before broadening.
+keep `bqx` in Phase 4 for continuity and speed. Make a concrete rename
+decision in M6: if multi-source CA is validated, pick an alias (e.g., `dcx`,
+`dcloud`) and ship it alongside `bqx` in the 0.4.0 release. The name `bqx`
+actively works against a "Data Cloud CLI" pitch — this should be resolved at
+release, not deferred indefinitely.
 
-### 2. Confirmation UX
+### 2. Command unification
 
 Question:
-should destructive commands prompt interactively, or should all mutations
-require `--yes`?
+should database sources use a separate `ca query-data` command or go through
+`ca ask`?
 
 Recommended answer:
-prompt in TTY mode, require `--yes` in non-TTY mode.
+unify under `ca ask`. The profile knows the source type and routes to the
+right API internally. Users and agents should not need to know whether the
+backend uses Chat/DataAgent or QueryData — that is an API implementation
+detail, not a user-facing concern.
 
-### 3. Request body UX
+### 3. Scope breadth
 
 Question:
-should mutating commands accept raw JSON payloads?
+should Phase 4 support all officially documented CA sources or only a subset?
 
 Recommended answer:
-not by default. Prefer explicit scalar flags for the first wave, with raw JSON
-reserved for later escape-hatch workflows if needed.
+make BigQuery, Looker, AlloyDB, and Spanner the required targets. Treat Looker
+Studio and Cloud SQL as included if they are cheap, but not at the cost of
+slipping the core four.
 
-### 4. Homebrew formula location
+### 4. Source profiles
 
 Question:
-should the formula live in this repo or a separate tap?
+should profiles be checked-in repo config, user-local config, or both?
 
 Recommended answer:
-start with an in-repo formula if the release workflow can update it cleanly;
-switch to a tap only if Homebrew publishing mechanics require it.
-
-### 5. Watch command shape
-
-Question:
-should `watch` be a top-level command or nested under `analytics`?
-
-Recommended answer:
-make it top-level. `watch` is execution behavior, not just another analytics
-result type.
-
-### 6. Migration scope
-
-Question:
-should `migrate` target general BigQuery schema evolution or only the bqx
-analytics conventions?
-
-Recommended answer:
-keep it bqx-specific at first. General schema migration tooling is too broad.
+start with checked-in YAML/JSON for determinism and team sharing. Add user-local
+profiles later.
 
 ## Risks
 
-### 1. Destructive-command risk
+### 1. CA preview instability
 
 Risk:
-Phase 4 introduces real write/delete behavior, which is a different risk class
-from the current repo.
+the official CA API is still preview/pre-GA and may change.
 
 Mitigation:
 
-- keep a short allowlist
-- require dry-run/confirm behavior
-- validate locally before auth/network
-- document destructive semantics clearly
+- isolate provider-specific logic
+- keep source-specific tests strong
+- document preview assumptions explicitly
 
-### 2. Discovery/body-shape complexity
+### 2. Product-shape mismatch
 
 Risk:
-write methods need request bodies and Discovery schemas are more complex than
-the current read-only set.
+BigQuery/Looker and database sources are not symmetric. A fake "one command
+fits all" abstraction will leak quickly.
 
 Mitigation:
 
-- use hand-written body builders for the first mutation wave
-- avoid claiming generic body support until it is actually stable
+- model the split honestly
+- use profiles and command families to normalize only what is actually common
 
-### 3. Packaging sprawl
+### 3. Overbroad Data Cloud ambition
 
 Risk:
-adding Homebrew plus npm plus GitHub release automation can become fragile.
+trying to become the admin CLI for every Data Cloud product would dilute the
+phase immediately.
 
 Mitigation:
 
-- keep GitHub Release binaries as the single artifact source of truth
-- reuse existing release jobs where possible
+- keep Phase 4 centered on conversational access and agent workflows
+- defer broad product-specific CRUD to later phases
 
-### 4. CA preview instability
+### 4. Naming confusion
 
 Risk:
-live CA CI may be noisy because the upstream API is still preview-dependent.
+`bqx` sounds BigQuery-specific even if the product broadens.
 
 Mitigation:
 
-- keep live CA checks scheduled/manual first
-- do not gate normal PRs on preview API health
-
-### 5. Overbuilding migrate
-
-Risk:
-migration tooling can easily become an entire product on its own.
-
-Mitigation:
-
-- keep Phase 4 migrate limited to analytics bootstrap and standard view setup
-- defer broad schema-diff ambitions
+- keep the binary for continuity
+- use docs and positioning to introduce the broader agentic Data Cloud framing
+- revisit rename only after product-market fit is clearer
 
 ## Definition of Done
 
 This proposed Phase 4 is complete when:
 
-- `bqx` supports a safe curated set of BigQuery mutation commands
-- every mutating command has dry-run and confirmation behavior
-- Homebrew install works from released binaries
-- live CA smoke validation runs in CI on a scheduled or manual basis
-- `watch` supports at least 3 analytics workflows
-- `migrate init|plan|apply` works for the supported bootstrap layout
-- docs and release automation reflect the `0.4.0` install and safety story
+- `bqx` supports CA across BigQuery, Looker, AlloyDB, and Spanner at minimum
+- the CLI has a clear source-profile model
+- `ca ask --profile` routes to the right API for each source type
+- the skill layer reflects the broader Data Cloud source model
+- docs explain the official source split and its limits honestly
+- the `0.4.0` release reflects the broadened Data Cloud positioning
 
 ## Suggested First PRs
 
-1. `feat(dynamic): add mutation policy metadata and dry-run/confirm plumbing`
-2. `feat(dynamic): add datasets insert/delete and tables delete`
-3. `feat(packaging): add Homebrew formula generation`
-4. `ci(ca): add scheduled live CA smoke workflow`
-5. `feat(watch): add watch insights and evaluate`
-6. `feat(migrate): add migrate init and plan`
+1. `refactor(ca): add source profiles and provider abstraction`
+2. `feat(ca): add Looker and Looker Studio profiles to ca ask`
+3. `feat(ca): add QueryData routing for AlloyDB and Spanner via ca ask`
+4. `skills(ca): add Data Cloud source-specific CA skills`
+5. `docs: reposition bqx as agentic Data Cloud CLI`
 
 ## Recommended Starting Point
 
-If Phase 4 starts immediately, the right first PR is Milestone 1:
+If Phase 4 starts now, the right first PR is Milestone 1:
 
-- add mutation safety metadata to the dynamic command model
-- add request body support for a tiny allowlist
-- add `--dry-run` and `--yes` semantics
-- prove the pattern with one non-destructive write path before expanding
+- add an explicit CA source/profile model
+- split `Chat`/`DataAgent` and `QueryData` internally
+- preserve current BigQuery behavior while preparing for Looker and database
+  sources
 
-That gives the repo the highest-leverage new capability without committing yet
-to broader packaging or migration work.
+That gives the project the right foundation for a genuine Data Cloud CLI,
+instead of a BigQuery CLI with a few extra adapters.
+
+## Research Basis
+
+Primary official sources consulted for this update:
+
+- Conversational Analytics API overview:
+  https://docs.cloud.google.com/gemini/data-agents/conversational-analytics-api/overview
+- Conversational Analytics API authentication and source setup:
+  https://docs.cloud.google.com/gemini/data-agents/conversational-analytics-api/authentication
+- Database authored context for `QueryData`:
+  https://docs.cloud.google.com/gemini/data-agents/conversational-analytics-api/data-agent-authored-context-databases
+- FAQ and support matrix:
+  https://docs.cloud.google.com/gemini/data-agents/conversational-analytics-api/frequently-asked-questions
+- Known limitations:
+  https://docs.cloud.google.com/gemini/data-agents/conversational-analytics-api/known-limitations
+- Google Cloud Data Cloud overview:
+  https://cloud.google.com/data-cloud
