@@ -48,8 +48,7 @@ fn load_spanner_finance_profile() {
 
 #[test]
 fn load_all_profiles_from_dir() {
-    let profiles =
-        profiles::load_profiles_from_dir(Path::new("deploy/ca/profiles")).unwrap();
+    let profiles = profiles::load_profiles_from_dir(Path::new("deploy/ca/profiles")).unwrap();
     assert_eq!(profiles.len(), 4);
     // Sorted by name
     assert_eq!(profiles[0].name, "alloydb-ops");
@@ -77,11 +76,7 @@ fn invalid_profile_yaml_returns_error() {
 fn profile_missing_required_field_returns_error() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("missing-context.yaml");
-    std::fs::write(
-        &path,
-        "name: bad\nsource_type: alloy_db\nproject: p\n",
-    )
-    .unwrap();
+    std::fs::write(&path, "name: bad\nsource_type: alloy_db\nproject: p\n").unwrap();
     let err = profiles::load_profile(&path).unwrap_err();
     assert!(err.to_string().contains("context_set_id"));
 }
@@ -91,8 +86,13 @@ fn profile_does_not_require_project_id() {
     // --profile supplies its own project, so --project-id should NOT be required.
     let output = std::process::Command::new("cargo")
         .args([
-            "run", "--quiet", "--", "ca", "ask",
-            "--profile", "deploy/ca/profiles/bigquery-demo.yaml",
+            "run",
+            "--quiet",
+            "--",
+            "ca",
+            "ask",
+            "--profile",
+            "deploy/ca/profiles/bigquery-demo.yaml",
             "test question",
         ])
         .env("BQX_TOKEN", "fake-token")
@@ -116,9 +116,15 @@ fn profile_does_not_require_project_id() {
 fn profile_rejects_conflicting_agent_flag() {
     let output = std::process::Command::new("cargo")
         .args([
-            "run", "--quiet", "--", "ca", "ask",
-            "--profile", "deploy/ca/profiles/bigquery-demo.yaml",
-            "--agent", "some-agent",
+            "run",
+            "--quiet",
+            "--",
+            "ca",
+            "ask",
+            "--profile",
+            "deploy/ca/profiles/bigquery-demo.yaml",
+            "--agent",
+            "some-agent",
             "test question",
         ])
         .env("BQX_TOKEN", "fake-token")
@@ -136,9 +142,15 @@ fn profile_rejects_conflicting_agent_flag() {
 fn profile_rejects_conflicting_tables_flag() {
     let output = std::process::Command::new("cargo")
         .args([
-            "run", "--quiet", "--", "ca", "ask",
-            "--profile", "deploy/ca/profiles/bigquery-demo.yaml",
-            "--tables", "p.d.t",
+            "run",
+            "--quiet",
+            "--",
+            "ca",
+            "ask",
+            "--profile",
+            "deploy/ca/profiles/bigquery-demo.yaml",
+            "--tables",
+            "p.d.t",
             "test question",
         ])
         .env("BQX_TOKEN", "fake-token")

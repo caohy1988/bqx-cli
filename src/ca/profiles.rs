@@ -189,10 +189,10 @@ impl CaProfile {
 
 /// Load a profile from a YAML file.
 pub fn load_profile(path: &Path) -> Result<CaProfile> {
-    let contents =
-        std::fs::read_to_string(path).context(format!("Failed to read profile: {}", path.display()))?;
-    let profile: CaProfile =
-        serde_yaml::from_str(&contents).context(format!("Failed to parse profile: {}", path.display()))?;
+    let contents = std::fs::read_to_string(path)
+        .context(format!("Failed to read profile: {}", path.display()))?;
+    let profile: CaProfile = serde_yaml::from_str(&contents)
+        .context(format!("Failed to parse profile: {}", path.display()))?;
     profile.validate()?;
     Ok(profile)
 }
@@ -206,7 +206,7 @@ pub fn load_profiles_from_dir(dir: &Path) -> Result<Vec<CaProfile>> {
     for entry in std::fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        if path.extension().map_or(false, |e| e == "yaml" || e == "yml") {
+        if path.extension().is_some_and(|e| e == "yaml" || e == "yml") {
             profiles.push(load_profile(&path)?);
         }
     }

@@ -60,7 +60,7 @@ pub fn validate_inputs(
 /// 3. Look up by name in deploy/ca/profiles/ (repo-local fallback).
 fn resolve_profile(profile_ref: &str) -> Result<CaProfile> {
     let path = Path::new(profile_ref);
-    if path.extension().map_or(false, |e| e == "yaml" || e == "yml") || profile_ref.contains('/') {
+    if path.extension().is_some_and(|e| e == "yaml" || e == "yml") || profile_ref.contains('/') {
         return crate::ca::profiles::load_profile(path);
     }
 
