@@ -122,7 +122,11 @@ impl CaProfile {
                 // BigQuery needs either agent or tables (or neither for bare ask)
             }
             SourceType::Looker => {
-                if self.looker_instance_url.is_none() {
+                if self
+                    .looker_instance_url
+                    .as_ref()
+                    .map_or(true, |u| u.is_empty())
+                {
                     bail!(
                         "Profile '{}': looker_instance_url is required for Looker sources",
                         self.name
@@ -152,9 +156,22 @@ impl CaProfile {
                         );
                     }
                 }
+                // OAuth credentials must be both present or both absent.
+                let has_id = self.looker_client_id.is_some();
+                let has_secret = self.looker_client_secret.is_some();
+                if has_id != has_secret {
+                    bail!(
+                        "Profile '{}': looker_client_id and looker_client_secret must be provided together",
+                        self.name
+                    );
+                }
             }
             SourceType::LookerStudio => {
-                if self.studio_datasource_id.is_none() {
+                if self
+                    .studio_datasource_id
+                    .as_ref()
+                    .map_or(true, |id| id.is_empty())
+                {
                     bail!(
                         "Profile '{}': studio_datasource_id is required for Looker Studio sources",
                         self.name
@@ -204,8 +221,10 @@ impl CaProfile {
 }
 
 /// Parse a Looker explore reference like "model/explore" into (model, explore).
+///
+/// Exactly one `/` is required — values like `model/explore/extra` are rejected.
 pub fn parse_looker_explore(s: &str) -> Result<(&str, &str)> {
-    let parts: Vec<&str> = s.splitn(2, '/').collect();
+    let parts: Vec<&str> = s.split('/').collect();
     if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
         bail!("Invalid Looker explore: '{s}'. Expected format: model/explore");
     }
@@ -572,10 +591,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_looker_explore_with_nested_path() {
-        let (model, explore) = parse_looker_explore("model/explore/sub").unwrap();
-        assert_eq!(model, "model");
-        assert_eq!(explore, "explore/sub");
+    fn parse_looker_explore_rejects_extra_slashes() {
+        assert!(parse_looker_explore("model/explore/sub").is_err());
     }
 
     #[test]
@@ -587,6 +604,102 @@ mod tests {
     fn parse_looker_explore_invalid_empty_parts() {
         assert!(parse_looker_explore("/explore").is_err());
         assert!(parse_looker_explore("model/").is_err());
+    }
+
+    #[test]
+    fn looker_partial_oauth_id_only_fails() {
+        let p = CaProfile {
+            name: "bad-looker".into(),
+            source_type: SourceType::Looker,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: Some("https://looker.example.com".into()),
+            looker_explores: Some(vec!["sales_model/orders".into()]),
+            looker_client_id: Some("my-client-id".into()),
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("looker_client_id and looker_client_secret must be provided together"));
+    }
+
+    #[test]
+    fn looker_partial_oauth_secret_only_fails() {
+        let p = CaProfile {
+            name: "bad-looker".into(),
+            source_type: SourceType::Looker,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: Some("https://looker.example.com".into()),
+            looker_explores: Some(vec!["sales_model/orders".into()]),
+            looker_client_id: None,
+            looker_client_secret: Some("my-secret".into()),
+            studio_datasource_id: None,
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("looker_client_id and looker_client_secret must be provided together"));
+    }
+
+    #[test]
+    fn looker_empty_instance_url_fails() {
+        let p = CaProfile {
+            name: "bad-looker".into(),
+            source_type: SourceType::Looker,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: Some("".into()),
+            looker_explores: Some(vec!["sales_model/orders".into()]),
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("looker_instance_url"));
+    }
+
+    #[test]
+    fn studio_empty_datasource_id_fails() {
+        let p = CaProfile {
+            name: "bad-studio".into(),
+            source_type: SourceType::LookerStudio,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: Some("".into()),
+            context_set_id: None,
+            datasource_ref: None,
+            db_type: None,
+            connection_name: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("studio_datasource_id"));
     }
 
     #[test]
