@@ -1,0 +1,7 @@
+interface:
+  display_name: "bqx CA Spanner"
+  short_description: "Spanner-specific CA setup and business query patterns"
+  default_prompt: "Use $bqx-ca-spanner to set up and use Conversational Analytics for Spanner databases."
+
+policy:
+  allow_implicit_invocation: true

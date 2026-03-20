@@ -98,4 +98,4 @@ Explores must use the `model/explore` format:
 - At least one explore is required
 - OAuth credentials must be paired — cannot provide only one of client_id/secret
 - `--profile` cannot be combined with `--agent` or `--tables`
-- Data agent creation (`ca create-agent`) is supported for Looker sources
+- Data agent creation (`ca create-agent`) does not yet support Looker profiles — use `ca ask --profile` only

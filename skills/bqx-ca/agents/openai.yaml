@@ -1,7 +1,7 @@
 interface:
   display_name: "bqx Conversational Analytics"
-  short_description: "Route to CA ask, create-agent, or list-agents"
-  default_prompt: "Use $bqx-ca to ask natural language questions over BigQuery data or manage data agents."
+  short_description: "Route to CA ask, create-agent, or list-agents across Data Cloud sources"
+  default_prompt: "Use $bqx-ca to ask natural language questions over Data Cloud sources (BigQuery, Looker, AlloyDB, Spanner, Cloud SQL) or manage data agents."
 
 policy:
   allow_implicit_invocation: true

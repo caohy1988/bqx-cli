@@ -1,0 +1,7 @@
+interface:
+  display_name: "Database CA Operations Recipe"
+  short_description: "Step-by-step recipe for database CA setup across AlloyDB, Spanner, and Cloud SQL"
+  default_prompt: "Use $recipe-ca-database-ops to set up database CA profiles and run operational queries via natural language."
+
+policy:
+  allow_implicit_invocation: true

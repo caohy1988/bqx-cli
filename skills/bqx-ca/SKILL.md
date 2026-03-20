@@ -123,5 +123,6 @@ bqx ca add-verified-query \
 - Data agents are project-scoped — they cannot span multiple projects
 - Agent names must be alphanumeric with hyphens, underscores, or dots
 - `--agent` and `--tables` are mutually exclusive
-- Data agent creation is only supported for BigQuery, Looker, and Looker Studio
+- Data agent creation (`ca create-agent`) currently only supports BigQuery tables/views
+- Looker and Looker Studio profiles work with `ca ask` but not `ca create-agent`
 - Database sources (AlloyDB, Spanner, Cloud SQL) do not support data agents or visualizations
