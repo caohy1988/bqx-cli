@@ -97,14 +97,20 @@ pub struct CaProfile {
     // ── Database sources: AlloyDB, Spanner, Cloud SQL (QueryData) ──
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context_set_id: Option<String>,
+    /// AlloyDB cluster ID (AlloyDB only).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub datasource_ref: Option<String>,
+    pub cluster_id: Option<String>,
+    /// Database instance ID (AlloyDB, Spanner, Cloud SQL).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instance_id: Option<String>,
+    /// Database name (AlloyDB, Spanner, Cloud SQL).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub database_id: Option<String>,
 
     // ── Cloud SQL-specific ──
+    /// Database engine: "mysql" or "postgresql" (Cloud SQL only).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub db_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub connection_name: Option<String>,
 }
 
 impl CaProfile {
@@ -178,44 +184,61 @@ impl CaProfile {
                     );
                 }
             }
-            SourceType::AlloyDb | SourceType::Spanner => {
-                if self.context_set_id.is_none() {
-                    bail!(
-                        "Profile '{}': context_set_id is required for {} sources",
-                        self.name,
-                        self.source_type
-                    );
-                }
-                if self.datasource_ref.is_none() {
-                    bail!(
-                        "Profile '{}': datasource_ref is required for {} sources",
-                        self.name,
-                        self.source_type
-                    );
-                }
+            SourceType::AlloyDb => {
+                self.reject_empty("context_set_id", &self.context_set_id)?;
+                self.require_nonempty("cluster_id", &self.cluster_id)?;
+                self.require_nonempty("instance_id", &self.instance_id)?;
+                self.require_nonempty("database_id", &self.database_id)?;
+            }
+            SourceType::Spanner => {
+                self.reject_empty("context_set_id", &self.context_set_id)?;
+                self.require_nonempty("instance_id", &self.instance_id)?;
+                self.require_nonempty("database_id", &self.database_id)?;
             }
             SourceType::CloudSql => {
-                if self.context_set_id.is_none() {
+                self.reject_empty("context_set_id", &self.context_set_id)?;
+                self.require_nonempty("instance_id", &self.instance_id)?;
+                self.require_nonempty("database_id", &self.database_id)?;
+                self.require_nonempty("db_type", &self.db_type)?;
+                let db_type = self.db_type.as_deref().unwrap();
+                if db_type != "mysql" && db_type != "postgresql" {
                     bail!(
-                        "Profile '{}': context_set_id is required for Cloud SQL sources",
-                        self.name
-                    );
-                }
-                if self.datasource_ref.is_none() {
-                    bail!(
-                        "Profile '{}': datasource_ref is required for Cloud SQL sources",
-                        self.name
-                    );
-                }
-                if self.connection_name.is_none() {
-                    bail!(
-                        "Profile '{}': connection_name is required for Cloud SQL sources",
-                        self.name
+                        "Profile '{}': db_type must be 'mysql' or 'postgresql', got '{}'",
+                        self.name,
+                        db_type
                     );
                 }
             }
         }
 
+        Ok(())
+    }
+
+    /// Return an error if the field is None or empty.
+    fn require_nonempty(&self, field: &str, value: &Option<String>) -> Result<()> {
+        if value.as_ref().map_or(true, |v| v.is_empty()) {
+            bail!(
+                "Profile '{}': {} is required for {} sources",
+                self.name,
+                field,
+                self.source_type
+            );
+        }
+        Ok(())
+    }
+
+    /// Return an error if the field is Some but empty (None is allowed).
+    fn reject_empty(&self, field: &str, value: &Option<String>) -> Result<()> {
+        if let Some(v) = value {
+            if v.is_empty() {
+                bail!(
+                    "Profile '{}': {} must not be empty when provided for {} sources",
+                    self.name,
+                    field,
+                    self.source_type
+                );
+            }
+        }
         Ok(())
     }
 }
@@ -276,9 +299,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         }
     }
 
@@ -349,9 +373,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
         assert!(err.to_string().contains("looker_instance_url"));
@@ -372,9 +397,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
         assert!(err.to_string().contains("looker_explores"));
@@ -402,9 +428,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
         assert!(err.to_string().contains("at most 5"));
@@ -425,18 +452,20 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
         assert!(err.to_string().contains("studio_datasource_id"));
     }
 
     #[test]
-    fn alloydb_missing_context_set_fails() {
+    fn alloydb_optional_context_set_passes() {
+        // context_set_id is optional — None should pass validation
         let p = CaProfile {
-            name: "bad-alloy".into(),
+            name: "ok-alloy".into(),
             source_type: SourceType::AlloyDb,
             project: "my-project".into(),
             location: None,
@@ -448,16 +477,16 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: Some("ref".into()),
+            cluster_id: Some("ops".into()),
+            instance_id: Some("primary".into()),
+            database_id: Some("mydb".into()),
             db_type: None,
-            connection_name: None,
         };
-        let err = p.validate().unwrap_err();
-        assert!(err.to_string().contains("context_set_id"));
+        p.validate().unwrap();
     }
 
     #[test]
-    fn alloydb_missing_datasource_ref_fails() {
+    fn alloydb_missing_cluster_id_fails() {
         let p = CaProfile {
             name: "bad-alloy".into(),
             source_type: SourceType::AlloyDb,
@@ -471,16 +500,17 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: Some("ctx-123".into()),
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: Some("primary".into()),
+            database_id: Some("mydb".into()),
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
-        assert!(err.to_string().contains("datasource_ref"));
+        assert!(err.to_string().contains("cluster_id"));
     }
 
     #[test]
-    fn cloud_sql_missing_connection_name_fails() {
+    fn cloud_sql_missing_db_type_fails() {
         let p = CaProfile {
             name: "bad-cloudsql".into(),
             source_type: SourceType::CloudSql,
@@ -494,12 +524,37 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: Some("ctx-123".into()),
-            datasource_ref: Some("ref".into()),
+            cluster_id: None,
+            instance_id: Some("my-instance".into()),
+            database_id: Some("mydb".into()),
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
-        assert!(err.to_string().contains("connection_name"));
+        assert!(err.to_string().contains("db_type"));
+    }
+
+    #[test]
+    fn cloud_sql_invalid_db_type_fails() {
+        let p = CaProfile {
+            name: "bad-cloudsql".into(),
+            source_type: SourceType::CloudSql,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx-123".into()),
+            cluster_id: None,
+            instance_id: Some("my-instance".into()),
+            database_id: Some("mydb".into()),
+            db_type: Some("oracle".into()),
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("db_type must be"));
     }
 
     #[test]
@@ -517,11 +572,108 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: Some("ctx-finance".into()),
-            datasource_ref: Some("projects/my-project/instances/fin/databases/ledger".into()),
+            cluster_id: None,
+            instance_id: Some("finance".into()),
+            database_id: Some("ledger".into()),
             db_type: None,
-            connection_name: None,
         };
         p.validate().unwrap();
+    }
+
+    #[test]
+    fn alloydb_empty_cluster_id_fails() {
+        let p = CaProfile {
+            name: "bad-alloy".into(),
+            source_type: SourceType::AlloyDb,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx".into()),
+            cluster_id: Some("".into()),
+            instance_id: Some("inst".into()),
+            database_id: Some("db".into()),
+            db_type: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("cluster_id"));
+    }
+
+    #[test]
+    fn spanner_empty_instance_id_fails() {
+        let p = CaProfile {
+            name: "bad-spanner".into(),
+            source_type: SourceType::Spanner,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx".into()),
+            cluster_id: None,
+            instance_id: Some("".into()),
+            database_id: Some("db".into()),
+            db_type: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("instance_id"));
+    }
+
+    #[test]
+    fn cloudsql_empty_database_id_fails() {
+        let p = CaProfile {
+            name: "bad-sql".into(),
+            source_type: SourceType::CloudSql,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx".into()),
+            cluster_id: None,
+            instance_id: Some("inst".into()),
+            database_id: Some("".into()),
+            db_type: Some("postgresql".into()),
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("database_id"));
+    }
+
+    #[test]
+    fn alloydb_empty_context_set_id_fails() {
+        let p = CaProfile {
+            name: "bad-alloy".into(),
+            source_type: SourceType::AlloyDb,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("".into()),
+            cluster_id: Some("ops".into()),
+            instance_id: Some("inst".into()),
+            database_id: Some("db".into()),
+            db_type: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("context_set_id"));
     }
 
     #[test]
@@ -559,9 +711,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let yaml = serde_yaml::to_string(&p).unwrap();
         let parsed: CaProfile = serde_yaml::from_str(&yaml).unwrap();
@@ -621,9 +774,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
         assert!(err
@@ -646,9 +800,10 @@ mod tests {
             looker_client_secret: Some("my-secret".into()),
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
         assert!(err
@@ -671,9 +826,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
         assert!(err.to_string().contains("looker_instance_url"));
@@ -694,9 +850,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: Some("".into()),
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
         assert!(err.to_string().contains("studio_datasource_id"));
@@ -717,9 +874,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         };
         let err = p.validate().unwrap_err();
         assert!(err.to_string().contains("invalid explore format"));

@@ -4,10 +4,11 @@ use async_trait::async_trait;
 use crate::auth::ResolvedAuth;
 
 use super::models::{
-    extract_response, AddVerifiedQueryResponse, CaChatMessage, CaQuestionRequest,
-    CaQuestionResponse, CreateAgentResponse, DataAgentSummary, ListAgentsResponse, TableRef,
+    convert_querydata_response, extract_response, AddVerifiedQueryResponse, CaChatMessage,
+    CaQuestionRequest, CaQuestionResponse, CreateAgentResponse, DataAgentSummary,
+    ListAgentsResponse, QueryDataApiResponse, TableRef,
 };
-use super::profiles::{parse_looker_explore, CaProfile};
+use super::profiles::{parse_looker_explore, CaProfile, SourceType};
 use super::verified_queries::VerifiedQuery;
 
 const CA_BASE_URL: &str = "https://geminidataanalytics.googleapis.com/v1beta";
@@ -503,6 +504,122 @@ impl CaClient {
 
         Ok(extract_response(&messages, question, None))
     }
+
+    /// Ask using a database profile (AlloyDB, Spanner, Cloud SQL) via the QueryData API.
+    pub async fn ask_querydata(
+        &self,
+        profile: &CaProfile,
+        question: &str,
+    ) -> Result<CaQuestionResponse> {
+        let location = profile.location.as_deref().unwrap_or("us");
+        let project = &profile.project;
+        let url = format!(
+            "{}/projects/{project}/locations/{location}:queryData",
+            self.base_url
+        );
+
+        let token = self.auth.token().await?;
+
+        let datasource_ref = self.build_querydata_datasource_ref(profile)?;
+
+        let body = serde_json::json!({
+            "prompt": question,
+            "context": {
+                "datasourceReferences": datasource_ref,
+            },
+            "generationOptions": {
+                "generateQueryResult": true,
+                "generateNaturalLanguageAnswer": true,
+                "generateExplanation": true,
+            }
+        });
+
+        let resp = self
+            .http
+            .post(&url)
+            .bearer_auth(&token)
+            .header("x-server-timeout", "300")
+            .json(&body)
+            .send()
+            .await?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            bail!("CA API error {status}: {body}");
+        }
+
+        let api_resp: QueryDataApiResponse = resp.json().await?;
+        Ok(convert_querydata_response(&api_resp, question))
+    }
+
+    /// Build the datasourceReferences object for a database profile.
+    fn build_querydata_datasource_ref(&self, profile: &CaProfile) -> Result<serde_json::Value> {
+        let location = profile.location.as_deref().unwrap_or("us");
+
+        // agentContextReference is optional — only include when context_set_id is provided
+        let agent_context = profile.context_set_id.as_deref().map(|ctx_id| {
+            serde_json::json!({
+                "contextSetId": format!(
+                    "projects/{}/locations/{}/contextSets/{}",
+                    profile.project, location, ctx_id
+                )
+            })
+        });
+
+        match profile.source_type {
+            SourceType::AlloyDb => {
+                let mut inner = serde_json::json!({
+                    "databaseReference": {
+                        "projectId": profile.project,
+                        "region": location,
+                        "clusterId": profile.cluster_id.as_deref().unwrap_or(""),
+                        "instanceId": profile.instance_id.as_deref().unwrap_or(""),
+                        "databaseId": profile.database_id.as_deref().unwrap_or(""),
+                    },
+                });
+                if let Some(ctx) = &agent_context {
+                    inner["agentContextReference"] = ctx.clone();
+                }
+                Ok(serde_json::json!({ "alloydb": inner }))
+            }
+            SourceType::Spanner => {
+                let mut inner = serde_json::json!({
+                    "databaseReference": {
+                        "engine": "GOOGLE_SQL",
+                        "projectId": profile.project,
+                        "instanceId": profile.instance_id.as_deref().unwrap_or(""),
+                        "databaseId": profile.database_id.as_deref().unwrap_or(""),
+                    },
+                });
+                if let Some(ctx) = &agent_context {
+                    inner["agentContextReference"] = ctx.clone();
+                }
+                Ok(serde_json::json!({ "spannerReference": inner }))
+            }
+            SourceType::CloudSql => {
+                let engine = match profile.db_type.as_deref() {
+                    Some("mysql") => "MYSQL",
+                    Some("postgresql") => "POSTGRESQL",
+                    _ => "POSTGRESQL",
+                };
+                let mut inner = serde_json::json!({
+                    "databaseReference": {
+                        "engine": engine,
+                        "projectId": profile.project,
+                        "region": location,
+                        "instanceId": profile.instance_id.as_deref().unwrap_or(""),
+                        "databaseId": profile.database_id.as_deref().unwrap_or(""),
+                    },
+                });
+                if let Some(ctx) = &agent_context {
+                    inner["agentContextReference"] = ctx.clone();
+                }
+                Ok(serde_json::json!({ "cloudSqlReference": inner }))
+            }
+            _ => bail!("Source type {} does not use QueryData", profile.source_type),
+        }
+    }
 }
 
 /// Parse the CA API streaming response.
@@ -545,7 +662,7 @@ mod tests {
     use super::*;
     use crate::auth::resolver::AuthSource;
     use crate::auth::ResolvedAuth;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn test_auth() -> ResolvedAuth {
@@ -870,9 +987,10 @@ mod tests {
             looker_client_secret: Some("my-client-secret".into()),
             studio_datasource_id: None,
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         }
     }
 
@@ -890,9 +1008,10 @@ mod tests {
             looker_client_secret: None,
             studio_datasource_id: Some("ds-12345".into()),
             context_set_id: None,
-            datasource_ref: None,
+            cluster_id: None,
+            instance_id: None,
+            database_id: None,
             db_type: None,
-            connection_name: None,
         }
     }
 
@@ -1022,5 +1141,292 @@ mod tests {
             resp.explanation.as_deref(),
             Some("The dashboard shows 5000 views.")
         );
+    }
+
+    fn alloydb_profile() -> CaProfile {
+        CaProfile {
+            name: "test-alloydb".into(),
+            source_type: super::super::profiles::SourceType::AlloyDb,
+            project: "test-project".into(),
+            location: Some("us-central1".into()),
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx-ops".into()),
+            cluster_id: Some("ops-cluster".into()),
+            instance_id: Some("primary".into()),
+            database_id: Some("opsdb".into()),
+            db_type: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_sends_alloydb_request() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!({
+            "generatedQuery": "SELECT error_type, COUNT(*) FROM errors GROUP BY 1",
+            "queryResult": {
+                "columns": [
+                    {"name": "error_type"},
+                    {"name": "count"}
+                ],
+                "rows": [
+                    {"values": [{"value": "timeout"}, {"value": "42"}]},
+                    {"values": [{"value": "auth_fail"}, {"value": "7"}]}
+                ],
+                "totalRowCount": "2"
+            },
+            "naturalLanguageAnswer": "There are 42 timeout errors and 7 auth failures.",
+            "intentExplanation": "Counting errors grouped by type."
+        });
+
+        Mock::given(method("POST"))
+            .and(path(
+                "/projects/test-project/locations/us-central1:queryData",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = alloydb_profile();
+        let resp = client
+            .ask_querydata(&profile, "top error categories")
+            .await
+            .unwrap();
+
+        assert_eq!(resp.question, "top error categories");
+        assert_eq!(
+            resp.sql.as_deref(),
+            Some("SELECT error_type, COUNT(*) FROM errors GROUP BY 1")
+        );
+        assert_eq!(resp.results.len(), 2);
+        assert_eq!(resp.results[0]["error_type"], "timeout");
+        assert_eq!(resp.results[0]["count"], "42");
+        assert_eq!(
+            resp.explanation.as_deref(),
+            Some("There are 42 timeout errors and 7 auth failures.")
+        );
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_handles_api_error() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/projects/test-project/locations/us-central1:queryData"))
+            .respond_with(ResponseTemplate::new(400).set_body_string(
+                r#"{"error":{"code":400,"message":"Invalid context_set_id","status":"INVALID_ARGUMENT"}}"#,
+            ))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = alloydb_profile();
+        let err = client.ask_querydata(&profile, "test").await.unwrap_err();
+        assert!(err.to_string().contains("400"));
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_handles_query_execution_error() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!({
+            "generatedQuery": "SELECT * FROM nonexistent",
+            "queryResult": {
+                "queryExecutionError": "Table 'nonexistent' does not exist"
+            }
+        });
+
+        Mock::given(method("POST"))
+            .and(path(
+                "/projects/test-project/locations/us-central1:queryData",
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = alloydb_profile();
+        let resp = client.ask_querydata(&profile, "test").await.unwrap();
+
+        assert!(resp.results.is_empty());
+        assert!(resp
+            .explanation
+            .as_deref()
+            .unwrap()
+            .contains("does not exist"));
+    }
+
+    fn spanner_profile() -> CaProfile {
+        CaProfile {
+            name: "test-spanner".into(),
+            source_type: super::super::profiles::SourceType::Spanner,
+            project: "test-project".into(),
+            location: Some("us-central1".into()),
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx-finance".into()),
+            cluster_id: None,
+            instance_id: Some("finance-inst".into()),
+            database_id: Some("ledger".into()),
+            db_type: None,
+        }
+    }
+
+    fn cloudsql_profile() -> CaProfile {
+        CaProfile {
+            name: "test-cloudsql".into(),
+            source_type: super::super::profiles::SourceType::CloudSql,
+            project: "test-project".into(),
+            location: Some("us-central1".into()),
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx-app".into()),
+            cluster_id: None,
+            instance_id: Some("app-db".into()),
+            database_id: Some("myapp".into()),
+            db_type: Some("mysql".into()),
+        }
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_sends_spanner_request() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!({
+            "generatedQuery": "SELECT region, SUM(amount) FROM payments GROUP BY region",
+            "queryResult": {
+                "columns": [
+                    {"name": "region"},
+                    {"name": "total"}
+                ],
+                "rows": [
+                    {"values": [{"value": "US"}, {"value": "1500.00"}]}
+                ]
+            },
+            "naturalLanguageAnswer": "US region has $1500 in payments."
+        });
+
+        Mock::given(method("POST"))
+            .and(path(
+                "/projects/test-project/locations/us-central1:queryData",
+            ))
+            .and(body_json(serde_json::json!({
+                "prompt": "payments by region",
+                "context": {
+                    "datasourceReferences": {
+                        "spannerReference": {
+                            "databaseReference": {
+                                "engine": "GOOGLE_SQL",
+                                "projectId": "test-project",
+                                "instanceId": "finance-inst",
+                                "databaseId": "ledger"
+                            },
+                            "agentContextReference": {
+                                "contextSetId": "projects/test-project/locations/us-central1/contextSets/ctx-finance"
+                            }
+                        }
+                    }
+                },
+                "generationOptions": {
+                    "generateQueryResult": true,
+                    "generateNaturalLanguageAnswer": true,
+                    "generateExplanation": true
+                }
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = spanner_profile();
+        let resp = client
+            .ask_querydata(&profile, "payments by region")
+            .await
+            .unwrap();
+
+        assert_eq!(resp.question, "payments by region");
+        assert_eq!(resp.results.len(), 1);
+        assert_eq!(resp.results[0]["region"], "US");
+        assert_eq!(resp.results[0]["total"], "1500.00");
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_sends_cloudsql_request() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!({
+            "generatedQuery": "SELECT COUNT(*) AS total FROM users",
+            "queryResult": {
+                "columns": [{"name": "total"}],
+                "rows": [{"values": [{"value": "250"}]}]
+            },
+            "naturalLanguageAnswer": "There are 250 users."
+        });
+
+        Mock::given(method("POST"))
+            .and(path(
+                "/projects/test-project/locations/us-central1:queryData",
+            ))
+            .and(body_json(serde_json::json!({
+                "prompt": "how many users",
+                "context": {
+                    "datasourceReferences": {
+                        "cloudSqlReference": {
+                            "databaseReference": {
+                                "engine": "MYSQL",
+                                "projectId": "test-project",
+                                "region": "us-central1",
+                                "instanceId": "app-db",
+                                "databaseId": "myapp"
+                            },
+                            "agentContextReference": {
+                                "contextSetId": "projects/test-project/locations/us-central1/contextSets/ctx-app"
+                            }
+                        }
+                    }
+                },
+                "generationOptions": {
+                    "generateQueryResult": true,
+                    "generateNaturalLanguageAnswer": true,
+                    "generateExplanation": true
+                }
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = cloudsql_profile();
+        let resp = client
+            .ask_querydata(&profile, "how many users")
+            .await
+            .unwrap();
+
+        assert_eq!(resp.question, "how many users");
+        assert_eq!(resp.results.len(), 1);
+        assert_eq!(resp.results[0]["total"], "250");
+        assert_eq!(resp.explanation.as_deref(), Some("There are 250 users."));
     }
 }

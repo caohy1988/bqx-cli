@@ -156,6 +156,108 @@ pub(crate) struct ErrorContent {
     pub text: Option<String>,
 }
 
+// ── QueryData API wire types (database sources) ──
+
+/// Response from the QueryData API endpoint.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct QueryDataApiResponse {
+    pub generated_query: Option<String>,
+    pub intent_explanation: Option<String>,
+    pub query_result: Option<ExecutedQueryResult>,
+    pub natural_language_answer: Option<String>,
+    #[allow(dead_code)]
+    pub disambiguation_question: Option<Vec<String>>,
+}
+
+/// Result of executing a generated query.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ExecutedQueryResult {
+    pub columns: Option<Vec<QueryDataColumn>>,
+    pub rows: Option<Vec<QueryDataRow>>,
+    #[allow(dead_code)]
+    pub total_row_count: Option<String>,
+    #[allow(dead_code)]
+    pub partial_result: Option<bool>,
+    pub query_execution_error: Option<String>,
+}
+
+/// Column metadata from QueryData result.
+#[derive(Debug, Deserialize)]
+pub(crate) struct QueryDataColumn {
+    pub name: String,
+}
+
+/// A row of values from QueryData result.
+#[derive(Debug, Deserialize)]
+pub(crate) struct QueryDataRow {
+    pub values: Vec<QueryDataValue>,
+}
+
+/// A cell value in a QueryData result row.
+#[derive(Debug, Deserialize)]
+pub(crate) struct QueryDataValue {
+    pub value: Option<String>,
+}
+
+/// Convert a QueryData API response to our stable CaQuestionResponse.
+pub(crate) fn convert_querydata_response(
+    resp: &QueryDataApiResponse,
+    question: &str,
+) -> CaQuestionResponse {
+    let mut results = Vec::new();
+
+    if let Some(ref qr) = resp.query_result {
+        if let Some(ref error) = qr.query_execution_error {
+            return CaQuestionResponse {
+                question: question.to_string(),
+                agent: None,
+                sql: resp.generated_query.clone(),
+                results: vec![],
+                explanation: Some(format!("Query execution error: {error}")),
+            };
+        }
+
+        let col_names: Vec<&str> = qr
+            .columns
+            .as_deref()
+            .unwrap_or(&[])
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect();
+
+        if let Some(ref rows) = qr.rows {
+            for row in rows {
+                let mut map = serde_json::Map::new();
+                for (i, val) in row.values.iter().enumerate() {
+                    let col_name = col_names.get(i).copied().unwrap_or("_unknown").to_string();
+                    let json_val = match &val.value {
+                        Some(v) => serde_json::Value::String(v.clone()),
+                        None => serde_json::Value::Null,
+                    };
+                    map.insert(col_name, json_val);
+                }
+                results.push(map);
+            }
+        }
+    }
+
+    // Prefer natural_language_answer, fall back to intent_explanation
+    let explanation = resp
+        .natural_language_answer
+        .clone()
+        .or_else(|| resp.intent_explanation.clone());
+
+    CaQuestionResponse {
+        question: question.to_string(),
+        agent: None,
+        sql: resp.generated_query.clone(),
+        results,
+        explanation,
+    }
+}
+
 /// Parse a table reference string like "project.dataset.table" into a TableRef.
 pub fn parse_table_ref(s: &str) -> anyhow::Result<TableRef> {
     let parts: Vec<&str> = s.split('.').collect();

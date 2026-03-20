@@ -159,11 +159,7 @@ async fn run_with_profile(
             run_chat_profile(question, profile, auth_opts, format, sanitize_template).await
         }
         ProfileFamily::QueryData => {
-            bail!(
-                "QueryData sources ({}) are not yet supported. \
-                 This will be implemented in Phase 4 Milestone 3.",
-                profile.source_type
-            );
+            run_querydata_profile(question, profile, auth_opts, format, sanitize_template).await
         }
     }
 }
@@ -241,6 +237,31 @@ async fn run_chat_profile(
         }
         _ => unreachable!("Non-ChatDataAgent source in run_chat_profile"),
     }
+}
+
+/// Run CA ask for QueryData family sources (AlloyDB, Spanner, Cloud SQL) via profile.
+async fn run_querydata_profile(
+    question: String,
+    profile: &CaProfile,
+    auth_opts: &AuthOptions,
+    format: &OutputFormat,
+    sanitize_template: Option<&str>,
+) -> Result<()> {
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = CaClient::new(resolved.clone());
+    let resp = client.ask_querydata(profile, &question).await?;
+
+    if let Some(template) = sanitize_template {
+        let json_val = serde_json::to_value(&resp)?;
+        let sanitize_result =
+            crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+        if sanitize_result.sanitized {
+            return crate::output::render(&sanitize_result.content, format);
+        }
+    }
+
+    render_response(&resp, format)
 }
 
 pub async fn run_with_executor(
