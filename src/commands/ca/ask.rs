@@ -53,49 +53,79 @@ pub fn validate_inputs(
 
 /// Resolve a --profile value to a CaProfile.
 ///
-/// If the value looks like a file path (contains '/' or '.yaml'/'.yml'),
-/// load it from disk. Otherwise, look it up by name in the default
-/// profiles directory (deploy/ca/profiles/).
+/// Resolution order:
+/// 1. If the value looks like a file path (contains '/' or ends in .yaml/.yml),
+///    load it from disk directly.
+/// 2. Look up by name in ~/.config/bqx/profiles/ (user-local).
+/// 3. Look up by name in deploy/ca/profiles/ (repo-local fallback).
 fn resolve_profile(profile_ref: &str) -> Result<CaProfile> {
     let path = Path::new(profile_ref);
     if path.extension().map_or(false, |e| e == "yaml" || e == "yml") || profile_ref.contains('/') {
         return crate::ca::profiles::load_profile(path);
     }
 
-    // Look up by name in the default profiles directory.
-    let profiles_dir = Path::new("deploy/ca/profiles");
-    if !profiles_dir.exists() {
-        bail!(
-            "Profile '{}' not found. No profiles directory at {}",
-            profile_ref,
-            profiles_dir.display()
-        );
+    // 1. User-local profiles directory.
+    if let Some(config_dir) = dirs_for_profile_lookup() {
+        let profiles = crate::ca::profiles::load_profiles_from_dir(&config_dir)?;
+        if let Some(p) = profiles.into_iter().find(|p| p.name == profile_ref) {
+            return Ok(p);
+        }
     }
 
-    let profiles = crate::ca::profiles::load_profiles_from_dir(profiles_dir)?;
-    profiles
-        .into_iter()
-        .find(|p| p.name == profile_ref)
-        .ok_or_else(|| anyhow::anyhow!("Profile '{}' not found in {}", profile_ref, profiles_dir.display()))
+    // 2. Repo-local fallback (deploy/ca/profiles/).
+    let repo_dir = Path::new("deploy/ca/profiles");
+    if repo_dir.exists() {
+        let profiles = crate::ca::profiles::load_profiles_from_dir(repo_dir)?;
+        if let Some(p) = profiles.into_iter().find(|p| p.name == profile_ref) {
+            return Ok(p);
+        }
+    }
+
+    bail!(
+        "Profile '{}' not found. Looked in ~/.config/bqx/profiles/ and deploy/ca/profiles/. \
+         You can also pass a path: --profile path/to/profile.yaml",
+        profile_ref
+    )
+}
+
+/// Returns the user-local profiles directory (~/.config/bqx/profiles/) if it exists.
+fn dirs_for_profile_lookup() -> Option<std::path::PathBuf> {
+    let dir = directories::ProjectDirs::from("", "", "bqx")?;
+    let profiles_dir = dir.config_dir().join("profiles");
+    if profiles_dir.exists() {
+        Some(profiles_dir)
+    } else {
+        None
+    }
 }
 
 // ── Entry points ──
 
+/// Profile-based entry point. Called from main.rs before Config::from_cli()
+/// so that --project-id is not required when the profile supplies it.
+pub async fn run_profile(
+    question: String,
+    profile_ref: &str,
+    auth_opts: &AuthOptions,
+    format: &OutputFormat,
+    sanitize_template: Option<&str>,
+) -> Result<()> {
+    if question.trim().is_empty() {
+        bail!("Question cannot be empty");
+    }
+
+    let profile = resolve_profile(profile_ref)?;
+    run_with_profile(question, &profile, auth_opts, format, sanitize_template).await
+}
+
+/// Legacy entry point (no --profile). Uses Config which requires --project-id.
 pub async fn run(
     question: String,
-    profile: Option<String>,
     agent: Option<String>,
     tables: Option<Vec<String>>,
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
-    // If a profile is specified, extract source context from it.
-    if let Some(ref profile_ref) = profile {
-        let ca_profile = resolve_profile(profile_ref)?;
-        return run_with_profile(question, &ca_profile, auth_opts, config).await;
-    }
-
-    // Legacy path: direct --agent / --tables flags (BigQuery only).
     validate_inputs(&question, agent.as_deref(), tables.as_deref())?;
     let req = build_request(question, agent, tables, &config.location)?;
 
@@ -121,11 +151,12 @@ async fn run_with_profile(
     question: String,
     profile: &CaProfile,
     auth_opts: &AuthOptions,
-    config: &Config,
+    format: &OutputFormat,
+    sanitize_template: Option<&str>,
 ) -> Result<()> {
     match profile.source_type.family() {
         ProfileFamily::ChatDataAgent => {
-            run_chat_profile(question, profile, auth_opts, config).await
+            run_chat_profile(question, profile, auth_opts, format, sanitize_template).await
         }
         ProfileFamily::QueryData => {
             bail!(
@@ -142,15 +173,12 @@ async fn run_chat_profile(
     question: String,
     profile: &CaProfile,
     auth_opts: &AuthOptions,
-    config: &Config,
+    format: &OutputFormat,
+    sanitize_template: Option<&str>,
 ) -> Result<()> {
     match profile.source_type {
         SourceType::BigQuery => {
-            // BigQuery profile: extract agent/tables and use existing path.
-            let location = profile
-                .location
-                .as_deref()
-                .unwrap_or(&config.location);
+            let location = profile.location.as_deref().unwrap_or("US");
             let req = build_request(
                 question,
                 profile.agent.clone(),
@@ -160,21 +188,20 @@ async fn run_chat_profile(
 
             let resolved = auth::resolve(auth_opts).await?;
             let client = CaClient::new(resolved.clone());
-            let project = &profile.project;
-            let resp = client.ask(project, &req).await?;
+            let resp = client.ask(&profile.project, &req).await?;
 
-            if let Some(ref template) = config.sanitize_template {
+            if let Some(template) = sanitize_template {
                 let json_val = serde_json::to_value(&resp)?;
                 let sanitize_result =
                     crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val)
                         .await?;
                 crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
                 if sanitize_result.sanitized {
-                    return crate::output::render(&sanitize_result.content, &config.format);
+                    return crate::output::render(&sanitize_result.content, format);
                 }
             }
 
-            render_response(&resp, &config.format)
+            render_response(&resp, format)
         }
         SourceType::Looker | SourceType::LookerStudio => {
             bail!(

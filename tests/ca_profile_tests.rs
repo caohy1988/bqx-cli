@@ -87,24 +87,67 @@ fn profile_missing_required_field_returns_error() {
 }
 
 #[test]
-fn bigquery_profile_works_with_profile_flag() {
-    // Verify the CLI accepts --profile alongside ca ask
-    let result = std::process::Command::new("cargo")
+fn profile_does_not_require_project_id() {
+    // --profile supplies its own project, so --project-id should NOT be required.
+    let output = std::process::Command::new("cargo")
         .args([
-            "run", "--", "ca", "ask", "--profile", "deploy/ca/profiles/bigquery-demo.yaml",
-            "test question", "--project-id", "test-proj",
+            "run", "--quiet", "--", "ca", "ask",
+            "--profile", "deploy/ca/profiles/bigquery-demo.yaml",
+            "test question",
         ])
         .env("BQX_TOKEN", "fake-token")
-        .output();
+        .output()
+        .expect("failed to run bqx");
 
-    // We expect it to fail at the API call level (not at CLI parsing).
-    // The important thing is it doesn't fail with "unknown flag --profile".
-    if let Ok(output) = result {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        // Should not complain about --profile being unknown
-        assert!(
-            !stderr.contains("unexpected argument"),
-            "CLI should accept --profile flag, got: {stderr}"
-        );
-    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    // Must NOT fail with "project-id is required"
+    assert!(
+        !stderr.contains("--project-id or BQX_PROJECT is required"),
+        "Profile should supply project, but got: {stderr}"
+    );
+    // Must NOT fail with "unexpected argument"
+    assert!(
+        !stderr.contains("unexpected argument"),
+        "CLI should accept --profile flag, got: {stderr}"
+    );
+}
+
+#[test]
+fn profile_rejects_conflicting_agent_flag() {
+    let output = std::process::Command::new("cargo")
+        .args([
+            "run", "--quiet", "--", "ca", "ask",
+            "--profile", "deploy/ca/profiles/bigquery-demo.yaml",
+            "--agent", "some-agent",
+            "test question",
+        ])
+        .env("BQX_TOKEN", "fake-token")
+        .output()
+        .expect("failed to run bqx");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--profile cannot be combined with --agent or --tables"),
+        "Should reject --profile + --agent, got: {stderr}"
+    );
+}
+
+#[test]
+fn profile_rejects_conflicting_tables_flag() {
+    let output = std::process::Command::new("cargo")
+        .args([
+            "run", "--quiet", "--", "ca", "ask",
+            "--profile", "deploy/ca/profiles/bigquery-demo.yaml",
+            "--tables", "p.d.t",
+            "test question",
+        ])
+        .env("BQX_TOKEN", "fake-token")
+        .output()
+        .expect("failed to run bqx");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--profile cannot be combined with --agent or --tables"),
+        "Should reject --profile + --tables, got: {stderr}"
+    );
 }
