@@ -260,9 +260,10 @@ async fn run_static(cli: Cli) {
         Command::Ca { command } => match command {
             CaCommand::Ask {
                 question,
+                profile,
                 agent,
                 tables,
-            } => commands::ca::ask::run(question, agent, tables, &auth_opts, &config).await,
+            } => commands::ca::ask::run(question, profile, agent, tables, &auth_opts, &config).await,
             CaCommand::CreateAgent {
                 name,
                 tables,
