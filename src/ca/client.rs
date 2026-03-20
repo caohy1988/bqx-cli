@@ -653,7 +653,7 @@ mod tests {
     use super::*;
     use crate::auth::resolver::AuthSource;
     use crate::auth::ResolvedAuth;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn test_auth() -> ResolvedAuth {
@@ -1255,5 +1255,169 @@ mod tests {
             .as_deref()
             .unwrap()
             .contains("does not exist"));
+    }
+
+    fn spanner_profile() -> CaProfile {
+        CaProfile {
+            name: "test-spanner".into(),
+            source_type: super::super::profiles::SourceType::Spanner,
+            project: "test-project".into(),
+            location: Some("us-central1".into()),
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx-finance".into()),
+            cluster_id: None,
+            instance_id: Some("finance-inst".into()),
+            database_id: Some("ledger".into()),
+            db_type: None,
+        }
+    }
+
+    fn cloudsql_profile() -> CaProfile {
+        CaProfile {
+            name: "test-cloudsql".into(),
+            source_type: super::super::profiles::SourceType::CloudSql,
+            project: "test-project".into(),
+            location: Some("us-central1".into()),
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx-app".into()),
+            cluster_id: None,
+            instance_id: Some("app-db".into()),
+            database_id: Some("myapp".into()),
+            db_type: Some("mysql".into()),
+        }
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_sends_spanner_request() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!({
+            "generatedQuery": "SELECT region, SUM(amount) FROM payments GROUP BY region",
+            "queryResult": {
+                "columns": [
+                    {"name": "region"},
+                    {"name": "total"}
+                ],
+                "rows": [
+                    {"values": [{"value": "US"}, {"value": "1500.00"}]}
+                ]
+            },
+            "naturalLanguageAnswer": "US region has $1500 in payments."
+        });
+
+        Mock::given(method("POST"))
+            .and(path(
+                "/projects/test-project/locations/us-central1:queryData",
+            ))
+            .and(body_json(serde_json::json!({
+                "prompt": "payments by region",
+                "context": {
+                    "datasourceReferences": {
+                        "spannerReference": {
+                            "databaseReference": {
+                                "engine": "GOOGLE_SQL",
+                                "projectId": "test-project",
+                                "instanceId": "finance-inst",
+                                "databaseId": "ledger"
+                            },
+                            "agentContextReference": {
+                                "contextSetId": "projects/test-project/locations/us-central1/contextSets/ctx-finance"
+                            }
+                        }
+                    }
+                },
+                "generationOptions": {
+                    "generateQueryResult": true,
+                    "generateNaturalLanguageAnswer": true,
+                    "generateExplanation": true
+                }
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = spanner_profile();
+        let resp = client
+            .ask_querydata(&profile, "payments by region")
+            .await
+            .unwrap();
+
+        assert_eq!(resp.question, "payments by region");
+        assert_eq!(resp.results.len(), 1);
+        assert_eq!(resp.results[0]["region"], "US");
+        assert_eq!(resp.results[0]["total"], "1500.00");
+    }
+
+    #[tokio::test]
+    async fn ask_querydata_sends_cloudsql_request() {
+        let mock_server = MockServer::start().await;
+
+        let response_body = serde_json::json!({
+            "generatedQuery": "SELECT COUNT(*) AS total FROM users",
+            "queryResult": {
+                "columns": [{"name": "total"}],
+                "rows": [{"values": [{"value": "250"}]}]
+            },
+            "naturalLanguageAnswer": "There are 250 users."
+        });
+
+        Mock::given(method("POST"))
+            .and(path(
+                "/projects/test-project/locations/us-central1:queryData",
+            ))
+            .and(body_json(serde_json::json!({
+                "prompt": "how many users",
+                "context": {
+                    "datasourceReferences": {
+                        "cloudSqlReference": {
+                            "databaseReference": {
+                                "engine": "MYSQL",
+                                "projectId": "test-project",
+                                "region": "us-central1",
+                                "instanceId": "app-db",
+                                "databaseId": "myapp"
+                            },
+                            "agentContextReference": {
+                                "contextSetId": "projects/test-project/locations/us-central1/contextSets/ctx-app"
+                            }
+                        }
+                    }
+                },
+                "generationOptions": {
+                    "generateQueryResult": true,
+                    "generateNaturalLanguageAnswer": true,
+                    "generateExplanation": true
+                }
+            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = CaClient::with_base_url(test_auth(), mock_server.uri());
+        let profile = cloudsql_profile();
+        let resp = client
+            .ask_querydata(&profile, "how many users")
+            .await
+            .unwrap();
+
+        assert_eq!(resp.question, "how many users");
+        assert_eq!(resp.results.len(), 1);
+        assert_eq!(resp.results[0]["total"], "250");
+        assert_eq!(resp.explanation.as_deref(), Some("There are 250 users."));
     }
 }

@@ -185,77 +185,21 @@ impl CaProfile {
                 }
             }
             SourceType::AlloyDb => {
-                if self.context_set_id.is_none() {
-                    bail!(
-                        "Profile '{}': context_set_id is required for AlloyDB sources",
-                        self.name
-                    );
-                }
-                if self.cluster_id.is_none() {
-                    bail!(
-                        "Profile '{}': cluster_id is required for AlloyDB sources",
-                        self.name
-                    );
-                }
-                if self.instance_id.is_none() {
-                    bail!(
-                        "Profile '{}': instance_id is required for AlloyDB sources",
-                        self.name
-                    );
-                }
-                if self.database_id.is_none() {
-                    bail!(
-                        "Profile '{}': database_id is required for AlloyDB sources",
-                        self.name
-                    );
-                }
+                self.require_nonempty("context_set_id", &self.context_set_id)?;
+                self.require_nonempty("cluster_id", &self.cluster_id)?;
+                self.require_nonempty("instance_id", &self.instance_id)?;
+                self.require_nonempty("database_id", &self.database_id)?;
             }
             SourceType::Spanner => {
-                if self.context_set_id.is_none() {
-                    bail!(
-                        "Profile '{}': context_set_id is required for Spanner sources",
-                        self.name
-                    );
-                }
-                if self.instance_id.is_none() {
-                    bail!(
-                        "Profile '{}': instance_id is required for Spanner sources",
-                        self.name
-                    );
-                }
-                if self.database_id.is_none() {
-                    bail!(
-                        "Profile '{}': database_id is required for Spanner sources",
-                        self.name
-                    );
-                }
+                self.require_nonempty("context_set_id", &self.context_set_id)?;
+                self.require_nonempty("instance_id", &self.instance_id)?;
+                self.require_nonempty("database_id", &self.database_id)?;
             }
             SourceType::CloudSql => {
-                if self.context_set_id.is_none() {
-                    bail!(
-                        "Profile '{}': context_set_id is required for Cloud SQL sources",
-                        self.name
-                    );
-                }
-                if self.instance_id.is_none() {
-                    bail!(
-                        "Profile '{}': instance_id is required for Cloud SQL sources",
-                        self.name
-                    );
-                }
-                if self.database_id.is_none() {
-                    bail!(
-                        "Profile '{}': database_id is required for Cloud SQL sources",
-                        self.name
-                    );
-                }
-                if self.db_type.is_none() {
-                    bail!(
-                        "Profile '{}': db_type is required for Cloud SQL sources \
-                         (must be 'mysql' or 'postgresql')",
-                        self.name
-                    );
-                }
+                self.require_nonempty("context_set_id", &self.context_set_id)?;
+                self.require_nonempty("instance_id", &self.instance_id)?;
+                self.require_nonempty("database_id", &self.database_id)?;
+                self.require_nonempty("db_type", &self.db_type)?;
                 let db_type = self.db_type.as_deref().unwrap();
                 if db_type != "mysql" && db_type != "postgresql" {
                     bail!(
@@ -267,6 +211,19 @@ impl CaProfile {
             }
         }
 
+        Ok(())
+    }
+
+    /// Return an error if the field is None or empty.
+    fn require_nonempty(&self, field: &str, value: &Option<String>) -> Result<()> {
+        if value.as_ref().map_or(true, |v| v.is_empty()) {
+            bail!(
+                "Profile '{}': {} is required for {} sources",
+                self.name,
+                field,
+                self.source_type
+            );
+        }
         Ok(())
     }
 }
@@ -606,6 +563,102 @@ mod tests {
             db_type: None,
         };
         p.validate().unwrap();
+    }
+
+    #[test]
+    fn alloydb_empty_cluster_id_fails() {
+        let p = CaProfile {
+            name: "bad-alloy".into(),
+            source_type: SourceType::AlloyDb,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx".into()),
+            cluster_id: Some("".into()),
+            instance_id: Some("inst".into()),
+            database_id: Some("db".into()),
+            db_type: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("cluster_id"));
+    }
+
+    #[test]
+    fn spanner_empty_instance_id_fails() {
+        let p = CaProfile {
+            name: "bad-spanner".into(),
+            source_type: SourceType::Spanner,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx".into()),
+            cluster_id: None,
+            instance_id: Some("".into()),
+            database_id: Some("db".into()),
+            db_type: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("instance_id"));
+    }
+
+    #[test]
+    fn cloudsql_empty_database_id_fails() {
+        let p = CaProfile {
+            name: "bad-sql".into(),
+            source_type: SourceType::CloudSql,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("ctx".into()),
+            cluster_id: None,
+            instance_id: Some("inst".into()),
+            database_id: Some("".into()),
+            db_type: Some("postgresql".into()),
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("database_id"));
+    }
+
+    #[test]
+    fn alloydb_empty_context_set_id_fails() {
+        let p = CaProfile {
+            name: "bad-alloy".into(),
+            source_type: SourceType::AlloyDb,
+            project: "my-project".into(),
+            location: None,
+            agent: None,
+            tables: None,
+            looker_instance_url: None,
+            looker_explores: None,
+            looker_client_id: None,
+            looker_client_secret: None,
+            studio_datasource_id: None,
+            context_set_id: Some("".into()),
+            cluster_id: Some("ops".into()),
+            instance_id: Some("inst".into()),
+            database_id: Some("db".into()),
+            db_type: None,
+        };
+        let err = p.validate().unwrap_err();
+        assert!(err.to_string().contains("context_set_id"));
     }
 
     #[test]
