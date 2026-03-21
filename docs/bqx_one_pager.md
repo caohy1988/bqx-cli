@@ -1,4 +1,4 @@
-# bqx: why BigQuery needs an agent-native CLI
+# bqx: why Data Cloud needs an agent-native CLI
 
 **Author:** Haiyuan Cao
 
@@ -10,9 +10,10 @@
 world where agents and humans both use CLI as the control plane. That is a
 different design target, and it needs a different tool.
 
-`bq` keeps BigQuery usable. `bqx` makes BigQuery agent-usable. This is
-the same thesis behind the GWS CLI effort: a strong CLI becomes a shared
-control plane across humans, automation, and agents.
+`bq` keeps BigQuery usable. `bqx` makes Google Cloud's Data Cloud
+agent-usable — across BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL.
+This is the same thesis behind the GWS CLI effort: a strong CLI becomes a
+shared control plane across humans, automation, and agents.
 
 Recent signals from Perplexity and the industry trajectory toward coding
 agents with VM execution environments confirm this direction. Local
@@ -79,7 +80,7 @@ to call it correctly.
 
 | | `bq` CLI | `bqx` CLI |
 |---|---|---|
-| **Discovery** | No skill files. The agent must be pre-programmed with `bq` syntax, or parse `--help` text and guess. | Ships 26 skills in the open SKILL.md format. An agent reads the skill file and knows exactly what parameters to pass. |
+| **Discovery** | No skill files. The agent must be pre-programmed with `bq` syntax, or parse `--help` text and guess. | Ships 32 skills in the open SKILL.md format covering BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL. An agent reads the skill file and knows exactly what parameters to pass. |
 | **Integration** | Every agent platform (OpenClaw, Gemini CLI, Claude Code) writes its own `bq` wrapper with hardcoded knowledge of which flags to use. | One stable skill surface. All agent platforms integrate BigQuery the same way — no per-platform wrapper code. |
 | **Example** | Agent has no way to discover that `bq query` exists or what flags it needs. Team writes a custom tool definition for each agent framework. | Agent loads `skills/bqx-query/SKILL.md`, sees the command template, parameters, and output schema. Runs it directly. |
 
@@ -174,7 +175,7 @@ of the product.
 
 This is not a proposal. I have already built and shipped a working prototype.
 
-The prototype is at v0.3.0 with 347 tests, 26 agent skills, and release
+The prototype is at v0.4.0 with 347+ tests, 32 agent skills, and release
 binaries for 6 platforms (macOS, Linux, Windows — x64 and ARM64). It covers
 three command domains:
 
@@ -183,18 +184,19 @@ three command domains:
 - **Agent Analytics** — doctor, evaluate, drift, insights, distribution,
   traces, HITL metrics, views. These prototype the workflow patterns that
   will migrate to Skills over agent ops APIs as those APIs land.
-- **Conversational Analytics** — `ca ask`, `ca create-agent`,
-  `ca add-verified-query`, `ca list-agents`
+- **Conversational Analytics** — `ca ask` across 6 data sources (BigQuery,
+  Looker, Looker Studio, AlloyDB, Spanner, Cloud SQL), plus
+  `ca create-agent`, `ca add-verified-query`, `ca list-agents`
 
-The CA integration currently targets BigQuery as the data source. I agree
-with the feedback that a CA CLI tool should not be restricted to BigQuery —
-it should support all CA agent data sources including Looker and external
-databases. bqx is a natural place to prototype this broader CA CLI surface
-and validate the interaction model before expanding to other sources.
+The CA integration supports all official Conversational Analytics API data
+sources through a unified `ca ask` command. Source profiles determine which
+API family is used — Chat/DataAgent for BigQuery, Looker, and Looker Studio;
+QueryData for AlloyDB, Spanner, and Cloud SQL. This has been validated
+end-to-end against real GCP instances.
 
 It also ships with Model Armor integration, npm distribution, shell
-completions, a Gemini extension manifest, and end-to-end validation against a
-live GCP project.
+completions, a Gemini extension manifest, and end-to-end validation against
+live GCP projects.
 
 ## Ask
 

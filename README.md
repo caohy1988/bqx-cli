@@ -1,10 +1,10 @@
-# Proposal: `bqx` — An Agent-Native BigQuery CLI with Skills
+# Proposal: `bqx` — An Agent-Native Data Cloud CLI with Skills
 
 **Status:** Proposal
 **Date:** 2026-03-08
 **Related:** [gws CLI](https://github.com/googleworkspace/cli),
 [Agent Skills](https://agentskills.io),
-[BigQuery Conversational Analytics](https://cloud.google.com/bigquery/docs/conversational-analytics),
+[Conversational Analytics API](https://docs.cloud.google.com/gemini/data-agents/conversational-analytics-api/overview),
 [BigQuery Agent Analytics SDK](https://github.com/haiyuan-eng-google/BigQuery-Agent-Analytics-SDK)
 
 For a detailed technical comparison with the standard `bq` CLI, including
@@ -80,41 +80,47 @@ agent-first treatment.
 
 ---
 
-## 2. Proposal: `bqx` (BigQuery Extended)
+## 2. Proposal: `bqx` (BigQuery Extended → Data Cloud CLI)
 
-A new agent-native CLI for BigQuery that combines:
+A new agent-native CLI for Google Cloud's Data Cloud that combines:
 
 1. **Dynamic command generation** from BigQuery APIs (like `gws`)
 2. **Agent Skills** for discoverability (SKILL.md format)
-3. **Conversational Analytics** integration (natural language queries) —
-   *depends on the CA API reaching GA; see [Open Questions](#9-open-questions)*
+3. **Conversational Analytics** integration across 6 data sources —
+   BigQuery, Looker, Looker Studio, AlloyDB, Spanner, and Cloud SQL
 4. **BigQuery Agent Analytics SDK** capabilities (evaluation, traces, drift)
 
 ```
-┌───────────────────────────────────────────────────────────────┐
-│                           bqx CLI                             │
-│                                                               │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────────┐  │
-│  │ BigQuery API   │  │ Agent         │  │ Conversational    │  │
-│  │ (dynamic)      │  │ Analytics SDK │  │ Analytics API     │  │
-│  │                │  │               │  │                   │  │
-│  │ query, mk,    │  │ evaluate,     │  │ ask,              │  │
-│  │ ls, load,     │  │ get-trace,    │  │ create-agent,     │  │
-│  │ show, rm      │  │ drift,        │  │ list-agents       │  │
-│  │                │  │ insights      │  │                   │  │
-│  └───────┬───────┘  └───────┬───────┘  └─────────┬─────────┘  │
-│          │                  │                     │            │
-│  ┌───────┴──────────────────┴─────────────────────┴─────────┐  │
-│  │                     Shared Core                           │  │
-│  │  Auth · JSON output · Model Armor · Pagination            │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                    Skills (SKILL.md)                       │  │
-│  │  26 curated skills (see §4.1 for full listing)             │  │
-│  │  1 shared · 8 service · 8 helper · 3 persona · 6 recipe  │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                            bqx CLI                                │
+│                                                                   │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────────────┐  │
+│  │ BigQuery API   │  │ Agent         │  │ Conversational        │  │
+│  │ (dynamic)      │  │ Analytics SDK │  │ Analytics API         │  │
+│  │                │  │               │  │                       │  │
+│  │ query, mk,    │  │ evaluate,     │  │ ask (6 sources),      │  │
+│  │ ls, load,     │  │ get-trace,    │  │ create-agent,         │  │
+│  │ show, rm      │  │ drift,        │  │ list-agents           │  │
+│  │                │  │ insights      │  │                       │  │
+│  └───────┬───────┘  └───────┬───────┘  └──────────┬────────────┘  │
+│          │                  │                      │               │
+│  ┌───────┴──────────────────┴──────────────────────┴────────────┐  │
+│  │                      Shared Core                              │  │
+│  │  Auth · JSON output · Model Armor · Pagination · Profiles     │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                     Skills (SKILL.md)                          │  │
+│  │  32 curated skills (see §4.1 for full listing)                 │  │
+│  │  1 shared · 7 service · 6 helper · 7 CA · 3 persona · 8 recipe │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │               CA Source Matrix                                 │  │
+│  │  Chat/DataAgent: BigQuery · Looker · Looker Studio             │  │
+│  │  QueryData:      AlloyDB  · Spanner · Cloud SQL                │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
 ### Why `bqx`, not extending `bq`
@@ -248,19 +254,42 @@ bqx analytics insights --agent-id=support_bot --last=24h
 
 #### Domain 3: `bqx ca <command>` — Conversational Analytics (static)
 
-Wraps the BigQuery Conversational Analytics API, bringing natural language
-queries to the terminal.
+Wraps the Conversational Analytics API, bringing natural language queries
+to the terminal across 6 data sources.
+
+**Supported sources:**
+
+| Source | API Family | Access Method |
+|--------|-----------|---------------|
+| BigQuery | Chat / DataAgent | `--agent` or `--tables` flags |
+| Looker | Chat / DataAgent | `--profile` with explore references |
+| Looker Studio | Chat / DataAgent | `--profile` with datasource references |
+| AlloyDB | QueryData | `--profile` with database connection |
+| Spanner | QueryData | `--profile` with instance/database |
+| Cloud SQL | QueryData | `--profile` with instance/database |
 
 ```bash
-# Ask a natural language question
+# BigQuery: ask via data agent
 bqx ca ask "Show me the top 5 agents by error rate this week" \
   --agent=agent-analytics-data-agent
 
-# Ask with a specific table context
+# BigQuery: ask with inline table context
 bqx ca ask "What's the p95 latency trend for support_bot?" \
   --tables=myproject.analytics.agent_events
 
-# Create a data agent with verified queries
+# Looker: ask against explore profiles
+bqx ca ask --profile sales-looker.yaml "What are the top selling products?"
+
+# AlloyDB: operational queries via database profiles
+bqx ca ask --profile ops-alloydb.yaml "show active connections"
+
+# Spanner: business queries via database profiles
+bqx ca ask --profile finance-spanner.yaml "total revenue by region"
+
+# Cloud SQL: query via database profiles
+bqx ca ask --profile app-cloudsql.yaml "show all tables"
+
+# Create a BigQuery data agent with verified queries
 bqx ca create-agent \
   --name=agent-analytics \
   --tables=myproject.analytics.agent_events,myproject.analytics.adk_llm_response \
@@ -269,12 +298,6 @@ bqx ca create-agent \
 
 # List data agents
 bqx ca list-agents --project-id=myproject
-
-# Add a verified query to an existing agent
-bqx ca add-verified-query \
-  --agent=agent-analytics \
-  --question="What is the error rate for agent X?" \
-  --query="SELECT COUNT(CASE WHEN status='ERROR' THEN 1 END) / COUNT(*) FROM ..."
 ```
 
 ### 3.3 Output Format
@@ -403,23 +426,29 @@ skills/
 ├── bqx-query/SKILL.md                        # Curated: shortcut for `bqx jobs query`
 ├── bqx-schema/SKILL.md                       # Curated: inspect table schemas
 │
+│ ## CA skills — multi-source (Phase 3 + Phase 4)
+├── bqx-ca/SKILL.md                           # Routing: CA entry point, source selection
+├── bqx-ca-ask/SKILL.md                       # Helper: ask questions across all sources
+├── bqx-ca-create-agent/SKILL.md              # Helper: create BigQuery data agents
+├── bqx-ca-looker/SKILL.md                    # Phase 4: Looker explore CA profiles
+├── bqx-ca-database/SKILL.md                  # Phase 4: database source routing
+├── bqx-ca-alloydb/SKILL.md                   # Phase 4: AlloyDB prerequisites + CA
+├── bqx-ca-spanner/SKILL.md                   # Phase 4: Spanner GoogleSQL CA patterns
+│
 │ ## Personas — curated
 ├── persona-agent-developer/SKILL.md          # Curated: agent developer workflows
 ├── persona-data-analyst/SKILL.md             # Curated: SQL analyst workflows
-├── persona-sre/SKILL.md                      # Phase 3: SRE/on-call (requires bqx-ca)
+├── persona-sre/SKILL.md                      # SRE/on-call with cross-source CA
 │
 │ ## Recipes — curated
 ├── recipe-eval-pipeline/SKILL.md             # Curated: CI/CD eval gate setup
 ├── recipe-quality-dashboard/SKILL.md         # Curated: dashboard via BigQuery views
 ├── recipe-drift-monitoring/SKILL.md          # Curated: weekly drift detection
-│
-│ ## CA-dependent (Phase 3)
-├── bqx-ca/SKILL.md                           # Phase 3: Conversational Analytics
-├── bqx-ca-ask/SKILL.md                       # Phase 3: ask questions in NL
-├── bqx-ca-create-agent/SKILL.md              # Phase 3: create data agents
 ├── recipe-error-alerting/SKILL.md            # Phase 3: CQ + AI.GENERATE_TEXT alerting
 ├── recipe-self-diagnostic-agent/SKILL.md     # Phase 3: agent self-correction loop
-└── recipe-ca-data-agent-setup/SKILL.md       # Phase 3: CA data agent creation
+├── recipe-ca-data-agent-setup/SKILL.md       # Phase 3: CA data agent creation
+├── recipe-ca-looker-exploration/SKILL.md     # Phase 4: Looker CA exploration workflow
+└── recipe-ca-database-ops/SKILL.md           # Phase 4: database CA ops workflow
 ```
 
 ### 4.2 Example Skills
@@ -670,12 +699,13 @@ provide.
 
 | Type | Count | Generated? | Examples |
 |------|-------|------------|----------|
-| Service (API) | 4 | Yes | `bqx-datasets`, `bqx-tables`, `bqx-routines`, `bqx-models` |
-| Service (static/non-Discovery) | 3 | No | `bqx-jobs`, `bqx-connections`, `bqx-analytics` |
-| Helper | 9 | No | `bqx-analytics-evaluate`, `bqx-query`, `bqx-schema`, `bqx-ca`, `bqx-ca-ask`, `bqx-ca-create-agent` |
-| Persona | 3 | No | `persona-agent-developer`, `persona-data-analyst`, `persona-sre` |
-| Recipe | 6 | No | `recipe-eval-pipeline`, `recipe-quality-dashboard`, `recipe-ca-data-agent-setup`, `recipe-error-alerting`, `recipe-self-diagnostic-agent` |
 | Shared | 1 | No | `bqx-shared` |
+| Service (API) | 4 | Yes | `bqx-datasets`, `bqx-tables`, `bqx-routines`, `bqx-models` |
+| Service (static) | 3 | No | `bqx-jobs`, `bqx-connections`, `bqx-analytics` |
+| Helper | 6 | No | `bqx-analytics-evaluate`, `bqx-analytics-trace`, `bqx-analytics-drift`, `bqx-analytics-views`, `bqx-query`, `bqx-schema` |
+| CA | 7 | No | `bqx-ca`, `bqx-ca-ask`, `bqx-ca-create-agent`, `bqx-ca-looker`, `bqx-ca-database`, `bqx-ca-alloydb`, `bqx-ca-spanner` |
+| Persona | 3 | No | `persona-agent-developer`, `persona-data-analyst`, `persona-sre` |
+| Recipe | 8 | No | `recipe-eval-pipeline`, `recipe-ca-data-agent-setup`, `recipe-ca-looker-exploration`, `recipe-ca-database-ops` |
 
 ### 4.4 Skill Distribution
 
@@ -720,9 +750,21 @@ Pre-generated scripts are also available in the `completions/` directory.
 
 ### 5.1 Why This Matters
 
-BigQuery Conversational Analytics lets users ask natural language questions
-over their data. Today it's only accessible in the BigQuery Cloud Console.
-`bqx ca` brings it to the terminal and to agents.
+The Conversational Analytics API lets users ask natural language questions
+over data in BigQuery, Looker, Looker Studio, AlloyDB, Spanner, and
+Cloud SQL. `bqx ca` brings all of these sources to the terminal and to
+agents through a unified `ca ask` command.
+
+The API has two families:
+
+| API Family | Sources | Use Case |
+|-----------|---------|----------|
+| Chat / DataAgent | BigQuery, Looker, Looker Studio | Analytic queries with data agents |
+| QueryData | AlloyDB, Spanner, Cloud SQL | Database queries via source profiles |
+
+`bqx ca ask` normalizes both families behind a single command. The
+`--profile` flag determines which API path is used based on the source
+type.
 
 ### 5.2 Data Agent for Agent Analytics
 
@@ -806,7 +848,7 @@ verified_queries:
 ### 5.3 Usage
 
 ```bash
-# Natural language query via terminal
+# BigQuery: natural language query via data agent
 $ bqx ca ask "What were the top errors for support_bot yesterday?" \
     --agent=agent-analytics
 
@@ -826,13 +868,44 @@ $ bqx ca ask "Which agent had the worst performance today?" --agent=agent-analyt
   | xargs -I{} bqx analytics evaluate --agent-id={} --evaluator=latency --threshold=5000 --last=24h
 ```
 
+#### Multi-source CA via Profiles
+
+```bash
+# Spanner: business queries
+$ bqx ca ask --profile finance-spanner.yaml "total revenue by region"
+
+# AlloyDB: operational queries
+$ bqx ca ask --profile ops-alloydb.yaml "show active connections"
+
+# Cloud SQL: schema exploration
+$ bqx ca ask --profile app-cloudsql.yaml "show all tables"
+
+# Looker: explore-based analytics
+$ bqx ca ask --profile sales-looker.yaml "What are the top selling products?"
+```
+
+Profile files are YAML with a `source_type` discriminator:
+
+```yaml
+# Example: Spanner profile
+name: finance-spanner
+source_type: spanner
+project: my-gcp-project
+location: us-central1
+instance_id: my-spanner-instance
+database_id: my-database
+```
+
+See `skills/bqx-ca-database/SKILL.md` and `skills/bqx-ca-looker/SKILL.md`
+for source-specific profile formats and prerequisites.
+
 ---
 
 ## 6. How the Three Domains Compose
 
 The power of `bqx` is that its three domains — BigQuery API, Agent
-Analytics, and Conversational Analytics — compose through Unix pipes and
-agent reasoning:
+Analytics, and Conversational Analytics (across all 6 data sources) —
+compose through Unix pipes and agent reasoning:
 
 ### Scenario: Agent Investigates Its Own Performance
 
@@ -877,6 +950,10 @@ bqx jobs query --query="
   FROM analytics.agent_events
   WHERE session_id = 'sess-042'
   GROUP BY event_type"
+
+# 6. Cross-source investigation via database profiles
+bqx ca ask --profile ops-alloydb.yaml "any blocked queries right now?"
+bqx ca ask --profile finance-spanner.yaml "failed transactions last hour"
 ```
 
 ---
@@ -940,6 +1017,31 @@ reproducible validation script.
 structured JSON with SQL and results; all analytics commands pass
 integration tests.
 
+### Phase 4: Data Cloud CA + Multi-Source Profiles (v0.4) — In Progress
+
+- [x] Source model: `CaProfile` with `SourceType` enum (BigQuery, Looker,
+  LookerStudio, AlloyDb, Spanner, CloudSql)
+- [x] Provider split: Chat/DataAgent for BigQuery/Looker/Studio,
+  QueryData for AlloyDB/Spanner/Cloud SQL
+- [x] `bqx ca ask --profile` routes to the correct API family based on
+  source type
+- [x] Looker explore profiles with instance URL and model/explore references
+- [x] AlloyDB, Spanner, Cloud SQL profiles with database connection details
+- [x] QueryData API integration with optional `context_set_id`
+- [x] 6 new Data Cloud skills: `bqx-ca-looker`, `bqx-ca-database`,
+  `bqx-ca-alloydb`, `bqx-ca-spanner`, `recipe-ca-looker-exploration`,
+  `recipe-ca-database-ops`
+- [x] Updated routing skills (`bqx-ca`, `bqx-ca-ask`, `persona-sre`)
+- [x] E2E validation against live AlloyDB, Spanner, and Cloud SQL instances
+- [ ] Docs and positioning update (this milestone)
+- [ ] Version bump to 0.4.0 and release closure
+
+**Exit criteria:** `bqx ca ask --profile <source>.yaml` works for BigQuery,
+Looker, AlloyDB, Spanner, and Cloud SQL; skill layer reflects multi-source
+Data Cloud support; docs updated.
+
+See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
+
 ### Testing Strategy
 
 - **Unit tests:** Core parsing, auth resolution, output formatting
@@ -976,9 +1078,11 @@ integration tests.
    **Recommendation:** Start with curated (datasets, tables, jobs, routines,
    models, connections); add more resources via `generate-skills` as needed.
 
-4. **CA API availability:** The Conversational Analytics API is in preview.
-   **Mitigation:** Phase 3 depends on API stability; Phase 1-2 deliver
-   value independently.
+4. **CA API availability:** The Conversational Analytics API supports 6
+   source types (BigQuery, Looker, Looker Studio, AlloyDB, Spanner,
+   Cloud SQL). The API split between Chat/DataAgent and QueryData is
+   modeled explicitly in the code. **Mitigation:** Provider-specific logic
+   is isolated; source-specific tests ensure stability as the API evolves.
 
 5. **Relationship to `bq-agent-sdk` CLI in current PRD:**
    **Recommendation:** The current PRD's Python CLI (§4) ships as
