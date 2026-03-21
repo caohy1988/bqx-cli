@@ -61,17 +61,28 @@ bqx analytics drift --golden-dataset=golden_questions --last=24h --format=text
 Use CA to ask ad-hoc questions during an incident:
 
 ```bash
-# Which agents are failing?
+# BigQuery agent — ask about agent events
 bqx ca ask "Which agents have error rate above 5% in the last hour?" \
   --agent=agent-analytics
 
-# What's causing latency?
 bqx ca ask "What's causing high latency in the last hour?" \
   --agent=agent-analytics
 
-# Tool failure analysis
 bqx ca ask "Which tools failed most in the last 24 hours?" \
   --agent=agent-analytics
+```
+
+### Cross-source investigation with profiles
+
+When operational data lives in database sources, use profiles:
+
+```bash
+# AlloyDB — check application database health
+bqx ca ask --profile ops-alloydb.yaml "show active connections"
+bqx ca ask --profile ops-alloydb.yaml "any blocked queries right now?"
+
+# Spanner — check transaction health
+bqx ca ask --profile finance-spanner.yaml "failed transactions last hour"
 ```
 
 ## Weekly Review Script
@@ -118,6 +129,7 @@ bqx analytics distribution --last=7d --format=table
 ## Constraints
 
 - This persona covers SRE/on-call scenarios, not agent development (see `persona-agent-developer`)
-- CA commands require a configured data agent (see `bqx-ca-create-agent`)
+- BigQuery CA requires a configured data agent (see `bqx-ca-create-agent`)
+- Database CA (AlloyDB, Spanner, Cloud SQL) requires profiles (see `bqx-ca-database`)
 - Agent events must already be flowing to BigQuery — bqx does not handle ingestion
 - Alerting integrations (Slack, PagerDuty) must be configured outside bqx

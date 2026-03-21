@@ -1,0 +1,7 @@
+interface:
+  display_name: "bqx CA Database Sources"
+  short_description: "Query AlloyDB, Spanner, and Cloud SQL databases using natural language"
+  default_prompt: "Use $bqx-ca-database to set up database CA profiles and query AlloyDB, Spanner, or Cloud SQL via natural language."
+
+policy:
+  allow_implicit_invocation: true

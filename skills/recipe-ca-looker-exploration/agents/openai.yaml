@@ -1,0 +1,7 @@
+interface:
+  display_name: "Looker CA Exploration Recipe"
+  short_description: "Step-by-step recipe for Looker CA profile setup and data exploration"
+  default_prompt: "Use $recipe-ca-looker-exploration to set up a Looker CA profile and explore Looker data with natural language."
+
+policy:
+  allow_implicit_invocation: true
