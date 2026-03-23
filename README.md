@@ -111,7 +111,7 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 │                                                                   │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │                     Skills (SKILL.md)                          │  │
-│  │  32 curated skills (see §4.1 for full listing)                 │  │
+│  │  32 skills (4 generated + 28 curated; see §4.1)                │  │
 │  │  1 shared · 7 service · 6 helper · 7 CA · 3 persona · 8 recipe │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                                                                   │

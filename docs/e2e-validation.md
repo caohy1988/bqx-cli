@@ -349,7 +349,7 @@ bqx ca ask --profile /tmp/spanner-e2e.yaml --agent my-agent "test" 2>&1 | grep -
 | Cloud SQL | Requires Data API Access (`ALLOW_DATA_API`), IAM auth flag, IAM user |
 | Spanner | Simplest setup — just enable the Spanner API |
 | All database sources | No data agent creation (use profiles directly), no visualization |
-| Looker | Max 5 explores per profile, requires instance URL + API credentials |
+| Looker | Max 5 explores per profile, requires instance URL; API credentials optional (paired when provided) |
 
 ## Expected Results
 
