@@ -1,7 +1,8 @@
 # End-to-End Validation
 
-Reproducible commands to verify the Phase 2 command surface against a live
-GCP project.
+Reproducible commands to verify the bqx command surface against a live
+GCP project. Covers Phase 2 (dynamic commands), Phase 3 (analytics + CA),
+and Phase 4 (multi-source CA via profiles).
 
 ## Prerequisites
 
@@ -223,10 +224,138 @@ bqx auth login
 bqx auth logout
 ```
 
+## 11. Phase 4: Multi-Source CA via Profiles
+
+Phase 4 extends CA support from BigQuery-only to 6 data sources. The
+Conversational Analytics API has two families:
+
+- **Chat/DataAgent**: BigQuery, Looker, Looker Studio
+- **QueryData**: AlloyDB, Spanner, Cloud SQL
+
+`bqx ca ask --profile` routes to the correct API based on the profile's
+`source_type`.
+
+### Prerequisites
+
+```bash
+# Spanner: just enable the API
+gcloud services enable spanner.googleapis.com --project=$BQX_PROJECT
+
+# AlloyDB: enable APIs + Data API Access + IAM user
+gcloud services enable alloydb.googleapis.com servicenetworking.googleapis.com \
+  --project=$BQX_PROJECT
+# Enable Data API Access (via v1beta REST)
+curl -X PATCH \
+  "https://alloydb.googleapis.com/v1beta/projects/$BQX_PROJECT/locations/us-central1/clusters/CLUSTER/instances/INSTANCE?updateMask=dataApiAccess" \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  -d '{"dataApiAccess": "ENABLED"}'
+# Create IAM database user
+gcloud alloydb users create USER@DOMAIN \
+  --cluster=CLUSTER --region=us-central1 --type=IAM_BASED --project=$BQX_PROJECT
+
+# Cloud SQL: enable Data API Access + IAM auth + IAM user
+gcloud sql instances patch INSTANCE --data-api-access=ALLOW_DATA_API --project=$BQX_PROJECT
+gcloud sql instances patch INSTANCE --database-flags=cloudsql.iam_authentication=on --project=$BQX_PROJECT
+gcloud sql users create USER@DOMAIN --instance=INSTANCE --type=CLOUD_IAM_USER --project=$BQX_PROJECT
+```
+
+### Profile Setup
+
+```bash
+# Spanner profile
+cat > /tmp/spanner-e2e.yaml << 'EOF'
+name: spanner-e2e
+source_type: spanner
+project: test-project-0728-467323
+location: us-central1
+instance_id: bqx-test
+database_id: bqx-testdb
+EOF
+
+# AlloyDB profile
+cat > /tmp/alloydb-e2e.yaml << 'EOF'
+name: alloydb-e2e
+source_type: alloy_db
+project: test-project-0728-467323
+location: us-central1
+cluster_id: bqx-test
+instance_id: bqx-test-primary
+database_id: postgres
+EOF
+
+# Cloud SQL profile
+cat > /tmp/cloudsql-e2e.yaml << 'EOF'
+name: cloudsql-e2e
+source_type: cloud_sql
+project: test-project-0728-467323
+location: us-central1
+instance_id: bqx-test
+database_id: postgres
+db_type: postgresql
+EOF
+```
+
+### Spanner CA Queries
+
+```bash
+# Basic math (validates connectivity)
+bqx ca ask --profile /tmp/spanner-e2e.yaml "what is 1 + 1?" --format json
+
+# Schema exploration
+bqx ca ask --profile /tmp/spanner-e2e.yaml "show all tables" --format json
+
+# Business query
+bqx ca ask --profile /tmp/spanner-e2e.yaml "total revenue by region" --format text
+```
+
+### AlloyDB CA Queries
+
+```bash
+# Basic math
+bqx ca ask --profile /tmp/alloydb-e2e.yaml "what is 1 + 1?" --format json
+
+# Schema exploration
+bqx ca ask --profile /tmp/alloydb-e2e.yaml "show all tables" --format json
+
+# Operational query
+bqx ca ask --profile /tmp/alloydb-e2e.yaml "show active connections" --format text
+```
+
+### Cloud SQL CA Queries
+
+```bash
+# Basic math
+bqx ca ask --profile /tmp/cloudsql-e2e.yaml "what is 1 + 1?" --format json
+
+# Schema exploration
+bqx ca ask --profile /tmp/cloudsql-e2e.yaml "show all tables" --format json
+```
+
+### Conflict Guards
+
+Verify that `--profile` and `--agent` are mutually exclusive:
+
+```bash
+# Should produce an error — cannot combine profile with agent flag
+bqx ca ask --profile /tmp/spanner-e2e.yaml --agent my-agent "test" 2>&1 | grep -i "conflict\|error\|cannot"
+```
+
+### Source-Specific Known Limitations
+
+| Source | Limitation |
+|--------|-----------|
+| AlloyDB | Requires Data API Access enabled (v1beta REST), IAM database user |
+| Cloud SQL | Requires Data API Access (`ALLOW_DATA_API`), IAM auth flag, IAM user |
+| Spanner | Simplest setup — just enable the Spanner API |
+| All database sources | No data agent creation (use profiles directly), no visualization |
+| Looker | Max 5 explores per profile, requires instance URL; API credentials optional (paired when provided) |
+
 ## Expected Results
 
 All commands above were verified against `test-project-0728-467323` on
-2026-03-14 with gcloud ADC authentication. Key observations:
+2026-03-14 (Phase 2-3) and 2026-03-19 (Phase 4) with gcloud ADC
+authentication. Key observations:
 
 - All dynamic commands (datasets, tables, routines, models) return valid JSON
 - All static commands (jobs query, analytics) return valid JSON
@@ -239,3 +368,14 @@ All commands above were verified against `test-project-0728-467323` on
 - Model Armor requires regional endpoints (`modelarmor.LOCATION.rep.googleapis.com`)
 - Model Armor requires `roles/modelarmor.admin` IAM role for template management
 - Shell completions generate successfully for bash, zsh, and fish
+
+Phase 4 observations:
+
+- Spanner CA works end-to-end with just the Spanner API enabled (simplest setup)
+- AlloyDB CA requires Data API Access (v1beta REST) + IAM database user; returns 500 without IAM user
+- Cloud SQL CA requires Data API Access + IAM auth flag + IAM user
+- `context_set_id` is optional for all database sources — the API works without `agentContextReference`
+- QueryData API uses `geminidataanalytics.googleapis.com` endpoint
+- `--profile` and `--agent` flags are mutually exclusive (validated by conflict guard)
+- All 3 database sources return structured JSON with `sql` and results fields
+- 14 E2E tests across all database sources pass (math, schema, business queries, output formats, conflict guards)
