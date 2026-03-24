@@ -1,4 +1,4 @@
-# Proposal: `bqx` — An Agent-Native Data Cloud CLI with Skills
+# Proposal: `dcx` — An Agent-Native Data Cloud CLI with Skills
 
 **Status:** Proposal
 **Date:** 2026-03-08
@@ -8,7 +8,7 @@
 [BigQuery Agent Analytics SDK](https://github.com/haiyuan-eng-google/BigQuery-Agent-Analytics-SDK)
 
 For a detailed technical comparison with the standard `bq` CLI, including
-demoable workflow examples, see [BQX vs BQ](docs/bqx-vs-bq.md).
+demoable workflow examples, see [DCX vs BQ](docs/dcx-vs-bq.md).
 
 ---
 
@@ -17,32 +17,32 @@ demoable workflow examples, see [BQX vs BQ](docs/bqx-vs-bq.md).
 ### Install via npm
 
 ```bash
-npx bqx --help
+npx dcx --help
 ```
 
 Or install globally:
 
 ```bash
-npm install -g bqx
-bqx --help
+npm install -g dcx
+dcx --help
 ```
 
 ### Supported Platforms
 
 | Platform | Package |
 |---|---|
-| macOS ARM64 (Apple Silicon) | `@bqx-cli/darwin-arm64` |
-| macOS x64 (Intel) | `@bqx-cli/darwin-x64` |
-| Linux x64 | `@bqx-cli/linux-x64` |
-| Linux ARM64 | `@bqx-cli/linux-arm64` |
-| Windows x64 | `@bqx-cli/win32-x64` |
-| Windows ARM64 | `@bqx-cli/win32-arm64` |
+| macOS ARM64 (Apple Silicon) | `@dcx-cli/darwin-arm64` |
+| macOS x64 (Intel) | `@dcx-cli/darwin-x64` |
+| Linux x64 | `@dcx-cli/linux-x64` |
+| Linux ARM64 | `@dcx-cli/linux-arm64` |
+| Windows x64 | `@dcx-cli/win32-x64` |
+| Windows ARM64 | `@dcx-cli/win32-arm64` |
 
 ### GitHub Actions
 
 ```yaml
-- run: npm install -g bqx
-- run: bqx analytics evaluate --evaluator latency --threshold 5000 --last 1h --exit-code
+- run: npm install -g dcx
+- run: dcx analytics evaluate --evaluator latency --threshold 5000 --last 1h --exit-code
 ```
 
 See [docs/github-actions.md](docs/github-actions.md) for full CI examples.
@@ -80,7 +80,7 @@ agent-first treatment.
 
 ---
 
-## 2. Proposal: `bqx` (BigQuery Extended → Data Cloud CLI)
+## 2. Proposal: `dcx` (BigQuery Extended → Data Cloud CLI)
 
 A new agent-native CLI for Google Cloud's Data Cloud that combines:
 
@@ -92,7 +92,7 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
-│                            bqx CLI                                │
+│                            dcx CLI                                │
 │                                                                   │
 │  ┌───────────────┐  ┌───────────────┐  ┌───────────────────────┐  │
 │  │ BigQuery API   │  │ Agent         │  │ Conversational        │  │
@@ -123,9 +123,9 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-### Why `bqx`, not extending `bq`
+### Why `dcx`, not extending `bq`
 
-| Factor | `bq` (existing) | `bqx` (proposed) |
+| Factor | `bq` (existing) | `dcx` (proposed) |
 |--------|-----------------|-------------------|
 | Language | Python | Rust (fast startup, single binary) |
 | Extensibility | None | Skills + dynamic command generation |
@@ -141,7 +141,7 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 
 ### 3.1 Dynamic Command Generation (from `gws` pattern)
 
-Like `gws`, `bqx` uses two-phase argument parsing:
+Like `gws`, `dcx` uses two-phase argument parsing:
 
 1. `argv[1]` identifies the service module (`analytics`, `ca`, or falls
    through to BigQuery API resource names)
@@ -171,47 +171,47 @@ in `src/bigquery/dynamic/model.rs`.
 
 ```bash
 # Dynamic commands (generated from BigQuery REST API Discovery Document)
-bqx datasets list --project-id=myproject
-bqx tables get --project-id=myproject --dataset-id=analytics --table-id=agent_events
-bqx jobs query --query="SELECT 1" --use-legacy-sql=false
+dcx datasets list --project-id=myproject
+dcx tables get --project-id=myproject --dataset-id=analytics --table-id=agent_events
+dcx jobs query --query="SELECT 1" --use-legacy-sql=false
 
 # Static commands (Agent Analytics SDK — compiled in)
-bqx analytics evaluate --evaluator=latency --threshold=5000 --last=1h
-bqx analytics get-trace --session-id=sess-001
-bqx analytics drift --golden-dataset=golden_qs
+dcx analytics evaluate --evaluator=latency --threshold=5000 --last=1h
+dcx analytics get-trace --session-id=sess-001
+dcx analytics drift --golden-dataset=golden_qs
 
 # Static commands (Conversational Analytics API)
-bqx ca ask "What were the top errors yesterday?" --agent=my-data-agent
-bqx ca create-agent --name=agent-analytics --tables=agent_events
+dcx ca ask "What were the top errors yesterday?" --agent=my-data-agent
+dcx ca create-agent --name=agent-analytics --tables=agent_events
 ```
 
 ### 3.2 Three Command Domains
 
-#### Domain 1: `bqx <resource> <method>` — BigQuery API (dynamic)
+#### Domain 1: `dcx <resource> <method>` — BigQuery API (dynamic)
 
 Generated from the BigQuery v2 Discovery Document, covering datasets,
 tables, jobs, routines, connections, models, and row-access policies.
 
 ```bash
 # List datasets
-bqx datasets list --project-id=myproject
+dcx datasets list --project-id=myproject
 
 # Run a query (structured output)
-bqx jobs query \
+dcx jobs query \
   --query="SELECT session_id, agent FROM analytics.agent_events LIMIT 5" \
   --use-legacy-sql=false
 
 # Create a view
-bqx tables insert \
+dcx tables insert \
   --project-id=myproject \
   --dataset-id=analytics \
   --json='{"tableReference":{"tableId":"v_errors"},"view":{"query":"SELECT ..."}}'
 
 # Show table schema
-bqx tables get --project-id=myproject --dataset-id=analytics --table-id=agent_events
+dcx tables get --project-id=myproject --dataset-id=analytics --table-id=agent_events
 ```
 
-#### Domain 2: `bqx analytics <command>` — Agent Analytics (static)
+#### Domain 2: `dcx analytics <command>` — Agent Analytics (static)
 
 Wraps the BigQuery Agent Analytics SDK. Commands are compiled into the
 binary (not dynamically generated) since they don't come from a Discovery
@@ -219,26 +219,26 @@ Document.
 
 ```bash
 # Evaluate agent performance
-bqx analytics evaluate \
+dcx analytics evaluate \
   --evaluator=latency \
   --threshold=5000 \
   --agent-id=support_bot \
   --last=1h
 
 # Retrieve a session trace
-bqx analytics get-trace --session-id=sess-001
+dcx analytics get-trace --session-id=sess-001
 
 # Health check
-bqx analytics doctor
+dcx analytics doctor
 
 # Drift detection
-bqx analytics drift \
+dcx analytics drift \
   --golden-dataset=golden_questions \
   --agent-id=support_bot \
   --last=7d
 
 # LLM-as-judge evaluation
-bqx analytics evaluate \
+dcx analytics evaluate \
   --evaluator=llm-judge \
   --criterion=correctness \
   --threshold=0.7 \
@@ -246,13 +246,13 @@ bqx analytics evaluate \
   --exit-code
 
 # Create event-type views
-bqx analytics views create-all --prefix=adk_
+dcx analytics views create-all --prefix=adk_
 
 # Generate insights report
-bqx analytics insights --agent-id=support_bot --last=24h
+dcx analytics insights --agent-id=support_bot --last=24h
 ```
 
-#### Domain 3: `bqx ca <command>` — Conversational Analytics (static)
+#### Domain 3: `dcx ca <command>` — Conversational Analytics (static)
 
 Wraps the Conversational Analytics API, bringing natural language queries
 to the terminal across 6 data sources.
@@ -270,34 +270,34 @@ to the terminal across 6 data sources.
 
 ```bash
 # BigQuery: ask via data agent
-bqx ca ask "Show me the top 5 agents by error rate this week" \
+dcx ca ask "Show me the top 5 agents by error rate this week" \
   --agent=agent-analytics-data-agent
 
 # BigQuery: ask with inline table context
-bqx ca ask "What's the p95 latency trend for support_bot?" \
+dcx ca ask "What's the p95 latency trend for support_bot?" \
   --tables=myproject.analytics.agent_events
 
 # Looker: ask against explore profiles
-bqx ca ask --profile sales-looker.yaml "What are the top selling products?"
+dcx ca ask --profile sales-looker.yaml "What are the top selling products?"
 
 # AlloyDB: operational queries via database profiles
-bqx ca ask --profile ops-alloydb.yaml "show active connections"
+dcx ca ask --profile ops-alloydb.yaml "show active connections"
 
 # Spanner: business queries via database profiles
-bqx ca ask --profile finance-spanner.yaml "total revenue by region"
+dcx ca ask --profile finance-spanner.yaml "total revenue by region"
 
 # Cloud SQL: query via database profiles
-bqx ca ask --profile app-cloudsql.yaml "show all tables"
+dcx ca ask --profile app-cloudsql.yaml "show all tables"
 
 # Create a BigQuery data agent with verified queries
-bqx ca create-agent \
+dcx ca create-agent \
   --name=agent-analytics \
   --tables=myproject.analytics.agent_events,myproject.analytics.adk_llm_response \
   --verified-queries=./deploy/ca/verified_queries.yaml \
   --instructions="This agent helps analyze AI agent performance metrics."
 
 # List data agents
-bqx ca list-agents --project-id=myproject
+dcx ca list-agents --project-id=myproject
 ```
 
 ### 3.3 Output Format
@@ -306,7 +306,7 @@ All output is JSON by default, with alternative formats via `--format`:
 
 ```bash
 # Default: structured JSON (agent-consumable)
-bqx analytics evaluate --evaluator=latency --threshold=5000 --last=1h
+dcx analytics evaluate --evaluator=latency --threshold=5000 --last=1h
 {
   "evaluator": "latency",
   "threshold_ms": 5000,
@@ -321,14 +321,14 @@ bqx analytics evaluate --evaluator=latency --threshold=5000 --last=1h
 }
 
 # Table format (human-readable)
-bqx analytics evaluate --evaluator=latency --threshold=5000 --last=1h --format=table
+dcx analytics evaluate --evaluator=latency --threshold=5000 --last=1h --format=table
 SESSION_ID   PASSED  LATENCY_MS  SCORE
 sess-001     true    2340        0.85
 sess-002     false   7800        0.32
 sess-003     true    1850        0.91
 
 # Dry-run mode (shows what would happen)
-bqx jobs query --query="SELECT 1" --dry-run
+dcx jobs query --query="SELECT 1" --dry-run
 {
   "dry_run": true,
   "url": "https://bigquery.googleapis.com/bigquery/v2/projects/myproject/queries",
@@ -344,25 +344,25 @@ Five methods, same priority model as `gws`:
 
 | Priority | Method | Use Case |
 |----------|--------|----------|
-| 1 (highest) | `BQX_TOKEN` env var | Pre-obtained access token |
-| 2 | `BQX_CREDENTIALS_FILE` env var | Service account JSON path |
-| 3 | `bqx auth login` (encrypted) | Interactive OAuth, AES-256-GCM at rest |
+| 1 (highest) | `DCX_TOKEN` env var | Pre-obtained access token |
+| 2 | `DCX_CREDENTIALS_FILE` env var | Service account JSON path |
+| 3 | `dcx auth login` (encrypted) | Interactive OAuth, AES-256-GCM at rest |
 | 4 | `GOOGLE_APPLICATION_CREDENTIALS` | Standard ADC fallback |
 | 5 | `gcloud auth application-default` | Implicit gcloud credentials |
 
 ```bash
 # Quick start (uses existing gcloud credentials)
-bqx datasets list --project-id=myproject
+dcx datasets list --project-id=myproject
 
 # Explicit login (default: BigQuery-only scopes)
-bqx auth login
+dcx auth login
 
 # Override scopes (-s replaces the default scope set, not additive)
-bqx auth login -s bigquery,cloud-platform
+dcx auth login -s bigquery,cloud-platform
 
 # Service account (CI/CD)
-export BQX_CREDENTIALS_FILE=/path/to/sa-key.json
-bqx analytics evaluate --evaluator=latency --last=24h --exit-code
+export DCX_CREDENTIALS_FILE=/path/to/sa-key.json
+dcx analytics evaluate --evaluator=latency --last=24h --exit-code
 ```
 
 ### 3.5 Security
@@ -371,15 +371,15 @@ bqx analytics evaluate --evaluator=latency --last=24h --exit-code
   through [Model Armor](https://cloud.google.com/security-command-center/docs/model-armor-overview)
   for prompt injection and malicious content. Flagged responses are redacted
   before reaching stdout; a notice is printed to stderr. Set
-  `BQX_SANITIZE_TEMPLATE` env var for global default.
+  `DCX_SANITIZE_TEMPLATE` env var for global default.
   ```bash
   # Screen a query response through Model Armor
-  bqx jobs query --query "SELECT * FROM my_table" \
+  dcx jobs query --query "SELECT * FROM my_table" \
     --sanitize projects/my-proj/locations/us-central1/templates/my-template
 
   # Set globally for all commands
-  export BQX_SANITIZE_TEMPLATE=projects/my-proj/locations/us-central1/templates/my-template
-  bqx datasets list --project-id=myproject
+  export DCX_SANITIZE_TEMPLATE=projects/my-proj/locations/us-central1/templates/my-template
+  dcx datasets list --project-id=myproject
   ```
   **Note:** Model Armor requires regional endpoints. The location is
   extracted automatically from the template resource name.
@@ -387,7 +387,7 @@ bqx analytics evaluate --evaluator=latency --last=24h --exit-code
 - **Destructive operation guards:** Write/delete commands require `--confirm`
   flag or interactive confirmation. Skill generator blocks destructive
   methods by default.
-- **Least-privilege defaults:** `bqx auth login` requests only BigQuery
+- **Least-privilege defaults:** `dcx auth login` requests only BigQuery
   scopes by default. `-s` *replaces* the default scope set (it does not
   append), so users must opt in explicitly to broader scopes like
   `cloud-platform`.
@@ -405,35 +405,35 @@ CLI, Cursor, Copilot, Codex) can discover and use.
 ```
 skills/
 │ ## Shared
-├── bqx-shared/SKILL.md                       # Curated: auth, global flags, security rules
+├── dcx-shared/SKILL.md                       # Curated: auth, global flags, security rules
 │
 │ ## Service skills — generated from BigQuery v2 Discovery API
-├── bqx-datasets/SKILL.md                     # Generated: dataset list/get
-├── bqx-tables/SKILL.md                       # Generated: table list/get
-├── bqx-routines/SKILL.md                     # Generated: routine list/get
-├── bqx-models/SKILL.md                       # Generated: ML model list/get
+├── dcx-datasets/SKILL.md                     # Generated: dataset list/get
+├── dcx-tables/SKILL.md                       # Generated: table list/get
+├── dcx-routines/SKILL.md                     # Generated: routine list/get
+├── dcx-models/SKILL.md                       # Generated: ML model list/get
 │
 │ ## Service skills — curated (static commands or non-Discovery APIs)
-├── bqx-jobs/SKILL.md                         # Curated: query execution (static command)
-├── bqx-connections/SKILL.md                  # Curated: external connections (via INFORMATION_SCHEMA)
-├── bqx-analytics/SKILL.md                    # Curated: Agent Analytics SDK
+├── dcx-jobs/SKILL.md                         # Curated: query execution (static command)
+├── dcx-connections/SKILL.md                  # Curated: external connections (via INFORMATION_SCHEMA)
+├── dcx-analytics/SKILL.md                    # Curated: Agent Analytics SDK
 │
 │ ## Helper skills — curated
-├── bqx-analytics-evaluate/SKILL.md           # Curated: run evaluations
-├── bqx-analytics-trace/SKILL.md              # Curated: retrieve traces
-├── bqx-analytics-drift/SKILL.md              # Curated: drift detection workflow
-├── bqx-analytics-views/SKILL.md              # Curated: manage event views
-├── bqx-query/SKILL.md                        # Curated: shortcut for `bqx jobs query`
-├── bqx-schema/SKILL.md                       # Curated: inspect table schemas
+├── dcx-analytics-evaluate/SKILL.md           # Curated: run evaluations
+├── dcx-analytics-trace/SKILL.md              # Curated: retrieve traces
+├── dcx-analytics-drift/SKILL.md              # Curated: drift detection workflow
+├── dcx-analytics-views/SKILL.md              # Curated: manage event views
+├── dcx-query/SKILL.md                        # Curated: shortcut for `dcx jobs query`
+├── dcx-schema/SKILL.md                       # Curated: inspect table schemas
 │
 │ ## CA skills — multi-source (Phase 3 + Phase 4)
-├── bqx-ca/SKILL.md                           # Routing: CA entry point, source selection
-├── bqx-ca-ask/SKILL.md                       # Helper: ask questions across all sources
-├── bqx-ca-create-agent/SKILL.md              # Helper: create BigQuery data agents
-├── bqx-ca-looker/SKILL.md                    # Phase 4: Looker explore CA profiles
-├── bqx-ca-database/SKILL.md                  # Phase 4: database source routing
-├── bqx-ca-alloydb/SKILL.md                   # Phase 4: AlloyDB prerequisites + CA
-├── bqx-ca-spanner/SKILL.md                   # Phase 4: Spanner GoogleSQL CA patterns
+├── dcx-ca/SKILL.md                           # Routing: CA entry point, source selection
+├── dcx-ca-ask/SKILL.md                       # Helper: ask questions across all sources
+├── dcx-ca-create-agent/SKILL.md              # Helper: create BigQuery data agents
+├── dcx-ca-looker/SKILL.md                    # Phase 4: Looker explore CA profiles
+├── dcx-ca-database/SKILL.md                  # Phase 4: database source routing
+├── dcx-ca-alloydb/SKILL.md                   # Phase 4: AlloyDB prerequisites + CA
+├── dcx-ca-spanner/SKILL.md                   # Phase 4: Spanner GoogleSQL CA patterns
 │
 │ ## Personas — curated
 ├── persona-agent-developer/SKILL.md          # Curated: agent developer workflows
@@ -453,27 +453,27 @@ skills/
 
 ### 4.2 Example Skills
 
-#### Service Skill: `bqx-analytics/SKILL.md`
+#### Service Skill: `dcx-analytics/SKILL.md`
 
 ```markdown
 ---
-name: bqx-analytics
+name: dcx-analytics
 version: 1.0.0
 description: "BigQuery Agent Analytics: Evaluate, trace, and monitor AI agent sessions."
 metadata:
   category: "analytics"
   requires:
-    bins: ["bqx"]
-  cliHelp: "bqx analytics --help"
+    bins: ["dcx"]
+  cliHelp: "dcx analytics --help"
 ---
 
 # analytics
 
-> **PREREQUISITE:** Read `../bqx-shared/SKILL.md` for auth, global flags,
+> **PREREQUISITE:** Read `../dcx-shared/SKILL.md` for auth, global flags,
 > and security rules.
 
 ```bash
-bqx analytics <command> [flags]
+dcx analytics <command> [flags]
 ```
 
 ## Commands
@@ -496,47 +496,47 @@ For common tasks, use the shortcut helper skills:
 
 | Helper | Description |
 |--------|-------------|
-| [`bqx-analytics-evaluate`](../bqx-analytics-evaluate/SKILL.md) | Quick evaluation commands |
-| [`bqx-analytics-trace`](../bqx-analytics-trace/SKILL.md) | Trace retrieval and analysis |
-| [`bqx-analytics-drift`](../bqx-analytics-drift/SKILL.md) | Drift detection workflows |
-| [`bqx-analytics-views`](../bqx-analytics-views/SKILL.md) | Manage per-event-type views |
+| [`dcx-analytics-evaluate`](../dcx-analytics-evaluate/SKILL.md) | Quick evaluation commands |
+| [`dcx-analytics-trace`](../dcx-analytics-trace/SKILL.md) | Trace retrieval and analysis |
+| [`dcx-analytics-drift`](../dcx-analytics-drift/SKILL.md) | Drift detection workflows |
+| [`dcx-analytics-views`](../dcx-analytics-views/SKILL.md) | Manage per-event-type views |
 
 ## Global Flags
 
 | Flag | Description |
 |------|-------------|
-| `--project-id TEXT` | GCP project ID [env: `BQX_PROJECT`] |
-| `--dataset-id TEXT` | BigQuery dataset [env: `BQX_DATASET`] |
+| `--project-id TEXT` | GCP project ID [env: `DCX_PROJECT`] |
+| `--dataset-id TEXT` | BigQuery dataset [env: `DCX_DATASET`] |
 | `--last TEXT` | Time window: `1h`, `24h`, `7d`, `30d` |
 | `--agent-id TEXT` | Filter by agent name |
 | `--format TEXT` | Output: `json` (default), `table`, `text` |
 | `--exit-code` | Return exit code 1 on evaluation failure |
 ```
 
-#### Helper Skill: `bqx-analytics-evaluate/SKILL.md`
+#### Helper Skill: `dcx-analytics-evaluate/SKILL.md`
 
 ```markdown
 ---
-name: bqx-analytics-evaluate
+name: dcx-analytics-evaluate
 version: 1.0.0
 description: "Evaluate AI agent sessions for latency, error rate, or correctness."
 metadata:
   category: "analytics"
   requires:
-    bins: ["bqx"]
-  cliHelp: "bqx analytics evaluate --help"
+    bins: ["dcx"]
+  cliHelp: "dcx analytics evaluate --help"
 ---
 
 # analytics evaluate
 
-> **PREREQUISITE:** Read `../bqx-shared/SKILL.md` for auth and global flags.
+> **PREREQUISITE:** Read `../dcx-shared/SKILL.md` for auth and global flags.
 
 Evaluate agent sessions against a threshold. Returns pass/fail per session.
 
 ## Usage
 
 ```bash
-bqx analytics evaluate --evaluator=<TYPE> --threshold=<N> [flags]
+dcx analytics evaluate --evaluator=<TYPE> --threshold=<N> [flags]
 ```
 
 ## Flags
@@ -553,14 +553,14 @@ bqx analytics evaluate --evaluator=<TYPE> --threshold=<N> [flags]
 
 ```bash
 # Check latency compliance (agent self-diagnostic)
-bqx analytics evaluate --evaluator=latency --threshold=5000 --agent-id=support_bot --last=1h
+dcx analytics evaluate --evaluator=latency --threshold=5000 --agent-id=support_bot --last=1h
 
 # CI/CD gate: fail if correctness drops below 0.7
-bqx analytics evaluate --evaluator=llm-judge --criterion=correctness \
+dcx analytics evaluate --evaluator=llm-judge --criterion=correctness \
   --threshold=0.7 --last=24h --exit-code
 
 # Custom evaluation
-bqx analytics evaluate --evaluator=llm-judge --criterion=custom \
+dcx analytics evaluate --evaluator=llm-judge --criterion=custom \
   --custom-prompt="Rate how well the agent handled PII. Score 0-1." \
   --threshold=0.9 --last=24h
 ```
@@ -579,43 +579,43 @@ description: "On-call SRE workflows for monitoring and triaging AI agent issues.
 metadata:
   category: "persona"
   requires:
-    bins: ["bqx"]
-    skills: ["bqx-analytics", "bqx-ca", "bqx-query"]
+    bins: ["dcx"]
+    skills: ["dcx-analytics", "dcx-ca", "dcx-query"]
 ---
 
 # SRE / On-Call Engineer
 
-> **PREREQUISITE:** Load the following skills: `bqx-analytics`, `bqx-ca`,
-> `bqx-query`
+> **PREREQUISITE:** Load the following skills: `dcx-analytics`, `dcx-ca`,
+> `dcx-query`
 
 Monitor AI agent health, triage incidents, and validate fixes.
 
 ## Incident Triage Workflow
 
 1. Check overall health:
-   `bqx analytics doctor`
+   `dcx analytics doctor`
 2. Look for error spikes:
-   `bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=1h`
+   `dcx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=1h`
 3. Identify failing sessions:
-   `bqx analytics evaluate --evaluator=latency --threshold=5000 --last=1h --format=table`
+   `dcx analytics evaluate --evaluator=latency --threshold=5000 --last=1h --format=table`
 4. Inspect a specific failure:
-   `bqx analytics get-trace --session-id=<ID_FROM_STEP_3>`
+   `dcx analytics get-trace --session-id=<ID_FROM_STEP_3>`
 5. Ask follow-up in natural language:
-   `bqx ca ask "What tools failed most in the last hour?" --agent=agent-analytics`
+   `dcx ca ask "What tools failed most in the last hour?" --agent=agent-analytics`
 
 ## Daily Health Check
 
 ```bash
-bqx analytics doctor && \
-bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h && \
-bqx analytics evaluate --evaluator=latency --threshold=5000 --last=24h
+dcx analytics doctor && \
+dcx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h && \
+dcx analytics evaluate --evaluator=latency --threshold=5000 --last=24h
 ```
 
 ## Tips
 
 - Use `--format=table` for quick visual scans during incidents.
 - Pipe `--format=json` output to `jq` for scripted analysis.
-- Set `BQX_PROJECT` and `BQX_DATASET` env vars to avoid repetitive flags.
+- Set `DCX_PROJECT` and `DCX_DATASET` env vars to avoid repetitive flags.
 ```
 
 #### Recipe Skill: `recipe-eval-pipeline/SKILL.md`
@@ -629,23 +629,23 @@ metadata:
   category: "recipe"
   domain: "devops"
   requires:
-    bins: ["bqx"]
-    skills: ["bqx-analytics"]
+    bins: ["dcx"]
+    skills: ["dcx-analytics"]
 ---
 
 # CI/CD Evaluation Pipeline
 
-> **PREREQUISITE:** Load `bqx-analytics` skill.
+> **PREREQUISITE:** Load `dcx-analytics` skill.
 
 Set up a GitHub Actions workflow that blocks deployment when agent quality
 drops below thresholds.
 
 ## Steps
 
-1. Install `bqx` in CI (distributed as platform-specific binaries via npm,
+1. Install `dcx` in CI (distributed as platform-specific binaries via npm,
    similar to [`esbuild`](https://github.com/evanw/esbuild) and
    [`turbo`](https://github.com/vercel/turbo)):
-   `npm install -g bqx`
+   `npm install -g dcx`
 
 2. Authenticate with Workload Identity Federation:
    ```yaml
@@ -657,14 +657,14 @@ drops below thresholds.
 
 3. Add evaluation gates:
    ```bash
-   bqx analytics evaluate --evaluator=latency --threshold=5000 --last=24h --exit-code
-   bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h --exit-code
-   bqx analytics drift --golden-dataset=golden_qs --min-coverage=0.85 --exit-code
+   dcx analytics evaluate --evaluator=latency --threshold=5000 --last=24h --exit-code
+   dcx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h --exit-code
+   dcx analytics drift --golden-dataset=golden_qs --min-coverage=0.85 --exit-code
    ```
 
 4. Upload reports as artifacts:
    ```bash
-   bqx analytics insights --last=24h > insights.json
+   dcx analytics insights --last=24h > insights.json
    ```
 
 > [!CAUTION]
@@ -674,15 +674,15 @@ drops below thresholds.
 
 ### 4.3 Skill Generation
 
-Like `gws generate-skills`, `bqx` auto-generates skills from the BigQuery
+Like `gws generate-skills`, `dcx` auto-generates skills from the BigQuery
 Discovery Document:
 
 ```bash
 # Generate all skills from BigQuery API commands
-bqx generate-skills --output-dir=./skills
+dcx generate-skills --output-dir=./skills
 
 # Regenerate only dataset skills
-bqx generate-skills --filter=bqx-datasets --output-dir=./skills
+dcx generate-skills --filter=dcx-datasets --output-dir=./skills
 ```
 
 The generator:
@@ -699,11 +699,11 @@ provide.
 
 | Type | Count | Generated? | Examples |
 |------|-------|------------|----------|
-| Shared | 1 | No | `bqx-shared` |
-| Service (API) | 4 | Yes | `bqx-datasets`, `bqx-tables`, `bqx-routines`, `bqx-models` |
-| Service (static) | 3 | No | `bqx-jobs`, `bqx-connections`, `bqx-analytics` |
-| Helper | 6 | No | `bqx-analytics-evaluate`, `bqx-analytics-trace`, `bqx-analytics-drift`, `bqx-analytics-views`, `bqx-query`, `bqx-schema` |
-| CA | 7 | No | `bqx-ca`, `bqx-ca-ask`, `bqx-ca-create-agent`, `bqx-ca-looker`, `bqx-ca-database`, `bqx-ca-alloydb`, `bqx-ca-spanner` |
+| Shared | 1 | No | `dcx-shared` |
+| Service (API) | 4 | Yes | `dcx-datasets`, `dcx-tables`, `dcx-routines`, `dcx-models` |
+| Service (static) | 3 | No | `dcx-jobs`, `dcx-connections`, `dcx-analytics` |
+| Helper | 6 | No | `dcx-analytics-evaluate`, `dcx-analytics-trace`, `dcx-analytics-drift`, `dcx-analytics-views`, `dcx-query`, `dcx-schema` |
+| CA | 7 | No | `dcx-ca`, `dcx-ca-ask`, `dcx-ca-create-agent`, `dcx-ca-looker`, `dcx-ca-database`, `dcx-ca-alloydb`, `dcx-ca-spanner` |
 | Persona | 3 | No | `persona-agent-developer`, `persona-data-analyst`, `persona-sre` |
 | Recipe | 8 | No | `recipe-eval-pipeline`, `recipe-ca-data-agent-setup`, `recipe-ca-looker-exploration`, `recipe-ca-database-ops` |
 
@@ -711,17 +711,17 @@ provide.
 
 ```bash
 # npm (all skills)
-npx skills add https://github.com/bigquery/bqx
+npx skills add https://github.com/bigquery/dcx
 
 # Individual skill
-npx skills add https://github.com/bigquery/bqx/tree/main/skills/bqx-analytics
+npx skills add https://github.com/bigquery/dcx/tree/main/skills/dcx-analytics
 
 # OpenClaw
-ln -s $(pwd)/skills/bqx-* ~/.openclaw/skills/
+ln -s $(pwd)/skills/dcx-* ~/.openclaw/skills/
 
 # Gemini CLI (extension manifest packaged at extensions/gemini/manifest.json)
 # Not yet tested with live `gemini extensions install` — spec is evolving
-gemini extensions install https://github.com/bigquery/bqx
+gemini extensions install https://github.com/bigquery/dcx
 
 # Claude Code (auto-discover from project)
 # Just clone the repo — Claude Code reads SKILL.md files automatically
@@ -731,15 +731,15 @@ gemini extensions install https://github.com/bigquery/bqx
 
 ```bash
 # Bash
-bqx completions bash > /usr/local/etc/bash_completion.d/bqx
-# or: bqx completions bash >> ~/.bashrc
+dcx completions bash > /usr/local/etc/bash_completion.d/dcx
+# or: dcx completions bash >> ~/.bashrc
 
 # Zsh (add to fpath first if needed)
-bqx completions zsh > "${fpath[1]}/_bqx"
-# or: bqx completions zsh > ~/.zsh/completions/_bqx
+dcx completions zsh > "${fpath[1]}/_dcx"
+# or: dcx completions zsh > ~/.zsh/completions/_dcx
 
 # Fish
-bqx completions fish > ~/.config/fish/completions/bqx.fish
+dcx completions fish > ~/.config/fish/completions/dcx.fish
 ```
 
 Pre-generated scripts are also available in the `completions/` directory.
@@ -752,7 +752,7 @@ Pre-generated scripts are also available in the `completions/` directory.
 
 The Conversational Analytics API lets users ask natural language questions
 over data in BigQuery, Looker, Looker Studio, AlloyDB, Spanner, and
-Cloud SQL. `bqx ca` brings all of these sources to the terminal and to
+Cloud SQL. `dcx ca` brings all of these sources to the terminal and to
 agents through a unified `ca ask` command.
 
 The API has two families:
@@ -762,7 +762,7 @@ The API has two families:
 | Chat / DataAgent | BigQuery, Looker, Looker Studio | Analytic queries with data agents |
 | QueryData | AlloyDB, Spanner, Cloud SQL | Database queries via source profiles |
 
-`bqx ca ask` normalizes both families behind a single command. The
+`dcx ca ask` normalizes both families behind a single command. The
 `--profile` flag determines which API path is used based on the source
 type.
 
@@ -773,7 +773,7 @@ tuned for agent analytics:
 
 ```bash
 # Create the agent-analytics data agent (one-time setup)
-bqx ca create-agent \
+dcx ca create-agent \
   --name=agent-analytics \
   --tables=myproject.analytics.agent_events \
   --views=myproject.analytics.adk_llm_response,myproject.analytics.adk_tool_completed \
@@ -849,7 +849,7 @@ verified_queries:
 
 ```bash
 # BigQuery: natural language query via data agent
-$ bqx ca ask "What were the top errors for support_bot yesterday?" \
+$ dcx ca ask "What were the top errors for support_bot yesterday?" \
     --agent=agent-analytics
 
 {
@@ -863,25 +863,25 @@ $ bqx ca ask "What were the top errors for support_bot yesterday?" \
 }
 
 # Compose with analytics commands
-$ bqx ca ask "Which agent had the worst performance today?" --agent=agent-analytics \
+$ dcx ca ask "Which agent had the worst performance today?" --agent=agent-analytics \
   | jq -r '.results[0].agent' \
-  | xargs -I{} bqx analytics evaluate --agent-id={} --evaluator=latency --threshold=5000 --last=24h
+  | xargs -I{} dcx analytics evaluate --agent-id={} --evaluator=latency --threshold=5000 --last=24h
 ```
 
 #### Multi-source CA via Profiles
 
 ```bash
 # Spanner: business queries
-$ bqx ca ask --profile finance-spanner.yaml "total revenue by region"
+$ dcx ca ask --profile finance-spanner.yaml "total revenue by region"
 
 # AlloyDB: operational queries
-$ bqx ca ask --profile ops-alloydb.yaml "show active connections"
+$ dcx ca ask --profile ops-alloydb.yaml "show active connections"
 
 # Cloud SQL: schema exploration
-$ bqx ca ask --profile app-cloudsql.yaml "show all tables"
+$ dcx ca ask --profile app-cloudsql.yaml "show all tables"
 
 # Looker: explore-based analytics
-$ bqx ca ask --profile sales-looker.yaml "What are the top selling products?"
+$ dcx ca ask --profile sales-looker.yaml "What are the top selling products?"
 ```
 
 Profile files are YAML with a `source_type` discriminator:
@@ -896,14 +896,14 @@ instance_id: my-spanner-instance
 database_id: my-database
 ```
 
-See `skills/bqx-ca-database/SKILL.md` and `skills/bqx-ca-looker/SKILL.md`
+See `skills/dcx-ca-database/SKILL.md` and `skills/dcx-ca-looker/SKILL.md`
 for source-specific profile formats and prerequisites.
 
 ---
 
 ## 6. How the Three Domains Compose
 
-The power of `bqx` is that its three domains — BigQuery API, Agent
+The power of `dcx` is that its three domains — BigQuery API, Agent
 Analytics, and Conversational Analytics (across all 6 data sources) —
 compose through Unix pipes and agent reasoning:
 
@@ -915,15 +915,15 @@ Agent thinks: "User asked a complex question. Let me check if I've been
               tool call."
 
 Step 1: Quick health check
-  $ bqx analytics evaluate --evaluator=latency --threshold=5000 --last=1h
+  $ dcx analytics evaluate --evaluator=latency --threshold=5000 --last=1h
   → pass_rate: 0.70 (borderline)
 
 Step 2: Natural language drill-down
-  $ bqx ca ask "What's causing high latency in the last hour?" --agent=agent-analytics
+  $ dcx ca ask "What's causing high latency in the last hour?" --agent=agent-analytics
   → "The database_query tool has p95 latency of 12s due to 3 timeout events"
 
 Step 3: Check specific trace
-  $ bqx analytics get-trace --session-id=sess-042
+  $ dcx analytics get-trace --session-id=sess-042
   → Shows TOOL_ERROR: "Connection timeout after 30s"
 
 Agent decides: Switch to cached data source for this query.
@@ -933,27 +933,27 @@ Agent decides: Switch to cached data source for this query.
 
 ```bash
 # 1. What's the overall health?
-bqx analytics doctor
+dcx analytics doctor
 
 # 2. Which agents are failing?
-bqx ca ask "Which agents have error rate above 5% in the last hour?"
+dcx ca ask "Which agents have error rate above 5% in the last hour?"
 
 # 3. Deep dive into the worst one
-bqx analytics evaluate --agent-id=support_bot --evaluator=error-rate --last=1h --format=table
+dcx analytics evaluate --agent-id=support_bot --evaluator=error-rate --last=1h --format=table
 
 # 4. Get the specific traces
-bqx analytics get-trace --session-id=sess-042 --format=tree
+dcx analytics get-trace --session-id=sess-042 --format=tree
 
 # 5. Run raw SQL for custom analysis
-bqx jobs query --query="
+dcx jobs query --query="
   SELECT event_type, COUNT(*)
   FROM analytics.agent_events
   WHERE session_id = 'sess-042'
   GROUP BY event_type"
 
 # 6. Cross-source investigation via database profiles
-bqx ca ask --profile ops-alloydb.yaml "any blocked queries right now?"
-bqx ca ask --profile finance-spanner.yaml "failed transactions last hour"
+dcx ca ask --profile ops-alloydb.yaml "any blocked queries right now?"
+dcx ca ask --profile finance-spanner.yaml "failed transactions last hour"
 ```
 
 ---
@@ -963,23 +963,23 @@ bqx ca ask --profile finance-spanner.yaml "failed transactions last hour"
 ### Phase 1: Core CLI + Analytics (v0.1) — Complete
 
 - [x] Rust CLI scaffold with `clap` (auth, global flags, `--format`)
-- [x] `bqx analytics` commands: `doctor`, `evaluate`, `get-trace`
+- [x] `dcx analytics` commands: `doctor`, `evaluate`, `get-trace`
 - [x] `--exit-code` for CI/CD
 - [x] JSON/table/text output formatting
-- [x] Auth: ADC + service account + `bqx auth login`
-- [x] npm distribution (`npx bqx`) — platform-specific binaries via
+- [x] Auth: ADC + service account + `dcx auth login`
+- [x] npm distribution (`npx dcx`) — platform-specific binaries via
   optional dependencies (same approach as `esbuild`, `turbo`)
-- [x] 5 core skills: `bqx-shared`, `bqx-analytics`, `bqx-analytics-evaluate`,
-  `bqx-analytics-trace`, `bqx-query`
+- [x] 5 core skills: `dcx-shared`, `dcx-analytics`, `dcx-analytics-evaluate`,
+  `dcx-analytics-trace`, `dcx-query`
 
-**Exit criteria:** `npx bqx analytics evaluate --last=1h --exit-code` works
+**Exit criteria:** `npx dcx analytics evaluate --last=1h --exit-code` works
 in GitHub Actions; 5 skills installable via `npx skills add`.
 
 ### Phase 2: Dynamic BigQuery API + Skills (v0.2) — Complete
 
 - [x] Discovery Document fetching + caching (bundled, pinned copy)
 - [x] Dynamic `clap::Command` tree generation for BigQuery v2 API
-- [x] `bqx generate-skills` command
+- [x] `dcx generate-skills` command
 - [x] Non-CA curated skills: 19 of 26 skills (see §4.1); CA-dependent
   skills ship in Phase 3
 - [x] Model Armor integration (`--sanitize`) — uses regional endpoints,
@@ -990,8 +990,8 @@ in GitHub Actions; 5 skills installable via `npx skills add`.
   still evolving
 
 **Exit criteria:**
-- `bqx datasets list` works without any hardcoded command definition ✓
-- `bqx generate-skills` produces valid SKILL.md files ✓
+- `dcx datasets list` works without any hardcoded command definition ✓
+- `dcx generate-skills` produces valid SKILL.md files ✓
 - Gemini extension manifest packaged and programmatically validated ✓
 - `--sanitize` verified end-to-end against live Model Armor ✓
 
@@ -1000,12 +1000,12 @@ reproducible validation script.
 
 ### Phase 3: Conversational Analytics + Polish (v0.3) — Complete
 
-- [x] `bqx ca ask` — natural language query via CA API
-- [x] `bqx ca create-agent` — create data agents
-- [x] `bqx ca add-verified-query` — add verified queries
+- [x] `dcx ca ask` — natural language query via CA API
+- [x] `dcx ca create-agent` — create data agents
+- [x] `dcx ca add-verified-query` — add verified queries
 - [x] Ship `deploy/ca/verified_queries.yaml` with SDK
-- [x] Remaining CA-dependent skills (7 of 26): `bqx-ca`, `bqx-ca-ask`,
-  `bqx-ca-create-agent`, `persona-sre` (requires `bqx-ca`),
+- [x] Remaining CA-dependent skills (7 of 26): `dcx-ca`, `dcx-ca-ask`,
+  `dcx-ca-create-agent`, `persona-sre` (requires `dcx-ca`),
   `recipe-ca-data-agent-setup`, `recipe-error-alerting`,
   `recipe-self-diagnostic-agent`
 - [x] Remaining analytics commands: `insights`, `drift`, `distribution`,
@@ -1013,7 +1013,7 @@ reproducible validation script.
 - [x] Completion scripts (bash, zsh, fish)
 - [x] Documentation and examples
 
-**Exit criteria:** `bqx ca ask "error rate for support_bot?"` returns
+**Exit criteria:** `dcx ca ask "error rate for support_bot?"` returns
 structured JSON with SQL and results; all analytics commands pass
 integration tests.
 
@@ -1023,20 +1023,20 @@ integration tests.
   LookerStudio, AlloyDb, Spanner, CloudSql)
 - [x] Provider split: Chat/DataAgent for BigQuery/Looker/Studio,
   QueryData for AlloyDB/Spanner/Cloud SQL
-- [x] `bqx ca ask --profile` routes to the correct API family based on
+- [x] `dcx ca ask --profile` routes to the correct API family based on
   source type
 - [x] Looker explore profiles with instance URL and model/explore references
 - [x] AlloyDB, Spanner, Cloud SQL profiles with database connection details
 - [x] QueryData API integration with optional `context_set_id`
-- [x] 6 new Data Cloud skills: `bqx-ca-looker`, `bqx-ca-database`,
-  `bqx-ca-alloydb`, `bqx-ca-spanner`, `recipe-ca-looker-exploration`,
+- [x] 6 new Data Cloud skills: `dcx-ca-looker`, `dcx-ca-database`,
+  `dcx-ca-alloydb`, `dcx-ca-spanner`, `recipe-ca-looker-exploration`,
   `recipe-ca-database-ops`
-- [x] Updated routing skills (`bqx-ca`, `bqx-ca-ask`, `persona-sre`)
+- [x] Updated routing skills (`dcx-ca`, `dcx-ca-ask`, `persona-sre`)
 - [x] E2E validation against live AlloyDB, Spanner, and Cloud SQL instances
 - [x] Docs and positioning update
 - [x] Version bump to 0.4.0 and release closure
 
-**Exit criteria:** `bqx ca ask --profile <source>.yaml` works for BigQuery,
+**Exit criteria:** `dcx ca ask --profile <source>.yaml` works for BigQuery,
 Looker, AlloyDB, Spanner, and Cloud SQL; skill layer reflects multi-source
 Data Cloud support; docs updated.
 
@@ -1056,13 +1056,13 @@ See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 
 ## 8. Relationship to Existing Tools
 
-| Tool | Role | Relationship to `bqx` |
+| Tool | Role | Relationship to `dcx` |
 |------|------|----------------------|
-| `bq` CLI | Legacy BigQuery CLI | `bqx` is a successor, not a wrapper. Coexists — users can migrate gradually. |
-| `gcloud` | Google Cloud CLI | `bqx` handles BigQuery-specific workflows; delegates to `gcloud` for IAM, projects. |
+| `bq` CLI | Legacy BigQuery CLI | `dcx` is a successor, not a wrapper. Coexists — users can migrate gradually. |
+| `gcloud` | Google Cloud CLI | `dcx` handles BigQuery-specific workflows; delegates to `gcloud` for IAM, projects. |
 | `gws` CLI | Google Workspace CLI | Architectural template. Same skills format, same output patterns, different domain. |
-| `bq-agent-sdk` (from PRD) | Python CLI from current PRD | Ships first as a preview CLI. Once `bqx analytics` reaches feature parity (v0.2), the Python CLI is sunset; the Python SDK *library* continues independently. |
-| BigQuery Console | Web UI | `bqx ca ask` brings CA to terminal; `bqx analytics` brings SDK to terminal. |
+| `bq-agent-sdk` (from PRD) | Python CLI from current PRD | Ships first as a preview CLI. Once `dcx analytics` reaches feature parity (v0.2), the Python CLI is sunset; the Python SDK *library* continues independently. |
+| BigQuery Console | Web UI | `dcx ca ask` brings CA to terminal; `dcx analytics` brings SDK to terminal. |
 
 ---
 
@@ -1071,8 +1071,8 @@ See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 1. **Language choice:** Rust (like `gws`) vs Go (like `gcloud`/`bq`)?
    **Recommendation:** Rust — faster startup, smaller binary, proven by `gws`.
 
-2. **Naming:** `bqx` vs `bqai` vs `bq2`?
-   **Recommendation:** `bqx` — short, clearly extends `bq`, no conflict.
+2. **Naming:** `dcx` vs `bqai` vs `bq2`?
+   **Recommendation:** `dcx` — short, clearly extends `bq`, no conflict.
 
 3. **BigQuery API coverage scope:** Full Discovery Document or curated subset?
    **Recommendation:** Start with curated (datasets, tables, jobs, routines,
@@ -1086,7 +1086,7 @@ See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 
 5. **Relationship to `bq-agent-sdk` CLI in current PRD:**
    **Recommendation:** The current PRD's Python CLI (§4) ships as
-   `bq-agent-sdk` (Python/typer) in a preview release. Once `bqx`
+   `bq-agent-sdk` (Python/typer) in a preview release. Once `dcx`
    reaches v0.2 with feature parity, analytics commands migrate to
-   `bqx analytics` and the Python CLI is sunset. The Python SDK
+   `dcx analytics` and the Python CLI is sunset. The Python SDK
    *library* continues to be maintained independently.

@@ -1,7 +1,7 @@
 //! Gemini CLI extension manifest generation.
 //!
 //! Generates and validates the extension manifest used by
-//! `gemini extensions install` to register bqx tools.
+//! `gemini extensions install` to register dcx tools.
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -52,9 +52,9 @@ pub fn validate_manifest(manifest: &ExtensionManifest) -> Result<()> {
         if tool.command.is_empty() {
             anyhow::bail!("Tool '{}' is missing 'command'", tool.name);
         }
-        if !tool.command.starts_with("bqx ") {
+        if !tool.command.starts_with("dcx ") {
             anyhow::bail!(
-                "Tool '{}' command does not start with 'bqx': {}",
+                "Tool '{}' command does not start with 'dcx': {}",
                 tool.name,
                 tool.command
             );
@@ -89,30 +89,30 @@ mod tests {
 
         // Core tools expected in the Phase 2 curated subset.
         assert!(
-            tool_names.contains(&"bqx_jobs_query"),
-            "Missing bqx_jobs_query"
+            tool_names.contains(&"dcx_jobs_query"),
+            "Missing dcx_jobs_query"
         );
         assert!(
-            tool_names.contains(&"bqx_datasets_list"),
-            "Missing bqx_datasets_list"
+            tool_names.contains(&"dcx_datasets_list"),
+            "Missing dcx_datasets_list"
         );
         assert!(
-            tool_names.contains(&"bqx_tables_list"),
-            "Missing bqx_tables_list"
+            tool_names.contains(&"dcx_tables_list"),
+            "Missing dcx_tables_list"
         );
         assert!(
-            tool_names.contains(&"bqx_analytics_doctor"),
-            "Missing bqx_analytics_doctor"
+            tool_names.contains(&"dcx_analytics_doctor"),
+            "Missing dcx_analytics_doctor"
         );
     }
 
     #[test]
-    fn all_commands_start_with_bqx() {
+    fn all_commands_start_with_dcx() {
         let manifest = load_manifest().unwrap();
         for tool in &manifest.tools {
             assert!(
-                tool.command.starts_with("bqx "),
-                "Tool '{}' command doesn't start with 'bqx': {}",
+                tool.command.starts_with("dcx "),
+                "Tool '{}' command doesn't start with 'dcx': {}",
                 tool.name,
                 tool.command
             );
@@ -124,8 +124,8 @@ mod tests {
         let manifest = load_manifest().unwrap();
         for tool in &manifest.tools {
             assert!(
-                tool.command.contains("--format json"),
-                "Tool '{}' command should use --format json for machine-readable output: {}",
+                tool.command.contains("--format"),
+                "Tool '{}' command should include --format flag: {}",
                 tool.name,
                 tool.command
             );

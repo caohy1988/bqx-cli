@@ -1,6 +1,6 @@
 ---
 name: recipe-error-alerting
-description: Recipe for setting up automated error alerting using bqx analytics evaluate, CA natural language queries, and CI/CD integration for proactive agent monitoring.
+description: Recipe for setting up automated error alerting using dcx analytics evaluate, CA natural language queries, and CI/CD integration for proactive agent monitoring.
 ---
 
 ## When to use this skill
@@ -8,14 +8,14 @@ description: Recipe for setting up automated error alerting using bqx analytics 
 Use when the user wants to:
 - Set up automated alerts when agent error rates exceed thresholds
 - Build a proactive monitoring pipeline for AI agents
-- Integrate bqx with Slack, PagerDuty, or email for error notifications
+- Integrate dcx with Slack, PagerDuty, or email for error notifications
 - Create a scheduled job that checks agent health and alerts on failures
 
 ## Prerequisites
 
-Load the following skills: `bqx-analytics`, `bqx-ca`
+Load the following skills: `dcx-analytics`, `dcx-ca`
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Recipe
 
@@ -37,12 +37,12 @@ set -euo pipefail
 
 PROJECT_ID="${1:?Usage: alert-check.sh <project-id> <dataset-id>}"
 DATASET_ID="${2:?Usage: alert-check.sh <project-id> <dataset-id>}"
-ALERT_OUTPUT="/tmp/bqx-alert-$(date +%s).json"
+ALERT_OUTPUT="/tmp/dcx-alert-$(date +%s).json"
 
 FAILURES=0
 
 echo "Checking error rate..."
-if ! bqx analytics evaluate \
+if ! dcx analytics evaluate \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
   --evaluator error-rate \
@@ -55,7 +55,7 @@ if ! bqx analytics evaluate \
 fi
 
 echo "Checking latency..."
-if ! bqx analytics evaluate \
+if ! dcx analytics evaluate \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
   --evaluator latency \
@@ -68,7 +68,7 @@ if ! bqx analytics evaluate \
 fi
 
 echo "Checking drift coverage..."
-if ! bqx analytics drift \
+if ! dcx analytics drift \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
   --golden-dataset golden_questions \
@@ -94,7 +94,7 @@ echo "All checks passed."
 
 ```bash
 if [ "$FAILURES" -gt 0 ]; then
-  SUMMARY=$(bqx analytics insights --project-id "$PROJECT_ID" --dataset-id "$DATASET_ID" --last 1h --format json | jq -r '.summary | "Sessions: \(.total_sessions), Errors: \(.error_events), Error rate: \(.error_rate)"')
+  SUMMARY=$(dcx analytics insights --project-id "$PROJECT_ID" --dataset-id "$DATASET_ID" --last 1h --format json | jq -r '.summary | "Sessions: \(.total_sessions), Errors: \(.error_events), Error rate: \(.error_rate)"')
 
   curl -s -X POST "$SLACK_WEBHOOK_URL" \
     -H 'Content-type: application/json' \
@@ -112,9 +112,9 @@ if [ "$FAILURES" -gt 0 ]; then
       \"routing_key\": \"$PAGERDUTY_KEY\",
       \"event_action\": \"trigger\",
       \"payload\": {
-        \"summary\": \"bqx: $FAILURES agent health check(s) failed\",
+        \"summary\": \"dcx: $FAILURES agent health check(s) failed\",
         \"severity\": \"warning\",
-        \"source\": \"bqx-alerting\"
+        \"source\": \"dcx-alerting\"
       }
     }"
 fi
@@ -125,7 +125,7 @@ fi
 #### Cron (every 15 minutes)
 
 ```bash
-*/15 * * * * /path/to/alert-check.sh my-proj analytics >> /var/log/bqx-alerts.log 2>&1
+*/15 * * * * /path/to/alert-check.sh my-proj analytics >> /var/log/dcx-alerts.log 2>&1
 ```
 
 #### GitHub Actions
@@ -139,8 +139,8 @@ jobs:
   alert-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Install bqx
-        run: npm install -g bqx
+      - name: Install dcx
+        run: npm install -g dcx
 
       - uses: google-github-actions/auth@v2
         with:
@@ -149,9 +149,9 @@ jobs:
 
       - name: Run health checks
         run: |
-          bqx analytics evaluate \
+          dcx analytics evaluate \
             --project-id ${{ secrets.GCP_PROJECT }} \
-            --dataset-id ${{ secrets.BQX_DATASET }} \
+            --dataset-id ${{ secrets.DCX_DATASET }} \
             --evaluator error-rate \
             --threshold 0.05 \
             --last 1h \
@@ -170,7 +170,7 @@ jobs:
 When an alert fires, use CA to generate a human-readable diagnosis:
 
 ```bash
-bqx ca ask "Summarize the errors in the last hour and suggest root causes" \
+dcx ca ask "Summarize the errors in the last hour and suggest root causes" \
   --agent=agent-analytics \
   --format text
 ```
@@ -186,6 +186,6 @@ bqx ca ask "Summarize the errors in the last hour and suggest root causes" \
 ## Constraints
 
 - Alerting integrations (Slack, PagerDuty) must be configured externally
-- bqx is read-only — it detects issues but does not remediate them
+- dcx is read-only — it detects issues but does not remediate them
 - The CI service account needs `bigquery.dataViewer` and `bigquery.jobUser` roles only
 - Alert frequency should match your data freshness — don't alert faster than events arrive

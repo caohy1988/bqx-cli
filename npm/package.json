@@ -1,5 +1,5 @@
 {
-  "name": "bqx",
+  "name": "dcx",
   "version": "0.4.0",
   "description": "Agent-native Data Cloud CLI",
   "license": "Apache-2.0",
@@ -8,17 +8,17 @@
     "url": "https://github.com/haiyuancao/bqx-cli.git"
   },
   "bin": {
-    "bqx": "bin/bqx.js"
+    "dcx": "bin/dcx.js"
   },
   "files": [
-    "bin/bqx.js"
+    "bin/dcx.js"
   ],
   "optionalDependencies": {
-    "@bqx-cli/darwin-arm64": "0.4.0",
-    "@bqx-cli/darwin-x64": "0.4.0",
-    "@bqx-cli/linux-x64": "0.4.0",
-    "@bqx-cli/linux-arm64": "0.4.0",
-    "@bqx-cli/win32-x64": "0.4.0",
-    "@bqx-cli/win32-arm64": "0.4.0"
+    "@dcx-cli/darwin-arm64": "0.4.0",
+    "@dcx-cli/darwin-x64": "0.4.0",
+    "@dcx-cli/linux-x64": "0.4.0",
+    "@dcx-cli/linux-arm64": "0.4.0",
+    "@dcx-cli/win32-x64": "0.4.0",
+    "@dcx-cli/win32-arm64": "0.4.0"
   }
 }

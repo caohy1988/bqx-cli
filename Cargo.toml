@@ -1,12 +1,12 @@
 [package]
-name = "bqx"
+name = "dcx"
 version = "0.4.0"
 edition = "2021"
 description = "Agent-native Data Cloud CLI"
 license = "Apache-2.0"
 
 [[bin]]
-name = "bqx"
+name = "dcx"
 path = "src/main.rs"
 
 [dependencies]

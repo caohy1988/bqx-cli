@@ -1,39 +1,39 @@
 ---
 name: recipe-self-diagnostic-agent
-description: Recipe for building an AI agent self-correction loop where agents use bqx to monitor their own performance and adjust behavior based on analytics.
+description: Recipe for building an AI agent self-correction loop where agents use dcx to monitor their own performance and adjust behavior based on analytics.
 ---
 
 ## When to use this skill
 
 Use when the user wants to:
 - Build an agent that monitors its own performance
-- Create a self-correction loop using bqx analytics
+- Create a self-correction loop using dcx analytics
 - Have an agent adjust its behavior based on latency, error rates, or tool failures
 - Implement autonomous agent health awareness
 
 ## Prerequisites
 
-Load the following skills: `bqx-analytics`, `bqx-ca`, `bqx-analytics-evaluate`
+Load the following skills: `dcx-analytics`, `dcx-ca`, `dcx-analytics-evaluate`
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Recipe
 
 ### Concept
 
 A self-diagnostic agent periodically checks its own performance metrics using
-bqx, then adjusts its behavior. For example:
+dcx, then adjusts its behavior. For example:
 - If latency is high, switch to a faster model or simpler tool chain
 - If error rate is rising, fall back to cached responses
 - If a specific tool is failing, route around it
 
-### Step 1: Give your agent access to bqx
+### Step 1: Give your agent access to dcx
 
-Add bqx commands as tools available to your agent. The agent needs:
+Add dcx commands as tools available to your agent. The agent needs:
 
 ```bash
 # Self-evaluation tool
-bqx analytics evaluate \
+dcx analytics evaluate \
   --evaluator=latency \
   --threshold=5000 \
   --agent-id=<SELF_AGENT_ID> \
@@ -41,13 +41,13 @@ bqx analytics evaluate \
   --format=json
 
 # Self-insights tool
-bqx analytics insights \
+dcx analytics insights \
   --agent-id=<SELF_AGENT_ID> \
   --last=1h \
   --format=json
 
 # Natural language self-query
-bqx ca ask "What's my error rate in the last hour?" \
+dcx ca ask "What's my error rate in the last hour?" \
   --agent=agent-analytics \
   --format=json
 ```
@@ -64,7 +64,7 @@ def self_diagnostic(agent_id: str) -> dict:
     """Agent checks its own health metrics."""
     result = subprocess.run(
         [
-            "bqx", "analytics", "evaluate",
+            "dcx", "analytics", "evaluate",
             "--evaluator=latency",
             "--threshold=5000",
             f"--agent-id={agent_id}",
@@ -106,7 +106,7 @@ def diagnose_issues(agent_id: str) -> str:
     """Use CA to understand what's going wrong."""
     result = subprocess.run(
         [
-            "bqx", "ca", "ask",
+            "dcx", "ca", "ask",
             f"What tools are failing for {agent_id} in the last hour?",
             "--agent=agent-analytics",
             "--format=json",
@@ -144,7 +144,7 @@ For agents that run continuously, add a background health loop:
 ```bash
 # Run every 5 minutes as a background check
 while true; do
-  bqx analytics evaluate \
+  dcx analytics evaluate \
     --evaluator=error-rate \
     --threshold=0.10 \
     --agent-id=my-agent \
@@ -164,12 +164,12 @@ done
 - Define clear thresholds: what pass_rate triggers fallback vs. reduced vs. normal
 - Log strategy decisions so they appear in the next analytics cycle
 - Use `--exit-code` in scripts to branch on health status
-- Use CA (`bqx ca ask`) for root cause analysis, not just metric checks
+- Use CA (`dcx ca ask`) for root cause analysis, not just metric checks
 
 ## Constraints
 
 - Self-diagnostic adds latency — only run on complex/expensive requests
 - The agent must have IAM permissions to read its own analytics data
-- Self-correction logic is application-specific — bqx provides data, not remediation
+- Self-correction logic is application-specific — dcx provides data, not remediation
 - Avoid tight feedback loops where diagnostic overhead worsens the metrics being measured
 - CA queries require a configured data agent (see `recipe-ca-data-agent-setup`)

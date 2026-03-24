@@ -1,9 +1,9 @@
-use bqx::integrations::gemini;
+use dcx::integrations::gemini;
 
 #[test]
 fn bundled_manifest_loads_successfully() {
     let manifest = gemini::load_manifest().expect("Failed to load bundled manifest");
-    assert_eq!(manifest.name, "bqx");
+    assert_eq!(manifest.name, "dcx");
     assert!(!manifest.tools.is_empty());
 }
 
@@ -37,24 +37,24 @@ fn manifest_version_matches_cargo() {
 }
 
 #[test]
-fn all_tool_names_use_bqx_prefix() {
+fn all_tool_names_use_dcx_prefix() {
     let manifest = gemini::load_manifest().unwrap();
     for tool in &manifest.tools {
         assert!(
-            tool.name.starts_with("bqx_"),
-            "Tool name '{}' should start with 'bqx_'",
+            tool.name.starts_with("dcx_"),
+            "Tool name '{}' should start with 'dcx_'",
             tool.name
         );
     }
 }
 
 #[test]
-fn all_tool_commands_are_valid_bqx_invocations() {
+fn all_tool_commands_are_valid_dcx_invocations() {
     let manifest = gemini::load_manifest().unwrap();
     for tool in &manifest.tools {
         assert!(
-            tool.command.starts_with("bqx "),
-            "Tool '{}' command should start with 'bqx ': {}",
+            tool.command.starts_with("dcx "),
+            "Tool '{}' command should start with 'dcx ': {}",
             tool.name,
             tool.command
         );

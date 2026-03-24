@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Schema"
+  short_description: "Inspect BigQuery table schemas via dcx"
+  default_prompt: "Use $dcx-schema to inspect the schema of a BigQuery table using dcx."
+
+policy:
+  allow_implicit_invocation: true

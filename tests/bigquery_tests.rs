@@ -2,8 +2,8 @@ use serde_json::json;
 use wiremock::matchers::{bearer_token, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-use bqx::auth::resolver::{AuthSource, ResolvedAuth};
-use bqx::bigquery::client::{BigQueryClient, QueryExecutor, QueryRequest};
+use dcx::auth::resolver::{AuthSource, ResolvedAuth};
+use dcx::bigquery::client::{BigQueryClient, QueryExecutor, QueryRequest};
 
 fn static_auth(token: &str) -> ResolvedAuth {
     ResolvedAuth::static_token(AuthSource::ExplicitToken, token.to_string())

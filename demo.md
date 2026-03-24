@@ -1,6 +1,6 @@
-# bqx v0.0 MVP Demo Guide
+# dcx v0.0 MVP Demo Guide
 
-This guide walks you through the `bqx` demo end-to-end: from setup to
+This guide walks you through the `dcx` demo end-to-end: from setup to
 running all four commands against a real BigQuery dataset.
 
 ## Prerequisites
@@ -30,8 +30,8 @@ cd bqx-cli
 cargo build
 
 # Set your project and dataset
-export BQX_PROJECT="your-project-id"
-export BQX_DATASET="agent_analytics"
+export DCX_PROJECT="your-project-id"
+export DCX_DATASET="agent_analytics"
 
 # Run the full demo
 bash scripts/demo.sh
@@ -43,7 +43,7 @@ Or run each command individually — see the [Walkthrough](#walkthrough) below.
 
 ## Data Contract
 
-`bqx analytics` commands expect a table called `agent_events` with these
+`dcx analytics` commands expect a table called `agent_events` with these
 columns:
 
 | Column | Type | Required | Description |
@@ -59,7 +59,7 @@ columns:
 
 This is the standard schema used by the
 [ADK BigQuery exporter](https://github.com/haiyuan-eng-google/BigQuery-Agent-Analytics-SDK).
-If your table has extra columns, that's fine — `bqx` ignores columns it
+If your table has extra columns, that's fine — `dcx` ignores columns it
 doesn't need.
 
 ---
@@ -68,20 +68,20 @@ doesn't need.
 
 The demo proves three things:
 
-1. `bqx` is **JSON-first** — every command defaults to structured JSON
-2. `bqx` covers **both raw BigQuery access and analytics** in one CLI
-3. `bqx` **feels better than `bq`** for agent analytics workflows
+1. `dcx` is **JSON-first** — every command defaults to structured JSON
+2. `dcx` covers **both raw BigQuery access and analytics** in one CLI
+3. `dcx` **feels better than `bq`** for agent analytics workflows
 
 ### Step 1: Raw SQL Query (JSON-first)
 
-`bqx jobs query` executes arbitrary SQL and returns structured JSON.
+`dcx jobs query` executes arbitrary SQL and returns structured JSON.
 This is the raw BigQuery access layer — same capability as `bq query`,
 but JSON by default instead of ASCII tables.
 
 ```bash
-bqx jobs query \
+dcx jobs query \
   --query "SELECT session_id, agent, event_type, timestamp
-           FROM \`${BQX_PROJECT}.${BQX_DATASET}.agent_events\`
+           FROM \`${DCX_PROJECT}.${DCX_DATASET}.agent_events\`
            LIMIT 5"
 ```
 
@@ -128,7 +128,7 @@ bqx jobs query \
 You can also preview the request without executing it:
 
 ```bash
-bqx jobs query --query "SELECT 1" --dry-run
+dcx jobs query --query "SELECT 1" --dry-run
 ```
 
 ```json
@@ -146,12 +146,12 @@ bqx jobs query --query "SELECT 1" --dry-run
 
 ### Step 2: Health Check
 
-`bqx analytics doctor` validates your dataset is set up correctly.
+`dcx analytics doctor` validates your dataset is set up correctly.
 It checks that the table exists, has all required columns, and reports
 row counts, data freshness, and null rates.
 
 ```bash
-bqx analytics doctor
+dcx analytics doctor
 ```
 
 **Output:**
@@ -196,19 +196,19 @@ bqx analytics doctor
 
 ### Step 3: Evaluate Agent Latency
 
-`bqx analytics evaluate` runs a pass/fail evaluation across all sessions
+`dcx analytics evaluate` runs a pass/fail evaluation across all sessions
 in a time window. The latency evaluator checks maximum per-session latency
 against your threshold.
 
 ```bash
 # JSON output (default)
-bqx analytics evaluate \
+dcx analytics evaluate \
   --evaluator latency \
   --threshold 5000 \
   --last 30d
 
 # Table output (for quick visual scanning)
-bqx analytics evaluate \
+dcx analytics evaluate \
   --evaluator latency \
   --threshold 5000 \
   --last 30d \
@@ -262,7 +262,7 @@ the 5000ms threshold — the worst at 32,135ms (32 seconds).
 You can filter to a specific agent:
 
 ```bash
-bqx analytics evaluate \
+dcx analytics evaluate \
   --evaluator latency \
   --threshold 5000 \
   --last 30d \
@@ -275,7 +275,7 @@ Take the worst session from step 3 (`adcp-a20d176b82af`, 32s latency)
 and drill into its event timeline:
 
 ```bash
-bqx analytics get-trace \
+dcx analytics get-trace \
   --session-id adcp-a20d176b82af \
   --format table
 ```
@@ -315,7 +315,7 @@ was the 4th LLM call at 9.3 seconds.
 For the full event payload (tool inputs, LLM prompts, etc.), use JSON:
 
 ```bash
-bqx analytics get-trace --session-id adcp-a20d176b82af
+dcx analytics get-trace --session-id adcp-a20d176b82af
 ```
 
 ### Step 5: Error Rate Evaluation (CI Gate)
@@ -329,7 +329,7 @@ session fails the threshold — designed for CI/CD pipelines:
 
 ```bash
 # In a GitHub Actions step:
-bqx analytics evaluate \
+dcx analytics evaluate \
   --evaluator error-rate \
   --threshold 0.05 \
   --last 30d \
@@ -362,25 +362,25 @@ Exit code behavior:
 
 ## Composing Commands (Agent Workflow)
 
-The real power of `bqx` is that these commands compose. An AI agent
+The real power of `dcx` is that these commands compose. An AI agent
 (or an SRE) can chain them:
 
 ```bash
 # 1. Is the system healthy?
-bqx analytics doctor
+dcx analytics doctor
 
 # 2. Any sessions breaching SLA?
-bqx analytics evaluate --evaluator latency --threshold 5000 --last 1h
+dcx analytics evaluate --evaluator latency --threshold 5000 --last 1h
 
 # 3. Drill into the worst one
-bqx analytics evaluate --evaluator latency --threshold 5000 --last 1h \
+dcx analytics evaluate --evaluator latency --threshold 5000 --last 1h \
   | jq -r '.sessions[0].session_id' \
-  | xargs -I{} bqx analytics get-trace --session-id {}
+  | xargs -I{} dcx analytics get-trace --session-id {}
 
 # 4. Run ad-hoc SQL for custom analysis
-bqx jobs query --query "
+dcx jobs query --query "
   SELECT event_type, COUNT(*) as count
-  FROM \`${BQX_PROJECT}.${BQX_DATASET}.agent_events\`
+  FROM \`${DCX_PROJECT}.${DCX_DATASET}.agent_events\`
   WHERE session_id = 'adcp-a20d176b82af'
   GROUP BY event_type
   ORDER BY count DESC"
@@ -398,9 +398,9 @@ tool-use loop.
 
 | Flag | Env Var | Default | Description |
 |------|---------|---------|-------------|
-| `--project-id` | `BQX_PROJECT` | (required) | GCP project ID |
-| `--dataset-id` | `BQX_DATASET` | — | BigQuery dataset (required for `analytics` commands) |
-| `--location` | `BQX_LOCATION` | `US` | BigQuery location |
+| `--project-id` | `DCX_PROJECT` | (required) | GCP project ID |
+| `--dataset-id` | `DCX_DATASET` | — | BigQuery dataset (required for `analytics` commands) |
+| `--location` | `DCX_LOCATION` | `US` | BigQuery location |
 | `--table` | — | `agent_events` | Table name |
 | `--format` | — | `json` | Output format: `json` or `table` |
 
@@ -426,17 +426,17 @@ For CI/CD, use a service account:
 
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json
-bqx analytics evaluate --evaluator latency --threshold 5000 --last 24h --exit-code
+dcx analytics evaluate --evaluator latency --threshold 5000 --last 24h --exit-code
 ```
 
 ---
 
 ## Troubleshooting
 
-**"--project-id or BQX_PROJECT is required"**
+**"--project-id or DCX_PROJECT is required"**
 Set the env var or pass the flag:
 ```bash
-export BQX_PROJECT="your-project-id"
+export DCX_PROJECT="your-project-id"
 ```
 
 **"Failed to initialize ADC authentication"**
@@ -445,7 +445,7 @@ Run `gcloud auth application-default login` and try again.
 **"BigQuery API error 404"**
 The dataset or table doesn't exist. Check with:
 ```bash
-bq ls $BQX_PROJECT:$BQX_DATASET
+bq ls $DCX_PROJECT:$DCX_DATASET
 ```
 
 **"BigQuery API error 403"**

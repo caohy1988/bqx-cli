@@ -3,8 +3,8 @@ source: tests/skill_generation_tests.rs
 expression: "&routines_skill.skill_md"
 ---
 ---
-name: bqx-routines
-description: Use bqx to manage BigQuery routines via the get, list commands. Generated from the BigQuery v2 Discovery API.
+name: dcx-routines
+description: Use dcx to manage BigQuery routines via the get, list commands. Generated from the BigQuery v2 Discovery API.
 ---
 
 ## When to use this skill
@@ -15,11 +15,11 @@ Use when the user asks about:
 - "show me BigQuery routines"
 - "what routines are in my project"
 
-Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) — use bqx-analytics instead.
+Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) — use dcx-analytics instead.
 
 ## Prerequisites
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 Requires: `--project-id` and `--dataset-id`
 
@@ -30,7 +30,7 @@ Requires: `--project-id` and `--dataset-id`
 Gets the specified routine resource by routine ID.
 
 ```bash
-bqx routines get \
+dcx routines get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --routine-id <routineId> \
@@ -51,7 +51,7 @@ bqx routines get \
 Lists all routines in the specified dataset. Requires the READER dataset role.
 
 ```bash
-bqx routines list \
+dcx routines list \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   [--filter] \
@@ -83,14 +83,14 @@ bqx routines list \
 
 ```bash
 # Get routines
-bqx routines get \
+dcx routines get \
   --project-id my-proj \
   --dataset-id my_dataset \
   --routine-id my_routineid \
   --format table
 
 # List routines
-bqx routines list \
+dcx routines list \
   --project-id my-proj \
   --dataset-id my_dataset \
   --format table

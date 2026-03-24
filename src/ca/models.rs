@@ -22,7 +22,7 @@ pub struct TableRef {
     pub table_id: String,
 }
 
-/// Stable output contract for `bqx ca ask`.
+/// Stable output contract for `dcx ca ask`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CaQuestionResponse {
     pub question: String,
@@ -38,7 +38,7 @@ pub struct CaQuestionResponse {
 
 // ── Agent management output contracts ──
 
-/// Stable output contract for `bqx ca create-agent`.
+/// Stable output contract for `dcx ca create-agent`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateAgentResponse {
     pub agent_id: String,
@@ -53,7 +53,7 @@ pub struct CreateAgentResponse {
     pub verified_queries_count: usize,
 }
 
-/// Stable output contract for `bqx ca list-agents`.
+/// Stable output contract for `dcx ca list-agents`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListAgentsResponse {
     pub agents: Vec<DataAgentSummary>,
@@ -72,7 +72,7 @@ pub struct DataAgentSummary {
     pub update_time: Option<String>,
 }
 
-/// Stable output contract for `bqx ca add-verified-query`.
+/// Stable output contract for `dcx ca add-verified-query`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddVerifiedQueryResponse {
     pub agent_id: String,

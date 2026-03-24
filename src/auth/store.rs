@@ -35,7 +35,7 @@ impl Default for AuthStore {
 impl AuthStore {
     pub fn new() -> Self {
         let config_dir =
-            directories::ProjectDirs::from("", "", "bqx").map(|d| d.config_dir().to_path_buf());
+            directories::ProjectDirs::from("", "", "dcx").map(|d| d.config_dir().to_path_buf());
         Self { config_dir }
     }
 

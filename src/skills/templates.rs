@@ -7,7 +7,7 @@ const GLOBAL_PARAMS: &[&str] = &["projectId", "datasetId"];
 /// A generated skill ready to be written to disk.
 #[derive(Debug, Clone)]
 pub struct SkillOutput {
-    /// Skill directory name, e.g. "bqx-datasets"
+    /// Skill directory name, e.g. "dcx-datasets"
     pub dir_name: String,
     /// SKILL.md content
     pub skill_md: String,
@@ -17,7 +17,7 @@ pub struct SkillOutput {
 
 /// Generate a skill for a resource group (e.g. "datasets") from its commands.
 pub fn generate_resource_skill(group: &str, commands: &[&GeneratedCommand]) -> SkillOutput {
-    let dir_name = format!("bqx-{group}");
+    let dir_name = format!("dcx-{group}");
     let display_name = capitalize(group);
 
     let skill_md = build_skill_md(group, &display_name, commands);
@@ -38,8 +38,8 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
     let actions_str = action_list.join(", ");
     out.push_str(&format!(
         "---\n\
-         name: bqx-{group}\n\
-         description: Use bqx to manage BigQuery {group} via the {actions_str} commands. \
+         name: dcx-{group}\n\
+         description: Use dcx to manage BigQuery {group} via the {actions_str} commands. \
          Generated from the BigQuery v2 Discovery API.\n\
          ---\n\n"
     ));
@@ -60,12 +60,12 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
     ));
     out.push_str(
         "Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) \
-         — use bqx-analytics instead.\n\n",
+         — use dcx-analytics instead.\n\n",
     );
 
     // Prerequisites
     out.push_str("## Prerequisites\n\n");
-    out.push_str("See **bqx-shared** for authentication and global flags.\n\n");
+    out.push_str("See **dcx-shared** for authentication and global flags.\n\n");
 
     // Determine per-command requirements and summarize at the group level.
     let all_need_dataset = commands.iter().all(|c| cmd_needs_dataset(c));
@@ -87,7 +87,7 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
         out.push_str(&format!("{}\n\n", cmd.about));
 
         // Build usage line — include global flags that this command requires.
-        let mut usage = format!("```bash\nbqx {group} {}", cmd.action);
+        let mut usage = format!("```bash\ndcx {group} {}", cmd.action);
         usage.push_str(" \\\n  --project-id <PROJECT_ID>");
         if needs_dataset {
             usage.push_str(" \\\n  --dataset-id <DATASET_ID>");
@@ -160,7 +160,7 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
             .any(|p| p.name == "datasetId" && p.location == ParamLocation::Path);
 
         out.push_str(&format!("# {} {}\n", capitalize(&cmd.action), group));
-        out.push_str(&format!("bqx {group} {}", cmd.action));
+        out.push_str(&format!("dcx {group} {}", cmd.action));
         out.push_str(" \\\n  --project-id my-proj");
 
         if cmd_needs_dataset {
@@ -202,9 +202,9 @@ fn build_openai_yaml(group: &str, display_name: &str, commands: &[&GeneratedComm
 
     format!(
         "interface:\n  \
-         display_name: \"bqx {display_name}\"\n  \
-         short_description: \"{actions_str} BigQuery {group} via bqx\"\n  \
-         default_prompt: \"Use $bqx-{group} to {actions_str} BigQuery {group} using the bqx CLI.\"\n\n\
+         display_name: \"dcx {display_name}\"\n  \
+         short_description: \"{actions_str} BigQuery {group} via dcx\"\n  \
+         default_prompt: \"Use $dcx-{group} to {actions_str} BigQuery {group} using the dcx CLI.\"\n\n\
          policy:\n  \
          allow_implicit_invocation: true\n"
     )

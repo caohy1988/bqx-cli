@@ -1,7 +1,0 @@
-interface:
-  display_name: "bqx Analytics"
-  short_description: "Route to doctor, evaluate, or get-trace"
-  default_prompt: "Use $bqx-analytics to check agent health and find failing sessions in BigQuery."
-
-policy:
-  allow_implicit_invocation: true

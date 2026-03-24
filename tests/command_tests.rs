@@ -2,28 +2,28 @@ use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::json;
 
-use bqx::bigquery::client::{QueryExecutor, QueryRequest, QueryResult, SchemaField, TableSchema};
-use bqx::cli::{EvaluatorType, OutputFormat};
-use bqx::commands::analytics::distribution::{build_distribution_query, distribution_from_rows};
-use bqx::commands::analytics::doctor::{
+use dcx::bigquery::client::{QueryExecutor, QueryRequest, QueryResult, SchemaField, TableSchema};
+use dcx::cli::{EvaluatorType, OutputFormat};
+use dcx::commands::analytics::distribution::{build_distribution_query, distribution_from_rows};
+use dcx::commands::analytics::doctor::{
     build_columns_query, build_stats_query, columns_from_result, doctor_report_from_rows,
     find_missing_columns,
 };
-use bqx::commands::analytics::drift::{build_drift_query, drift_from_rows};
-use bqx::commands::analytics::evaluate::{build_evaluate_query, eval_result_from_rows};
-use bqx::commands::analytics::get_trace::{build_trace_query, trace_result_from_rows};
-use bqx::commands::analytics::hitl_metrics::{
+use dcx::commands::analytics::drift::{build_drift_query, drift_from_rows};
+use dcx::commands::analytics::evaluate::{build_evaluate_query, eval_result_from_rows};
+use dcx::commands::analytics::get_trace::{build_trace_query, trace_result_from_rows};
+use dcx::commands::analytics::hitl_metrics::{
     build_hitl_sessions_query, build_hitl_summary_query, hitl_sessions_from_rows,
     hitl_summary_from_rows,
 };
-use bqx::commands::analytics::insights::{
+use dcx::commands::analytics::insights::{
     build_insights_query, build_top_errors_query, build_top_tools_query, summary_from_rows,
     top_errors_from_rows, top_tools_from_rows,
 };
-use bqx::commands::analytics::list_traces::{build_list_traces_query, traces_from_rows};
-use bqx::commands::analytics::views::build_create_view_sql;
-use bqx::commands::jobs_query::build_query_request;
-use bqx::config::Config;
+use dcx::commands::analytics::list_traces::{build_list_traces_query, traces_from_rows};
+use dcx::commands::analytics::views::build_create_view_sql;
+use dcx::commands::jobs_query::build_query_request;
+use dcx::config::Config;
 
 // ── MockExecutor ──
 
@@ -448,7 +448,7 @@ async fn jobs_query_json_output() {
     );
     let config = test_config(OutputFormat::Json);
     let result =
-        bqx::commands::jobs_query::run_with_executor(&executor, "SELECT 1".into(), false, &config)
+        dcx::commands::jobs_query::run_with_executor(&executor, "SELECT 1".into(), false, &config)
             .await;
     assert!(result.is_ok());
 }
@@ -464,7 +464,7 @@ async fn jobs_query_text_output() {
     );
     let config = test_config(OutputFormat::Text);
     let result =
-        bqx::commands::jobs_query::run_with_executor(&executor, "SELECT 1".into(), false, &config)
+        dcx::commands::jobs_query::run_with_executor(&executor, "SELECT 1".into(), false, &config)
             .await;
     assert!(result.is_ok());
 }
@@ -536,7 +536,7 @@ async fn doctor_run_with_executor_healthy() {
         stats_result,
     };
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::doctor::run_with_executor(&executor, &config).await;
+    let result = dcx::commands::analytics::doctor::run_with_executor(&executor, &config).await;
     assert!(result.is_ok());
 }
 
@@ -565,7 +565,7 @@ async fn doctor_run_missing_columns_returns_early() {
     };
     let config = test_config(OutputFormat::Json);
     // Should succeed (renders the error report) rather than bail
-    let result = bqx::commands::analytics::doctor::run_with_executor(&executor, &config).await;
+    let result = dcx::commands::analytics::doctor::run_with_executor(&executor, &config).await;
     assert!(result.is_ok());
 }
 
@@ -597,7 +597,7 @@ async fn get_trace_json_output() {
     );
     let config = test_config(OutputFormat::Json);
     let result =
-        bqx::commands::analytics::get_trace::run_with_executor(&executor, "s1".into(), &config)
+        dcx::commands::analytics::get_trace::run_with_executor(&executor, "s1".into(), &config)
             .await;
     assert!(result.is_ok());
 }
@@ -616,7 +616,7 @@ async fn get_trace_empty_session_errors() {
     ]);
     let config = test_config(OutputFormat::Json);
     let result =
-        bqx::commands::analytics::get_trace::run_with_executor(&executor, "s1".into(), &config)
+        dcx::commands::analytics::get_trace::run_with_executor(&executor, "s1".into(), &config)
             .await;
     let err = result.unwrap_err();
     assert!(err.to_string().contains("No events found"));
@@ -626,7 +626,7 @@ async fn get_trace_empty_session_errors() {
 async fn get_trace_rejects_invalid_session_id() {
     let executor = MockExecutor::empty(vec![("session_id", "STRING")]);
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::get_trace::run_with_executor(
+    let result = dcx::commands::analytics::get_trace::run_with_executor(
         &executor,
         "bad session id!".into(),
         &config,
@@ -662,7 +662,7 @@ async fn evaluate_latency_json_output() {
         ])],
     );
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::evaluate::run_with_executor(
+    let result = dcx::commands::analytics::evaluate::run_with_executor(
         &executor,
         EvaluatorType::Latency,
         5000.0,
@@ -696,7 +696,7 @@ async fn evaluate_with_exit_code_on_failure() {
         ])],
     );
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::evaluate::run_with_executor(
+    let result = dcx::commands::analytics::evaluate::run_with_executor(
         &executor,
         EvaluatorType::Latency,
         5000.0,
@@ -709,14 +709,14 @@ async fn evaluate_with_exit_code_on_failure() {
     assert!(result.is_err());
     // Should be a BqxError::EvalFailed
     let err = result.unwrap_err();
-    assert!(err.downcast_ref::<bqx::models::BqxError>().is_some());
+    assert!(err.downcast_ref::<dcx::models::BqxError>().is_some());
 }
 
 #[tokio::test]
 async fn evaluate_rejects_invalid_agent_id() {
     let executor = MockExecutor::empty(vec![("session_id", "STRING")]);
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::evaluate::run_with_executor(
+    let result = dcx::commands::analytics::evaluate::run_with_executor(
         &executor,
         EvaluatorType::Latency,
         5000.0,
@@ -734,7 +734,7 @@ async fn evaluate_rejects_invalid_agent_id() {
 async fn evaluate_rejects_invalid_duration() {
     let executor = MockExecutor::empty(vec![("session_id", "STRING")]);
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::evaluate::run_with_executor(
+    let result = dcx::commands::analytics::evaluate::run_with_executor(
         &executor,
         EvaluatorType::Latency,
         5000.0,
@@ -845,7 +845,7 @@ async fn list_traces_json_output() {
         ])],
     );
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::list_traces::run_with_executor(
+    let result = dcx::commands::analytics::list_traces::run_with_executor(
         &executor,
         "24h".into(),
         None,
@@ -877,7 +877,7 @@ async fn list_traces_text_output() {
         ])],
     );
     let config = test_config(OutputFormat::Text);
-    let result = bqx::commands::analytics::list_traces::run_with_executor(
+    let result = dcx::commands::analytics::list_traces::run_with_executor(
         &executor,
         "7d".into(),
         Some("test_agent".into()),
@@ -892,7 +892,7 @@ async fn list_traces_text_output() {
 async fn list_traces_rejects_invalid_agent_id() {
     let executor = MockExecutor::empty(vec![("session_id", "STRING")]);
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::list_traces::run_with_executor(
+    let result = dcx::commands::analytics::list_traces::run_with_executor(
         &executor,
         "24h".into(),
         Some("bad agent!".into()),
@@ -908,7 +908,7 @@ async fn list_traces_rejects_invalid_agent_id() {
 async fn list_traces_rejects_invalid_duration() {
     let executor = MockExecutor::empty(vec![("session_id", "STRING")]);
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::list_traces::run_with_executor(
+    let result = dcx::commands::analytics::list_traces::run_with_executor(
         &executor,
         "bad_duration".into(),
         None,
@@ -949,7 +949,7 @@ async fn views_create_all_json_output() {
     let executor = MockExecutor::empty(vec![]);
     let config = test_config(OutputFormat::Json);
     let result =
-        bqx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
+        dcx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
     assert!(result.is_ok());
 }
 
@@ -958,7 +958,7 @@ async fn views_create_all_text_output() {
     let executor = MockExecutor::empty(vec![]);
     let config = test_config(OutputFormat::Text);
     let result =
-        bqx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
+        dcx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
     assert!(result.is_ok());
 }
 
@@ -977,7 +977,7 @@ async fn views_create_all_with_failures_returns_error() {
     let executor = FailingExecutor;
     let config = test_config(OutputFormat::Json);
     let result =
-        bqx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
+        dcx::commands::analytics::views::run_with_executor(&executor, "adk_".into(), &config).await;
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(err.contains("18 of 18 views failed"), "Got: {err}");
@@ -985,20 +985,20 @@ async fn views_create_all_with_failures_returns_error() {
 
 #[test]
 fn validate_view_prefix_accepts_valid() {
-    assert!(bqx::config::validate_view_prefix("").is_ok());
-    assert!(bqx::config::validate_view_prefix("adk_").is_ok());
-    assert!(bqx::config::validate_view_prefix("MyPrefix123").is_ok());
+    assert!(dcx::config::validate_view_prefix("").is_ok());
+    assert!(dcx::config::validate_view_prefix("adk_").is_ok());
+    assert!(dcx::config::validate_view_prefix("MyPrefix123").is_ok());
 }
 
 #[test]
 fn validate_view_prefix_rejects_invalid() {
-    let bad = bqx::config::validate_view_prefix("bad\\prefix");
+    let bad = dcx::config::validate_view_prefix("bad\\prefix");
     assert!(bad.is_err());
     assert!(bad.unwrap_err().to_string().contains("Invalid view prefix"));
 
-    assert!(bqx::config::validate_view_prefix("has space").is_err());
-    assert!(bqx::config::validate_view_prefix("has-dash").is_err());
-    assert!(bqx::config::validate_view_prefix("has.dot").is_err());
+    assert!(dcx::config::validate_view_prefix("has space").is_err());
+    assert!(dcx::config::validate_view_prefix("has-dash").is_err());
+    assert!(dcx::config::validate_view_prefix("has.dot").is_err());
 }
 
 // ── Insights tests ──
@@ -1131,7 +1131,7 @@ async fn insights_json_output() {
         }],
     );
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::insights::run_with_executor(
+    let result = dcx::commands::analytics::insights::run_with_executor(
         &executor,
         "24h".into(),
         None,
@@ -1207,7 +1207,7 @@ async fn drift_json_output() {
         }],
     );
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::drift::run_with_executor(
+    let result = dcx::commands::analytics::drift::run_with_executor(
         &executor,
         "golden_qs".into(),
         "7d".into(),
@@ -1235,7 +1235,7 @@ async fn drift_with_exit_code_on_failure() {
         }],
     );
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::drift::run_with_executor(
+    let result = dcx::commands::analytics::drift::run_with_executor(
         &executor,
         "golden_qs".into(),
         "7d".into(),
@@ -1252,7 +1252,7 @@ async fn drift_with_exit_code_on_failure() {
 async fn drift_rejects_invalid_golden_dataset() {
     let executor = MockExecutor::new(vec![], vec![]);
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::drift::run_with_executor(
+    let result = dcx::commands::analytics::drift::run_with_executor(
         &executor,
         "bad dataset!".into(),
         "7d".into(),
@@ -1273,7 +1273,7 @@ async fn drift_rejects_invalid_golden_dataset() {
 async fn drift_rejects_invalid_min_coverage() {
     let executor = MockExecutor::new(vec![], vec![]);
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::drift::run_with_executor(
+    let result = dcx::commands::analytics::drift::run_with_executor(
         &executor,
         "golden_qs".into(),
         "7d".into(),
@@ -1401,7 +1401,7 @@ async fn distribution_json_output() {
         }],
     );
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::distribution::run_with_executor(
+    let result = dcx::commands::analytics::distribution::run_with_executor(
         &executor,
         "24h".into(),
         None,
@@ -1498,7 +1498,7 @@ async fn hitl_metrics_json_output() {
         }],
     );
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::hitl_metrics::run_with_executor(
+    let result = dcx::commands::analytics::hitl_metrics::run_with_executor(
         &executor,
         "7d".into(),
         None,
@@ -1513,7 +1513,7 @@ async fn hitl_metrics_json_output() {
 async fn insights_rejects_invalid_duration() {
     let executor = MockExecutor::new(vec![], vec![]);
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::insights::run_with_executor(
+    let result = dcx::commands::analytics::insights::run_with_executor(
         &executor,
         "bad".into(),
         None,
@@ -1528,7 +1528,7 @@ async fn insights_rejects_invalid_duration() {
 async fn distribution_rejects_invalid_agent_id() {
     let executor = MockExecutor::new(vec![], vec![]);
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::analytics::distribution::run_with_executor(
+    let result = dcx::commands::analytics::distribution::run_with_executor(
         &executor,
         "24h".into(),
         Some("bad agent!".into()),

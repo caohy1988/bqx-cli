@@ -3,9 +3,9 @@ source: tests/skill_generation_tests.rs
 expression: "&routines_skill.openai_yaml"
 ---
 interface:
-  display_name: "bqx Routines"
-  short_description: "get/list BigQuery routines via bqx"
-  default_prompt: "Use $bqx-routines to get/list BigQuery routines using the bqx CLI."
+  display_name: "dcx Routines"
+  short_description: "get/list BigQuery routines via dcx"
+  default_prompt: "Use $dcx-routines to get/list BigQuery routines using the dcx CLI."
 
 policy:
   allow_implicit_invocation: true

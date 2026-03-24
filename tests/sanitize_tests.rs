@@ -1,4 +1,4 @@
-use bqx::bigquery::sanitize::{self, SanitizeResult};
+use dcx::bigquery::sanitize::{self, SanitizeResult};
 
 #[test]
 fn print_sanitization_notice_flagged_output_on_stderr() {

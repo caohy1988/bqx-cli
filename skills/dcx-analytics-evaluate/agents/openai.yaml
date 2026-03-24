@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Evaluate"
+  short_description: "Evaluate sessions against thresholds"
+  default_prompt: "Use $dcx-analytics-evaluate to check agent session latency or error rates against a threshold."
+
+policy:
+  allow_implicit_invocation: true

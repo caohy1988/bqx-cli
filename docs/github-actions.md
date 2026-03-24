@@ -1,12 +1,12 @@
-# Using bqx in GitHub Actions
+# Using dcx in GitHub Actions
 
-## Install bqx
+## Install dcx
 
 ```yaml
 - uses: actions/setup-node@v4
   with:
     node-version: "20"
-- run: npm install -g bqx
+- run: npm install -g dcx
 ```
 
 ## Authenticate
@@ -20,7 +20,7 @@
     service_account: ${{ vars.SA_EMAIL }}
 ```
 
-bqx picks up the generated credentials automatically via Application Default Credentials.
+dcx picks up the generated credentials automatically via Application Default Credentials.
 
 ### Option B: Service account key
 
@@ -31,15 +31,15 @@ bqx picks up the generated credentials automatically via Application Default Cre
     # Store the full service account JSON as a repository secret
     GCP_SA_KEY_JSON: ${{ secrets.GCP_SA_KEY_JSON }}
 
-- name: Configure bqx credentials
-  run: echo "BQX_CREDENTIALS_FILE=/tmp/sa-key.json" >> "$GITHUB_ENV"
+- name: Configure dcx credentials
+  run: echo "DCX_CREDENTIALS_FILE=/tmp/sa-key.json" >> "$GITHUB_ENV"
 ```
 
-`BQX_CREDENTIALS_FILE` must point to a file path on disk, not the JSON content itself.
+`DCX_CREDENTIALS_FILE` must point to a file path on disk, not the JSON content itself.
 
 ## CI quality gate with `analytics evaluate --exit-code`
 
-The `--exit-code` flag makes bqx return exit code 1 when sessions fail the threshold, which fails the CI step.
+The `--exit-code` flag makes dcx return exit code 1 when sessions fail the threshold, which fails the CI step.
 
 ### Full workflow example
 
@@ -64,7 +64,7 @@ jobs:
         with:
           node-version: "20"
 
-      - run: npm install -g bqx
+      - run: npm install -g dcx
 
       - uses: google-github-actions/auth@v2
         with:
@@ -73,9 +73,9 @@ jobs:
 
       - name: Check latency compliance
         run: |
-          bqx analytics evaluate \
-            --project-id "${{ vars.BQX_PROJECT }}" \
-            --dataset-id "${{ vars.BQX_DATASET }}" \
+          dcx analytics evaluate \
+            --project-id "${{ vars.DCX_PROJECT }}" \
+            --dataset-id "${{ vars.DCX_DATASET }}" \
             --evaluator latency \
             --threshold 5000 \
             --last 1h \
@@ -83,9 +83,9 @@ jobs:
 
       - name: Check error rate
         run: |
-          bqx analytics evaluate \
-            --project-id "${{ vars.BQX_PROJECT }}" \
-            --dataset-id "${{ vars.BQX_DATASET }}" \
+          dcx analytics evaluate \
+            --project-id "${{ vars.DCX_PROJECT }}" \
+            --dataset-id "${{ vars.DCX_DATASET }}" \
             --evaluator error-rate \
             --threshold 0.05 \
             --last 1h \
@@ -98,8 +98,8 @@ jobs:
 |---|---|
 | `vars.WIF_PROVIDER` | Workload Identity Federation provider resource name |
 | `vars.SA_EMAIL` | Service account email with `bigquery.dataViewer` + `bigquery.jobUser` |
-| `vars.BQX_PROJECT` | GCP project ID |
-| `vars.BQX_DATASET` | BigQuery dataset containing `agent_events` |
+| `vars.DCX_PROJECT` | GCP project ID |
+| `vars.DCX_DATASET` | BigQuery dataset containing `agent_events` |
 
 ### What the exit codes mean
 
@@ -141,4 +141,4 @@ jobs:
 2. Tag: `git tag v0.0.1 && git push origin v0.0.1`
 3. The `Release` workflow builds binaries, packages npm tarballs, and creates a GitHub Release
 4. The `Publish npm` workflow publishes all packages to the npm registry
-5. The `Smoke Install` workflow verifies `npx bqx --help` works on macOS, Linux, and Windows
+5. The `Smoke Install` workflow verifies `npx dcx --help` works on macOS, Linux, and Windows

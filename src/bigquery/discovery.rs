@@ -93,9 +93,9 @@ pub async fn load_remote() -> Result<DiscoveryDocument> {
 
 const CACHE_FILENAME: &str = "bigquery_v2.json";
 
-/// Return the cache directory path: <user-cache-dir>/bqx/discovery/
+/// Return the cache directory path: <user-cache-dir>/dcx/discovery/
 pub fn cache_dir() -> Result<PathBuf> {
-    let proj_dirs = ProjectDirs::from("", "", "bqx")
+    let proj_dirs = ProjectDirs::from("", "", "dcx")
         .ok_or_else(|| anyhow::anyhow!("Cannot determine cache directory"))?;
     Ok(proj_dirs.cache_dir().join("discovery"))
 }

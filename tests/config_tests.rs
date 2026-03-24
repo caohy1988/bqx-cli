@@ -1,4 +1,4 @@
-use bqx::config::{parse_duration, validate_agent_id, validate_identifier, validate_session_id};
+use dcx::config::{parse_duration, validate_agent_id, validate_identifier, validate_session_id};
 
 // ── parse_duration ──
 

@@ -1,7 +1,0 @@
-interface:
-  display_name: "bqx CA Ask"
-  short_description: "Ask natural language questions over Data Cloud sources"
-  default_prompt: "Use $bqx-ca-ask to translate a natural language question into SQL and run it against BigQuery, Looker, AlloyDB, Spanner, or Cloud SQL."
-
-policy:
-  allow_implicit_invocation: true

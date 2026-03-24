@@ -8,21 +8,21 @@ description: Step-by-step recipe for setting up a Conversational Analytics data 
 Use when the user wants to:
 - Set up a CA data agent from scratch for agent analytics
 - Configure verified queries for common agent performance questions
-- Connect bqx analytics views to a CA agent
+- Connect dcx analytics views to a CA agent
 - Bootstrap the full observability stack (events table + views + CA agent)
 
 ## Prerequisites
 
-Load the following skills: `bqx-ca`, `bqx-ca-create-agent`, `bqx-analytics-views`
+Load the following skills: `dcx-ca`, `dcx-ca-create-agent`, `dcx-analytics-views`
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Recipe
 
 ### Step 1: Verify the events table is healthy
 
 ```bash
-bqx analytics doctor \
+dcx analytics doctor \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --format text
@@ -35,7 +35,7 @@ Confirm the table has data, required columns, and recent events.
 Views give the CA agent focused access to specific event types:
 
 ```bash
-bqx analytics views create-all \
+dcx analytics views create-all \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --prefix adk_
@@ -46,7 +46,7 @@ This creates 18 views (e.g., `adk_llm_request`, `adk_tool_completed`, `adk_tool_
 ### Step 3: Create the data agent
 
 ```bash
-bqx ca create-agent \
+dcx ca create-agent \
   --name=agent-analytics \
   --tables=<PROJECT_ID>.<DATASET_ID>.agent_events \
   --views=<PROJECT_ID>.<DATASET_ID>.adk_llm_response,<PROJECT_ID>.<DATASET_ID>.adk_tool_completed \
@@ -62,15 +62,15 @@ bqx ca create-agent \
 
 ```bash
 # Simple test question
-bqx ca ask "How many sessions were there in the last 24 hours?" \
+dcx ca ask "How many sessions were there in the last 24 hours?" \
   --agent=agent-analytics
 
 # Test a verified query
-bqx ca ask "What is the error rate for support_bot?" \
+dcx ca ask "What is the error rate for support_bot?" \
   --agent=agent-analytics
 
 # Test an exploratory question
-bqx ca ask "Which tools are used most frequently?" \
+dcx ca ask "Which tools are used most frequently?" \
   --agent=agent-analytics
 ```
 
@@ -79,7 +79,7 @@ bqx ca ask "Which tools are used most frequently?" \
 Add domain-specific questions your team frequently asks:
 
 ```bash
-bqx ca add-verified-query \
+dcx ca add-verified-query \
   --agent=agent-analytics \
   --question="How many errors occurred in the last hour?" \
   --query="SELECT COUNT(*) AS error_count FROM \`<PROJECT_ID>.<DATASET_ID>.agent_events\` WHERE (ENDS_WITH(event_type, '_ERROR') OR error_message IS NOT NULL OR status = 'ERROR') AND timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR)"
@@ -87,14 +87,14 @@ bqx ca add-verified-query \
 
 ### Step 6: Share with your team
 
-Set `BQX_PROJECT` and `BQX_DATASET` env vars and share the agent name:
+Set `DCX_PROJECT` and `DCX_DATASET` env vars and share the agent name:
 
 ```bash
-export BQX_PROJECT=<PROJECT_ID>
-export BQX_DATASET=<DATASET_ID>
+export DCX_PROJECT=<PROJECT_ID>
+export DCX_DATASET=<DATASET_ID>
 
 # Anyone on the team can now ask questions
-bqx ca ask "What's the p95 latency today?" --agent=agent-analytics
+dcx ca ask "What's the p95 latency today?" --agent=agent-analytics
 ```
 
 ## Decision rules

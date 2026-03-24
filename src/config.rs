@@ -17,7 +17,7 @@ impl Config {
     /// The dataset_id, or an error if it was not provided.
     pub fn require_dataset_id(&self) -> Result<&str> {
         self.dataset_id.as_deref().ok_or_else(|| {
-            anyhow::anyhow!("--dataset-id or BQX_DATASET is required for this command")
+            anyhow::anyhow!("--dataset-id or DCX_DATASET is required for this command")
         })
     }
 }
@@ -31,7 +31,7 @@ impl Config {
         let project_id = cli
             .project_id
             .clone()
-            .ok_or_else(|| anyhow::anyhow!("--project-id or BQX_PROJECT is required"))?;
+            .ok_or_else(|| anyhow::anyhow!("--project-id or DCX_PROJECT is required"))?;
 
         validate_identifier(&project_id, "project_id")?;
         if let Some(ref dataset_id) = cli.dataset_id {

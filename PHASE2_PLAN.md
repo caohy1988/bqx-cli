@@ -2,12 +2,12 @@
 
 ## Goal
 
-Move `bqx` from the Phase 1 target to the Phase 2 target defined in
+Move `dcx` from the Phase 1 target to the Phase 2 target defined in
 [README.md](/Users/haiyuancao/bqx-cli/README.md):
 
 - Discovery Document fetching and caching
 - dynamic `clap::Command` generation for the BigQuery v2 API
-- `bqx generate-skills`
+- `dcx generate-skills`
 - non-CA curated skills:
   - 1 shared
   - 6 BigQuery API service
@@ -24,7 +24,7 @@ this plan targets the README Phase 2 roadmap in
 stopping points.
 
 Phase 2 is not about adding broad new analytics features. It is about making
-`bqx` dynamic, skill-generating, and integrable as a reusable agent tool
+`dcx` dynamic, skill-generating, and integrable as a reusable agent tool
 surface beyond the hand-written Phase 1 command set.
 
 README alignment notes:
@@ -64,7 +64,7 @@ What Phase 2 added (all complete — see milestones below):
 - dynamic command model with read-only allowlist of 8 methods (M2, PR #14)
 - generated BigQuery API commands: `datasets list/get`, `tables list/get`,
   `routines list/get`, `models list/get` (M2, PR #14)
-- skill generation pipeline: `bqx generate-skills` (M3, PR #16)
+- skill generation pipeline: `dcx generate-skills` (M3, PR #16)
 - 19 non-CA skills: 4 generated + 15 curated (M4, PR #17)
 - Model Armor integration via `--sanitize` with regional endpoints (M5, PR #18)
 - Gemini extension manifest packaged and validated (M5, PR #18)
@@ -85,7 +85,7 @@ In scope:
 
 Out of scope:
 
-- Conversational Analytics commands (`bqx ca *`)
+- Conversational Analytics commands (`dcx ca *`)
 - CA-dependent skills
 - additional analytics commands listed for Phase 3
 - broad plugin architecture beyond Gemini extension registration
@@ -168,7 +168,7 @@ Recommended CLI surface:
 - `--discovery bundled`
 - `--discovery cache`
 - `--discovery remote`
-- optional `bqx discovery refresh`
+- optional `dcx discovery refresh`
 
 Recommended flag scope:
 
@@ -263,7 +263,7 @@ Recommended table strategy:
 
 ### 5. Skill Generation Model
 
-`bqx generate-skills` should generate:
+`dcx generate-skills` should generate:
 
 - `SKILL.md`
 - `agents/openai.yaml`
@@ -315,7 +315,7 @@ Recommended initial allowlist:
 
 Done when:
 
-- `bqx` can load Discovery without network access
+- `dcx` can load Discovery without network access
 - the parsed internal model is snapshot-tested and independent of `clap`
 - CI can use bundled Discovery deterministically
 
@@ -351,15 +351,15 @@ Recommended strategy:
 
 Done when:
 
-- `bqx datasets list --help` works without any hardcoded `datasets` command in
+- `dcx datasets list --help` works without any hardcoded `datasets` command in
   [src/cli.rs](/Users/haiyuancao/bqx-cli/src/cli.rs)
-- `bqx datasets list` and `bqx tables get` work end to end from generated
+- `dcx datasets list` and `dcx tables get` work end to end from generated
   metadata
 
 ### Milestone 3: Skill Generation Pipeline — Complete (PR #16)
 
 Objective:
-ship `bqx generate-skills` for deterministic generation from the stable Phase 2
+ship `dcx generate-skills` for deterministic generation from the stable Phase 2
 command surface.
 
 Tasks:
@@ -376,15 +376,15 @@ Tasks:
 
 Recommended generated output in Phase 2:
 
-- BigQuery API service skills such as `bqx-datasets`, `bqx-tables`, `bqx-jobs`
+- BigQuery API service skills such as `dcx-datasets`, `dcx-tables`, `dcx-jobs`
 - deterministic helper skills only when backed by explicit templates
 - no persona or recipe generation from raw Discovery metadata
 
 Done when:
 
-- `bqx generate-skills --output-dir=./skills` emits deterministic skill
+- `dcx generate-skills --output-dir=./skills` emits deterministic skill
   directories
-- `bqx generate-skills --filter=bqx-analytics` has a clear and supported
+- `dcx generate-skills --filter=dcx-analytics` has a clear and supported
   behavior
 - generated skills are snapshot-tested and reviewable
 
@@ -408,11 +408,11 @@ Count clarification:
 - the README's 19-skill figure is the total non-CA Phase 2 set, not 19 net-new
   skills on top of Phase 1
 - Phase 1 already shipped 5 overlapping skills:
-  - `bqx-shared`
-  - `bqx-analytics`
-  - `bqx-analytics-evaluate`
-  - `bqx-analytics-trace`
-  - `bqx-query`
+  - `dcx-shared`
+  - `dcx-analytics`
+  - `dcx-analytics-evaluate`
+  - `dcx-analytics-trace`
+  - `dcx-query`
 - Phase 2 therefore adds 14 net-new skills while reorganizing the full 19-skill
   set into generated service skills plus curated workflow skills
 
@@ -755,9 +755,9 @@ Mitigation:
 
 Phase 2 is complete when all of the following are true:
 
-- `bqx datasets list` works without any hardcoded command definition
+- `dcx datasets list` works without any hardcoded command definition
 - Discovery Document loading is deterministic by default
-- `bqx generate-skills` emits valid `SKILL.md` files deterministically
+- `dcx generate-skills` emits valid `SKILL.md` files deterministically
 - 19 non-CA curated skills exist and are internally consistent
 - `--sanitize` works on the supported command paths
 - Gemini extension registration succeeds
@@ -770,7 +770,7 @@ Phase 2 is complete when all of the following are true:
 2. `refactor(dynamic): add internal BigQuery API method model`
 3. `feat(dynamic): generate clap tree for datasets/tables read commands`
 4. `feat(dynamic): execute generated BigQuery API commands`
-5. `feat(skills): add bqx generate-skills with deterministic templates`
+5. `feat(skills): add dcx generate-skills with deterministic templates`
 6. `docs(skills): add curated non-CA Phase 2 skills`
 7. `feat(sanitize): add --sanitize response redaction path`
 8. `feat(gemini): add extension registration packaging`

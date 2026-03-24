@@ -1,21 +1,21 @@
 use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
-#[command(name = "bqx", version, about = "Agent-native BigQuery CLI")]
+#[command(name = "dcx", version, about = "Agent-native BigQuery CLI")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
 
     /// GCP project ID
-    #[arg(long, global = true, env = "BQX_PROJECT")]
+    #[arg(long, global = true, env = "DCX_PROJECT")]
     pub project_id: Option<String>,
 
     /// BigQuery dataset
-    #[arg(long, global = true, env = "BQX_DATASET")]
+    #[arg(long, global = true, env = "DCX_DATASET")]
     pub dataset_id: Option<String>,
 
     /// BigQuery location
-    #[arg(long, global = true, env = "BQX_LOCATION", default_value = "US")]
+    #[arg(long, global = true, env = "DCX_LOCATION", default_value = "US")]
     pub location: String,
 
     /// Table name
@@ -27,16 +27,16 @@ pub struct Cli {
     pub format: OutputFormat,
 
     /// Bearer token for authentication (overrides all other auth methods)
-    #[arg(long, global = true, env = "BQX_TOKEN", hide = true)]
+    #[arg(long, global = true, env = "DCX_TOKEN", hide = true)]
     pub token: Option<String>,
 
     /// Path to service account credentials JSON file
-    #[arg(long, global = true, env = "BQX_CREDENTIALS_FILE")]
+    #[arg(long, global = true, env = "DCX_CREDENTIALS_FILE")]
     pub credentials_file: Option<String>,
 
     /// Model Armor template for response sanitization
     /// (e.g. projects/my-proj/locations/us-central1/templates/my-template)
-    #[arg(long, global = true, env = "BQX_SANITIZE_TEMPLATE")]
+    #[arg(long, global = true, env = "DCX_SANITIZE_TEMPLATE")]
     pub sanitize: Option<String>,
 }
 
@@ -68,7 +68,7 @@ pub enum Command {
         #[arg(long, default_value = "./skills")]
         output_dir: String,
 
-        /// Generate only skills matching these names (e.g. bqx-datasets)
+        /// Generate only skills matching these names (e.g. dcx-datasets)
         #[arg(long)]
         filter: Vec<String>,
     },

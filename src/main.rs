@@ -1,16 +1,16 @@
 use clap::{CommandFactory, FromArgMatches};
 use serde_json::json;
 
-use bqx::auth;
-use bqx::bigquery::discovery::{self, DiscoverySource};
-use bqx::bigquery::dynamic::{clap_tree, executor, model};
-use bqx::cli::{
+use dcx::auth;
+use dcx::bigquery::discovery::{self, DiscoverySource};
+use dcx::bigquery::dynamic::{clap_tree, executor, model};
+use dcx::cli::{
     AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat, ShellType,
     ViewsCommand,
 };
-use bqx::commands;
-use bqx::config::Config;
-use bqx::models::BqxError;
+use dcx::commands;
+use dcx::config::Config;
+use dcx::models::BqxError;
 
 /// Names of static (derive-based) top-level subcommands.
 const STATIC_COMMANDS: &[&str] = &[
@@ -120,7 +120,7 @@ async fn run_dynamic(
         None => {
             eprintln!(
                 "{}",
-                json!({"error": "--project-id or BQX_PROJECT is required"})
+                json!({"error": "--project-id or DCX_PROJECT is required"})
             );
             std::process::exit(1);
         }
@@ -153,7 +153,7 @@ async fn run_dynamic(
     } else if needs_dataset_id && !args.contains_key("datasetId") {
         eprintln!(
             "{}",
-            json!({"error": "--dataset-id or BQX_DATASET is required for this command"})
+            json!({"error": "--dataset-id or DCX_DATASET is required for this command"})
         );
         std::process::exit(1);
     }
@@ -231,7 +231,7 @@ async fn run_static(cli: Cli) {
                 }
             }
         }
-        clap_complete::generate(shell, &mut app, "bqx", &mut std::io::stdout());
+        clap_complete::generate(shell, &mut app, "dcx", &mut std::io::stdout());
         return;
     }
 

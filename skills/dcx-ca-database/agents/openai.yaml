@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx CA Database Sources"
+  short_description: "Query AlloyDB, Spanner, and Cloud SQL databases using natural language"
+  default_prompt: "Use $dcx-ca-database to set up database CA profiles and query AlloyDB, Spanner, or Cloud SQL via natural language."
+
+policy:
+  allow_implicit_invocation: true

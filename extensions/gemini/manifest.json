@@ -1,12 +1,12 @@
 {
-  "name": "bqx",
-  "display_name": "bqx – Agent-Native Data Cloud CLI",
+  "name": "dcx",
+  "display_name": "dcx – Agent-Native Data Cloud CLI",
   "description": "Data Cloud CLI optimized for AI agents. Provides query execution, dataset/table/routine/model inspection, agent analytics, and conversational analytics across BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL.",
   "version": "0.4.0",
-  "homepage": "https://github.com/bigquery/bqx",
+  "homepage": "https://github.com/bigquery/dcx",
   "tools": [
     {
-      "name": "bqx_jobs_query",
+      "name": "dcx_jobs_query",
       "description": "Execute a SQL query against BigQuery and return results as JSON.",
       "parameters": {
         "query": {
@@ -30,10 +30,10 @@
           "default": "US"
         }
       },
-      "command": "bqx jobs query --query {query} --project-id {project_id} --format json"
+      "command": "dcx jobs query --query {query} --project-id {project_id} --format json"
     },
     {
-      "name": "bqx_datasets_list",
+      "name": "dcx_datasets_list",
       "description": "List all datasets in a BigQuery project.",
       "parameters": {
         "project_id": {
@@ -42,10 +42,10 @@
           "required": true
         }
       },
-      "command": "bqx datasets list --project-id {project_id} --format json"
+      "command": "dcx datasets list --project-id {project_id} --format json"
     },
     {
-      "name": "bqx_datasets_get",
+      "name": "dcx_datasets_get",
       "description": "Get metadata for a specific BigQuery dataset.",
       "parameters": {
         "project_id": {
@@ -59,10 +59,10 @@
           "required": true
         }
       },
-      "command": "bqx datasets get --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx datasets get --project-id {project_id} --dataset-id {dataset_id} --format json"
     },
     {
-      "name": "bqx_tables_list",
+      "name": "dcx_tables_list",
       "description": "List all tables in a BigQuery dataset.",
       "parameters": {
         "project_id": {
@@ -76,10 +76,10 @@
           "required": true
         }
       },
-      "command": "bqx tables list --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx tables list --project-id {project_id} --dataset-id {dataset_id} --format json"
     },
     {
-      "name": "bqx_tables_get",
+      "name": "dcx_tables_get",
       "description": "Get metadata for a specific BigQuery table including schema.",
       "parameters": {
         "project_id": {
@@ -98,10 +98,10 @@
           "required": true
         }
       },
-      "command": "bqx tables get --project-id {project_id} --dataset-id {dataset_id} --table-id {table_id} --format json"
+      "command": "dcx tables get --project-id {project_id} --dataset-id {dataset_id} --table-id {table_id} --format json"
     },
     {
-      "name": "bqx_routines_list",
+      "name": "dcx_routines_list",
       "description": "List all routines (UDFs, procedures) in a BigQuery dataset.",
       "parameters": {
         "project_id": {
@@ -115,10 +115,10 @@
           "required": true
         }
       },
-      "command": "bqx routines list --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx routines list --project-id {project_id} --dataset-id {dataset_id} --format json"
     },
     {
-      "name": "bqx_models_list",
+      "name": "dcx_models_list",
       "description": "List all ML models in a BigQuery dataset.",
       "parameters": {
         "project_id": {
@@ -132,10 +132,10 @@
           "required": true
         }
       },
-      "command": "bqx models list --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx models list --project-id {project_id} --dataset-id {dataset_id} --format json"
     },
     {
-      "name": "bqx_analytics_doctor",
+      "name": "dcx_analytics_doctor",
       "description": "Run a health check on the BigQuery agent_events table.",
       "parameters": {
         "project_id": {
@@ -149,10 +149,10 @@
           "required": true
         }
       },
-      "command": "bqx analytics doctor --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx analytics doctor --project-id {project_id} --dataset-id {dataset_id} --format json"
     },
     {
-      "name": "bqx_analytics_evaluate",
+      "name": "dcx_analytics_evaluate",
       "description": "Evaluate agent sessions against a quality threshold (latency or error rate).",
       "parameters": {
         "project_id": {
@@ -185,10 +185,10 @@
           "description": "Filter by agent name"
         }
       },
-      "command": "bqx analytics evaluate --project-id {project_id} --dataset-id {dataset_id} --evaluator {evaluator} --threshold {threshold} --last {last} --format json"
+      "command": "dcx analytics evaluate --project-id {project_id} --dataset-id {dataset_id} --evaluator {evaluator} --threshold {threshold} --last {last} --format json"
     },
     {
-      "name": "bqx_analytics_get_trace",
+      "name": "dcx_analytics_get_trace",
       "description": "Retrieve the full event trace for a specific agent session.",
       "parameters": {
         "project_id": {
@@ -207,10 +207,10 @@
           "required": true
         }
       },
-      "command": "bqx analytics get-trace --project-id {project_id} --dataset-id {dataset_id} --session-id {session_id} --format json"
+      "command": "dcx analytics get-trace --project-id {project_id} --dataset-id {dataset_id} --session-id {session_id} --format json"
     },
     {
-      "name": "bqx_analytics_list_traces",
+      "name": "dcx_analytics_list_traces",
       "description": "List recent agent session traces with event counts.",
       "parameters": {
         "project_id": {
@@ -238,10 +238,10 @@
           "default": 20
         }
       },
-      "command": "bqx analytics list-traces --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+      "command": "dcx analytics list-traces --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
     },
     {
-      "name": "bqx_analytics_insights",
+      "name": "dcx_analytics_insights",
       "description": "Generate a comprehensive agent insights report with sessions, errors, latency, and tool usage.",
       "parameters": {
         "project_id": {
@@ -264,10 +264,10 @@
           "description": "Filter by agent name"
         }
       },
-      "command": "bqx analytics insights --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+      "command": "dcx analytics insights --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
     },
     {
-      "name": "bqx_analytics_drift",
+      "name": "dcx_analytics_drift",
       "description": "Run drift detection against a golden question set and report coverage.",
       "parameters": {
         "project_id": {
@@ -296,10 +296,10 @@
           "default": 0.8
         }
       },
-      "command": "bqx analytics drift --project-id {project_id} --dataset-id {dataset_id} --golden-dataset {golden_dataset} --last {last} --format json"
+      "command": "dcx analytics drift --project-id {project_id} --dataset-id {dataset_id} --golden-dataset {golden_dataset} --last {last} --format json"
     },
     {
-      "name": "bqx_analytics_distribution",
+      "name": "dcx_analytics_distribution",
       "description": "Analyze event type distribution patterns across agent sessions.",
       "parameters": {
         "project_id": {
@@ -322,10 +322,10 @@
           "description": "Filter by agent name"
         }
       },
-      "command": "bqx analytics distribution --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+      "command": "dcx analytics distribution --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
     },
     {
-      "name": "bqx_analytics_hitl_metrics",
+      "name": "dcx_analytics_hitl_metrics",
       "description": "Show human-in-the-loop interaction metrics for agent sessions.",
       "parameters": {
         "project_id": {
@@ -348,10 +348,10 @@
           "description": "Filter by agent name"
         }
       },
-      "command": "bqx analytics hitl-metrics --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+      "command": "dcx analytics hitl-metrics --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
     },
     {
-      "name": "bqx_ca_ask",
+      "name": "dcx_ca_ask",
       "description": "Ask a natural language question over BigQuery data using a data agent.",
       "parameters": {
         "project_id": {
@@ -370,10 +370,10 @@
           "required": true
         }
       },
-      "command": "bqx ca ask {question} --project-id {project_id} --agent {agent} --format json"
+      "command": "dcx ca ask {question} --project-id {project_id} --agent {agent} --format json"
     },
     {
-      "name": "bqx_ca_ask_profile",
+      "name": "dcx_ca_ask_profile",
       "description": "Ask a natural language question over a Data Cloud source (Looker, AlloyDB, Spanner, Cloud SQL) using a YAML profile.",
       "parameters": {
         "profile": {
@@ -392,7 +392,7 @@
           "default": "json"
         }
       },
-      "command": "bqx ca ask {question} --profile {profile} --format {format}"
+      "command": "dcx ca ask {question} --profile {profile} --format {format}"
     }
   ]
 }

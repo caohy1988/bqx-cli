@@ -3,9 +3,9 @@ source: tests/skill_generation_tests.rs
 expression: "&datasets_skill.openai_yaml"
 ---
 interface:
-  display_name: "bqx Datasets"
-  short_description: "get/list BigQuery datasets via bqx"
-  default_prompt: "Use $bqx-datasets to get/list BigQuery datasets using the bqx CLI."
+  display_name: "dcx Datasets"
+  short_description: "get/list BigQuery datasets via dcx"
+  default_prompt: "Use $dcx-datasets to get/list BigQuery datasets using the dcx CLI."
 
 policy:
   allow_implicit_invocation: true

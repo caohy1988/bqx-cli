@@ -1,6 +1,6 @@
 ---
 name: recipe-quality-dashboard
-description: Recipe for building an agent quality dashboard using BigQuery views, scheduled queries, and Looker Studio (or similar) connected via bqx-managed data.
+description: Recipe for building an agent quality dashboard using BigQuery views, scheduled queries, and Looker Studio (or similar) connected via dcx-managed data.
 ---
 
 ## When to use this skill
@@ -12,9 +12,9 @@ Use when the user wants to:
 
 ## Prerequisites
 
-Load the following skills: `bqx-analytics`, `bqx-query`, `bqx-analytics-views`
+Load the following skills: `dcx-analytics`, `dcx-query`, `dcx-analytics-views`
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Recipe
 
@@ -25,7 +25,7 @@ Create views that aggregate agent metrics for dashboard consumption.
 #### Daily latency summary
 
 ```bash
-bqx jobs query \
+dcx jobs query \
   --project-id <PROJECT_ID> \
   --query "CREATE OR REPLACE VIEW \`<PROJECT_ID>.<DATASET_ID>.v_daily_latency\` AS SELECT DATE(timestamp) AS day, agent, COUNT(DISTINCT session_id) AS sessions, AVG(latency_ms) AS avg_latency_ms, MAX(latency_ms) AS max_latency_ms, APPROX_QUANTILES(latency_ms, 100)[OFFSET(95)] AS p95_latency_ms FROM \`<PROJECT_ID>.<DATASET_ID>.agent_events\` WHERE latency_ms IS NOT NULL GROUP BY day, agent" \
   --format text
@@ -34,7 +34,7 @@ bqx jobs query \
 #### Daily error summary
 
 ```bash
-bqx jobs query \
+dcx jobs query \
   --project-id <PROJECT_ID> \
   --query "CREATE OR REPLACE VIEW \`<PROJECT_ID>.<DATASET_ID>.v_daily_errors\` AS SELECT DATE(timestamp) AS day, agent, COUNT(DISTINCT session_id) AS total_sessions, COUNTIF(event_type LIKE '%_ERROR' OR status = 'ERROR') AS error_events, SAFE_DIVIDE(COUNTIF(event_type LIKE '%_ERROR' OR status = 'ERROR'), COUNT(*)) AS error_rate FROM \`<PROJECT_ID>.<DATASET_ID>.agent_events\` GROUP BY day, agent" \
   --format text
@@ -43,12 +43,12 @@ bqx jobs query \
 ### Step 2: Verify views return data
 
 ```bash
-bqx jobs query \
+dcx jobs query \
   --project-id <PROJECT_ID> \
   --query "SELECT * FROM \`<PROJECT_ID>.<DATASET_ID>.v_daily_latency\` ORDER BY day DESC LIMIT 10" \
   --format table
 
-bqx jobs query \
+dcx jobs query \
   --project-id <PROJECT_ID> \
   --query "SELECT * FROM \`<PROJECT_ID>.<DATASET_ID>.v_daily_errors\` ORDER BY day DESC LIMIT 10" \
   --format table
@@ -67,7 +67,7 @@ Point Looker Studio, Grafana, or Metabase at the summary views:
 ### Step 4: Set up scheduled refresh (optional)
 
 For materialized summaries instead of views, create a scheduled query in
-BigQuery that writes to a destination table daily. Use `bqx jobs query --dry-run`
+BigQuery that writes to a destination table daily. Use `dcx jobs query --dry-run`
 to validate the aggregation SQL before scheduling.
 
 ## Decision rules
@@ -82,5 +82,5 @@ to validate the aggregation SQL before scheduling.
 
 - Views are computed on read — dashboard refresh triggers BigQuery queries
 - Scheduled queries require `bigquery.jobs.create` and `bigquery.tables.update` permissions
-- Dashboard tool configuration is outside bqx scope
+- Dashboard tool configuration is outside dcx scope
 - Data freshness depends on how often agent events are written to the table

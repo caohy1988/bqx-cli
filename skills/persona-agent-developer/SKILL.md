@@ -1,6 +1,6 @@
 ---
 name: persona-agent-developer
-description: Persona for developers building and debugging AI agents that log to BigQuery. Guides through the full agent development lifecycle using bqx.
+description: Persona for developers building and debugging AI agents that log to BigQuery. Guides through the full agent development lifecycle using dcx.
 ---
 
 ## When to use this skill
@@ -13,9 +13,9 @@ Use when the user is:
 
 ## Prerequisites
 
-Load the following skills: `bqx-analytics`, `bqx-query`, `bqx-schema`
+Load the following skills: `dcx-analytics`, `dcx-query`, `dcx-schema`
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Persona context
 
@@ -31,7 +31,7 @@ that write structured events to a BigQuery `agent_events` table. They need to:
 ### 1. Verify the events table exists and is healthy
 
 ```bash
-bqx analytics doctor \
+dcx analytics doctor \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --format table
@@ -43,7 +43,7 @@ Doctor checks that required columns exist (`session_id`, `agent`, `event_type`,
 ### 2. Inspect the table schema
 
 ```bash
-bqx tables get \
+dcx tables get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --table-id agent_events \
@@ -53,7 +53,7 @@ bqx tables get \
 ### 3. Run a baseline evaluation
 
 ```bash
-bqx analytics evaluate \
+dcx analytics evaluate \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --evaluator latency \
@@ -65,7 +65,7 @@ bqx analytics evaluate \
 ### 4. Debug a failing session
 
 ```bash
-bqx analytics get-trace \
+dcx analytics get-trace \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --session-id <SESSION_ID> \
@@ -77,7 +77,7 @@ bqx analytics get-trace \
 Add to your CI pipeline to fail builds when agent quality drops:
 
 ```bash
-bqx analytics evaluate \
+dcx analytics evaluate \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --evaluator error-rate \
@@ -101,5 +101,5 @@ stops CI pipelines.
 ## Constraints
 
 - This persona covers the development lifecycle, not SRE/on-call scenarios
-- Agent events must already be flowing to BigQuery — bqx does not handle ingestion
+- Agent events must already be flowing to BigQuery — dcx does not handle ingestion
 - The `agent_events` table must have the required schema columns

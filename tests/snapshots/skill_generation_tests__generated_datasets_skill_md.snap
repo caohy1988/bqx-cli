@@ -3,8 +3,8 @@ source: tests/skill_generation_tests.rs
 expression: "&datasets_skill.skill_md"
 ---
 ---
-name: bqx-datasets
-description: Use bqx to manage BigQuery datasets via the get, list commands. Generated from the BigQuery v2 Discovery API.
+name: dcx-datasets
+description: Use dcx to manage BigQuery datasets via the get, list commands. Generated from the BigQuery v2 Discovery API.
 ---
 
 ## When to use this skill
@@ -15,11 +15,11 @@ Use when the user asks about:
 - "show me BigQuery datasets"
 - "what datasets are in my project"
 
-Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) — use bqx-analytics instead.
+Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) — use dcx-analytics instead.
 
 ## Prerequisites
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 Requires: `--project-id` (all commands), `--dataset-id` (some commands — see per-command details below)
 
@@ -30,7 +30,7 @@ Requires: `--project-id` (all commands), `--dataset-id` (some commands — see p
 Returns the dataset specified by datasetID.
 
 ```bash
-bqx datasets get \
+dcx datasets get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   [--access-policy-version] \
@@ -51,7 +51,7 @@ bqx datasets get \
 Lists all datasets in the specified project to which the user has been granted the READER dataset role.
 
 ```bash
-bqx datasets list \
+dcx datasets list \
   --project-id <PROJECT_ID> \
   [--all] \
   [--filter] \
@@ -81,13 +81,13 @@ bqx datasets list \
 
 ```bash
 # Get datasets
-bqx datasets get \
+dcx datasets get \
   --project-id my-proj \
   --dataset-id my_dataset \
   --format table
 
 # List datasets
-bqx datasets list \
+dcx datasets list \
   --project-id my-proj \
   --format table
 

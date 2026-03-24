@@ -56,7 +56,7 @@ pub fn validate_inputs(
 /// Resolution order:
 /// 1. If the value looks like a file path (contains '/' or ends in .yaml/.yml),
 ///    load it from disk directly.
-/// 2. Look up by name in ~/.config/bqx/profiles/ (user-local).
+/// 2. Look up by name in ~/.config/dcx/profiles/ (user-local).
 /// 3. Look up by name in deploy/ca/profiles/ (repo-local fallback).
 fn resolve_profile(profile_ref: &str) -> Result<CaProfile> {
     let path = Path::new(profile_ref);
@@ -82,15 +82,15 @@ fn resolve_profile(profile_ref: &str) -> Result<CaProfile> {
     }
 
     bail!(
-        "Profile '{}' not found. Looked in ~/.config/bqx/profiles/ and deploy/ca/profiles/. \
+        "Profile '{}' not found. Looked in ~/.config/dcx/profiles/ and deploy/ca/profiles/. \
          You can also pass a path: --profile path/to/profile.yaml",
         profile_ref
     )
 }
 
-/// Returns the user-local profiles directory (~/.config/bqx/profiles/) if it exists.
+/// Returns the user-local profiles directory (~/.config/dcx/profiles/) if it exists.
 fn dirs_for_profile_lookup() -> Option<std::path::PathBuf> {
-    let dir = directories::ProjectDirs::from("", "", "bqx")?;
+    let dir = directories::ProjectDirs::from("", "", "dcx")?;
     let profiles_dir = dir.config_dir().join("profiles");
     if profiles_dir.exists() {
         Some(profiles_dir)

@@ -50,7 +50,7 @@ jobs:
           npm init -y
 
           # Install root + matching platform tarball
-          ROOT_TGZ=$(ls ../tarballs/bqx-0.*.tgz 2>/dev/null | head -1)
+          ROOT_TGZ=$(ls ../tarballs/dcx-0.*.tgz 2>/dev/null | head -1)
           PLATFORM_TGZ=$(ls ../tarballs/bqx-cli-${{ matrix.platform }}-*.tgz 2>/dev/null | head -1)
 
           if [[ -z "$ROOT_TGZ" ]]; then
@@ -68,11 +68,11 @@ jobs:
           echo "Installing: $ROOT_TGZ + $PLATFORM_TGZ"
           npm install "$ROOT_TGZ" "$PLATFORM_TGZ"
 
-      - name: Verify bqx --help
+      - name: Verify dcx --help
         shell: bash
         run: |
           cd test-install
-          OUTPUT=$(npx bqx --help 2>&1)
+          OUTPUT=$(npx dcx --help 2>&1)
           echo "$OUTPUT"
 
           # Assert expected content
@@ -82,11 +82,11 @@ jobs:
           echo "$OUTPUT" | grep -q "auth" || { echo "FAIL: missing auth command"; exit 1; }
           echo "PASS: all expected strings found in --help output"
 
-      - name: Verify bqx --version
+      - name: Verify dcx --version
         shell: bash
         run: |
           cd test-install
-          VERSION=$(npx bqx --version 2>&1)
-          echo "bqx version: $VERSION"
-          echo "$VERSION" | grep -qE '^bqx [0-9]+\.[0-9]+\.[0-9]+' || { echo "FAIL: unexpected version format"; exit 1; }
+          VERSION=$(npx dcx --version 2>&1)
+          echo "dcx version: $VERSION"
+          echo "$VERSION" | grep -qE '^dcx [0-9]+\.[0-9]+\.[0-9]+' || { echo "FAIL: unexpected version format"; exit 1; }
           echo "PASS: version format OK"
