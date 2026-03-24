@@ -51,7 +51,7 @@ jobs:
 
           # Install root + matching platform tarball
           ROOT_TGZ=$(ls ../tarballs/dcx-0.*.tgz 2>/dev/null | head -1)
-          PLATFORM_TGZ=$(ls ../tarballs/bqx-cli-${{ matrix.platform }}-*.tgz 2>/dev/null | head -1)
+          PLATFORM_TGZ=$(ls ../tarballs/dcx-cli-${{ matrix.platform }}-*.tgz 2>/dev/null | head -1)
 
           if [[ -z "$ROOT_TGZ" ]]; then
             echo "ERROR: root tarball not found"
@@ -76,7 +76,7 @@ jobs:
           echo "$OUTPUT"
 
           # Assert expected content
-          echo "$OUTPUT" | grep -q "Agent-native BigQuery CLI" || { echo "FAIL: missing description"; exit 1; }
+          echo "$OUTPUT" | grep -q "Agent-native Data Cloud CLI" || { echo "FAIL: missing description"; exit 1; }
           echo "$OUTPUT" | grep -q "analytics" || { echo "FAIL: missing analytics command"; exit 1; }
           echo "$OUTPUT" | grep -q "jobs" || { echo "FAIL: missing jobs command"; exit 1; }
           echo "$OUTPUT" | grep -q "auth" || { echo "FAIL: missing auth command"; exit 1; }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build bqx binaries for all supported platforms and stage them into
+# Build dcx binaries for all supported platforms and stage them into
 # the npm platform packages, then run `npm pack` on each.
 #
 # Usage:
@@ -15,12 +15,12 @@ NPM_DIR="$REPO_ROOT/npm"
 
 # Platform definitions: "pkg_dir:rust_target"
 PLATFORMS=(
-  "bqx-darwin-arm64:aarch64-apple-darwin"
-  "bqx-darwin-x64:x86_64-apple-darwin"
-  "bqx-linux-x64:x86_64-unknown-linux-gnu"
-  "bqx-linux-arm64:aarch64-unknown-linux-gnu"
-  "bqx-win32-x64:x86_64-pc-windows-msvc"
-  "bqx-win32-arm64:aarch64-pc-windows-msvc"
+  "dcx-darwin-arm64:aarch64-apple-darwin"
+  "dcx-darwin-x64:x86_64-apple-darwin"
+  "dcx-linux-x64:x86_64-unknown-linux-gnu"
+  "dcx-linux-arm64:aarch64-unknown-linux-gnu"
+  "dcx-win32-x64:x86_64-pc-windows-msvc"
+  "dcx-win32-arm64:aarch64-pc-windows-msvc"
 )
 
 pkg_dir_of()  { echo "${1%%:*}"; }
@@ -39,10 +39,10 @@ detect_local_pkg() {
   arch="$(uname -m)"
 
   case "$os-$arch" in
-    darwin-arm64)  echo "bqx-darwin-arm64" ;;
-    darwin-x86_64) echo "bqx-darwin-x64" ;;
-    linux-x86_64)  echo "bqx-linux-x64" ;;
-    linux-aarch64) echo "bqx-linux-arm64" ;;
+    darwin-arm64)  echo "dcx-darwin-arm64" ;;
+    darwin-x86_64) echo "dcx-darwin-x64" ;;
+    linux-x86_64)  echo "dcx-linux-x64" ;;
+    linux-aarch64) echo "dcx-linux-arm64" ;;
     *) echo "ERROR: unsupported platform $os-$arch" >&2; exit 1 ;;
   esac
 }
@@ -70,11 +70,11 @@ build_and_stage() {
   if [[ "$use_default_target" == "true" ]]; then
     echo ">>> Building (default target, staging as $pkg_dir) ..."
     cargo build --release
-    local bin_path="$REPO_ROOT/target/release/bqx${ext}"
+    local bin_path="$REPO_ROOT/target/release/dcx${ext}"
   else
     echo ">>> Building for $target ..."
     cargo build --release --target "$target"
-    local bin_path="$REPO_ROOT/target/$target/release/bqx${ext}"
+    local bin_path="$REPO_ROOT/target/$target/release/dcx${ext}"
   fi
 
   if [[ ! -f "$bin_path" ]]; then
@@ -82,8 +82,8 @@ build_and_stage() {
     exit 1
   fi
 
-  cp "$bin_path" "$NPM_DIR/$pkg_dir/bqx${ext}"
-  chmod +x "$NPM_DIR/$pkg_dir/bqx${ext}"
+  cp "$bin_path" "$NPM_DIR/$pkg_dir/dcx${ext}"
+  chmod +x "$NPM_DIR/$pkg_dir/dcx${ext}"
   echo "    Staged binary into npm/$pkg_dir/"
 }
 
@@ -94,20 +94,20 @@ stage_from_artifacts() {
   ext="$(bin_ext "$pkg_dir")"
 
   local src=""
-  if [[ -f "$artifact_dir/$pkg_dir/bqx${ext}" ]]; then
-    src="$artifact_dir/$pkg_dir/bqx${ext}"
-  elif [[ -f "$artifact_dir/bqx${ext}" ]]; then
-    src="$artifact_dir/bqx${ext}"
+  if [[ -f "$artifact_dir/$pkg_dir/dcx${ext}" ]]; then
+    src="$artifact_dir/$pkg_dir/dcx${ext}"
+  elif [[ -f "$artifact_dir/dcx${ext}" ]]; then
+    src="$artifact_dir/dcx${ext}"
   else
     echo "ERROR: binary not found for $pkg_dir in $artifact_dir" >&2
-    echo "  Looked for: $artifact_dir/$pkg_dir/bqx${ext}" >&2
-    echo "          or: $artifact_dir/bqx${ext}" >&2
+    echo "  Looked for: $artifact_dir/$pkg_dir/dcx${ext}" >&2
+    echo "          or: $artifact_dir/dcx${ext}" >&2
     exit 1
   fi
 
-  cp "$src" "$NPM_DIR/$pkg_dir/bqx${ext}"
-  chmod +x "$NPM_DIR/$pkg_dir/bqx${ext}"
-  echo "    Staged $src -> npm/$pkg_dir/bqx${ext}"
+  cp "$src" "$NPM_DIR/$pkg_dir/dcx${ext}"
+  chmod +x "$NPM_DIR/$pkg_dir/dcx${ext}"
+  echo "    Staged $src -> npm/$pkg_dir/dcx${ext}"
 }
 
 pack_packages() {
@@ -158,7 +158,7 @@ case "$MODE" in
     for entry in "${PLATFORMS[@]}"; do
       pkg_dir="$(pkg_dir_of "$entry")"
       ext="$(bin_ext "$pkg_dir")"
-      if [[ -f "$ARTIFACT_DIR/$pkg_dir/bqx${ext}" ]] || [[ -f "$ARTIFACT_DIR/bqx${ext}" ]]; then
+      if [[ -f "$ARTIFACT_DIR/$pkg_dir/dcx${ext}" ]] || [[ -f "$ARTIFACT_DIR/dcx${ext}" ]]; then
         stage_from_artifacts "$ARTIFACT_DIR" "$pkg_dir"
         staged+=("$pkg_dir")
       else

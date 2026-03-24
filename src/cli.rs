@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
-#[command(name = "dcx", version, about = "Agent-native BigQuery CLI")]
+#[command(name = "dcx", version, about = "Agent-native Data Cloud CLI")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,

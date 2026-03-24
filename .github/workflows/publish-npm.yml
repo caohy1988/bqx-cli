@@ -42,7 +42,7 @@ jobs:
         run: |
           FAILED=0
           for platform in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64 win32-arm64; do
-            TGZ=$(ls tarballs/bqx-cli-${platform}-*.tgz 2>/dev/null | head -1)
+            TGZ=$(ls tarballs/dcx-cli-${platform}-*.tgz 2>/dev/null | head -1)
             if [[ -z "$TGZ" ]]; then
               echo "ERROR: tarball not found for $platform"
               FAILED=$((FAILED + 1))
