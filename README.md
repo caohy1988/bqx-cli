@@ -1017,7 +1017,7 @@ reproducible validation script.
 structured JSON with SQL and results; all analytics commands pass
 integration tests.
 
-### Phase 4: Data Cloud CA + Multi-Source Profiles (v0.4) — In Progress
+### Phase 4: Data Cloud CA + Multi-Source Profiles (v0.4) — Complete
 
 - [x] Source model: `CaProfile` with `SourceType` enum (BigQuery, Looker,
   LookerStudio, AlloyDb, Spanner, CloudSql)
@@ -1033,8 +1033,8 @@ integration tests.
   `recipe-ca-database-ops`
 - [x] Updated routing skills (`bqx-ca`, `bqx-ca-ask`, `persona-sre`)
 - [x] E2E validation against live AlloyDB, Spanner, and Cloud SQL instances
-- [ ] Docs and positioning update (this milestone)
-- [ ] Version bump to 0.4.0 and release closure
+- [x] Docs and positioning update
+- [x] Version bump to 0.4.0 and release closure
 
 **Exit criteria:** `bqx ca ask --profile <source>.yaml` works for BigQuery,
 Looker, AlloyDB, Spanner, and Cloud SQL; skill layer reflects multi-source

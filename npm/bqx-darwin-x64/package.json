@@ -1,6 +1,6 @@
 {
   "name": "@bqx-cli/darwin-x64",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "bqx binary for macOS x64 (Intel)",
   "license": "Apache-2.0",
   "repository": {

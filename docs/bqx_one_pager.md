@@ -175,7 +175,7 @@ of the product.
 
 This is not a proposal. I have already built and shipped a working prototype.
 
-The prototype is at v0.3.0 (v0.4.0 pending) with 347+ tests, 32 agent skills, and release
+The prototype is at v0.4.0 with 347+ tests, 32 agent skills, and release
 binaries for 6 platforms (macOS, Linux, Windows — x64 and ARM64). It covers
 three command domains:
 

@@ -1,8 +1,8 @@
 {
   "name": "bqx",
-  "display_name": "bqx – Agent-Native BigQuery CLI",
-  "description": "BigQuery CLI optimized for AI agents. Provides query execution, dataset/table/routine/model inspection, agent analytics, and conversational analytics.",
-  "version": "0.3.0",
+  "display_name": "bqx – Agent-Native Data Cloud CLI",
+  "description": "Data Cloud CLI optimized for AI agents. Provides query execution, dataset/table/routine/model inspection, agent analytics, and conversational analytics across BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL.",
+  "version": "0.4.0",
   "homepage": "https://github.com/bigquery/bqx",
   "tools": [
     {
@@ -352,7 +352,7 @@
     },
     {
       "name": "bqx_ca_ask",
-      "description": "Ask a natural language question over BigQuery data using Conversational Analytics.",
+      "description": "Ask a natural language question over Data Cloud sources (BigQuery, Looker, AlloyDB, Spanner, Cloud SQL) using Conversational Analytics.",
       "parameters": {
         "project_id": {
           "type": "string",
