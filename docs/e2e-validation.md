@@ -195,8 +195,9 @@ ls /tmp/bqx-skills/bqx-datasets/agents/openai.yaml
 ## 8. Gemini Extension Manifest
 
 The manifest is bundled at `extensions/gemini/manifest.json` and validated
-by unit tests (`tests/gemini_tests.rs`). It contains 16 curated tools
-covering a subset of the Phase 3 command surface.
+by unit tests (`tests/gemini_tests.rs`). It contains 17 tools
+covering the Phase 4 command surface (16 BigQuery/analytics tools + 1
+profile-based CA tool for multi-source Data Cloud queries).
 
 The manifest has not been tested with a live `gemini extensions install`
 because the Gemini CLI extension spec is still evolving. The manifest

@@ -16,12 +16,11 @@ fn bundled_manifest_validates() {
 #[test]
 fn manifest_has_expected_tool_count() {
     let manifest = gemini::load_manifest().unwrap();
-    // Phase 3 curated subset: 16 tools (Phase 2's 10 + list-traces, insights,
-    // drift, distribution, hitl-metrics, ca ask).
+    // Phase 4: 17 tools (Phase 3's 16 + ca ask profile).
     assert_eq!(
         manifest.tools.len(),
-        16,
-        "Expected 16 tools in Phase 3 manifest, got {}",
+        17,
+        "Expected 17 tools in Phase 4 manifest, got {}",
         manifest.tools.len()
     );
 }
@@ -60,8 +59,8 @@ fn all_tool_commands_are_valid_bqx_invocations() {
             tool.command
         );
         assert!(
-            tool.command.contains("--format json"),
-            "Tool '{}' command should include --format json: {}",
+            tool.command.contains("--format"),
+            "Tool '{}' command should include --format flag: {}",
             tool.name,
             tool.command
         );

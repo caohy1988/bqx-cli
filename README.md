@@ -985,7 +985,7 @@ in GitHub Actions; 5 skills installable via `npx skills add`.
 - [x] Model Armor integration (`--sanitize`) — uses regional endpoints,
   verified with live prompt injection detection and redaction
 - [x] Gemini CLI extension manifest packaged and validated
-  (`extensions/gemini/manifest.json`, 16 tools); `gemini extensions
+  (`extensions/gemini/manifest.json`, 17 tools); `gemini extensions
   install` not yet tested live as the Gemini CLI extension spec is
   still evolving
 

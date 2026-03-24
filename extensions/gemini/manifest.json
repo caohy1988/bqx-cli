@@ -352,7 +352,7 @@
     },
     {
       "name": "bqx_ca_ask",
-      "description": "Ask a natural language question over Data Cloud sources (BigQuery, Looker, AlloyDB, Spanner, Cloud SQL) using Conversational Analytics.",
+      "description": "Ask a natural language question over BigQuery data using a data agent.",
       "parameters": {
         "project_id": {
           "type": "string",
@@ -369,7 +369,29 @@
           "description": "Data agent to use (e.g. agent-analytics)"
         }
       },
-      "command": "bqx ca ask {question} --project-id {project_id} --format json"
+      "command": "bqx ca ask {question} --project-id {project_id} --agent {agent} --format json"
+    },
+    {
+      "name": "bqx_ca_ask_profile",
+      "description": "Ask a natural language question over a Data Cloud source (Looker, AlloyDB, Spanner, Cloud SQL) using a YAML profile.",
+      "parameters": {
+        "profile": {
+          "type": "string",
+          "description": "Path to a CA source profile YAML file",
+          "required": true
+        },
+        "question": {
+          "type": "string",
+          "description": "Natural language question",
+          "required": true
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: json, text, or table",
+          "default": "json"
+        }
+      },
+      "command": "bqx ca ask {question} --profile {profile} --format {format}"
     }
   ]
 }
