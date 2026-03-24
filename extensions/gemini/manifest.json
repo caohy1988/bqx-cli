@@ -366,7 +366,8 @@
         },
         "agent": {
           "type": "string",
-          "description": "Data agent to use (e.g. agent-analytics)"
+          "description": "Data agent to use (e.g. agent-analytics)",
+          "required": true
         }
       },
       "command": "bqx ca ask {question} --project-id {project_id} --agent {agent} --format json"
