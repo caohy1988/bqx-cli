@@ -1,0 +1,2049 @@
+#compdef dcx
+
+autoload -U is-at-least
+
+_dcx() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_dcx_commands" \
+"*::: :->dcx" \
+&& ret=0
+    case $state in
+    (dcx)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-command-$line[1]:"
+        case $line[1] in
+            (jobs)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_dcx__jobs_commands" \
+"*::: :->jobs" \
+&& ret=0
+
+    case $state in
+    (jobs)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-jobs-command-$line[1]:"
+        case $line[1] in
+            (query)
+_arguments "${_arguments_options[@]}" : \
+'--query=[SQL query string]:QUERY:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--use-legacy-sql[Use legacy SQL]' \
+'--dry-run[Dry run (show request without executing)]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__jobs__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-jobs-help-command-$line[1]:"
+        case $line[1] in
+            (query)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(analytics)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_dcx__analytics_commands" \
+"*::: :->analytics" \
+&& ret=0
+
+    case $state in
+    (analytics)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-analytics-command-$line[1]:"
+        case $line[1] in
+            (doctor)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(evaluate)
+_arguments "${_arguments_options[@]}" : \
+'--evaluator=[Evaluator type]:EVALUATOR:(latency error-rate)' \
+'--threshold=[Pass/fail threshold (ms for latency, 0-1 for rates)]:THRESHOLD:_default' \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--exit-code[Return exit code 1 on evaluation failure]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(get-trace)
+_arguments "${_arguments_options[@]}" : \
+'--session-id=[Session ID to retrieve]:SESSION_ID:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list-traces)
+_arguments "${_arguments_options[@]}" : \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--limit=[Maximum number of traces to return]:LIMIT:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(insights)
+_arguments "${_arguments_options[@]}" : \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(drift)
+_arguments "${_arguments_options[@]}" : \
+'--golden-dataset=[Golden dataset table name (in the same dataset)]:GOLDEN_DATASET:_default' \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--min-coverage=[Minimum coverage threshold (0.0-1.0)]:MIN_COVERAGE:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--exit-code[Return exit code 1 on drift failure]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(distribution)
+_arguments "${_arguments_options[@]}" : \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(hitl-metrics)
+_arguments "${_arguments_options[@]}" : \
+'--last=[Time window (e.g., 1h, 24h, 7d)]:LAST:_default' \
+'--agent-id=[Filter by agent name]:AGENT_ID:_default' \
+'--limit=[Maximum number of sessions to return]:LIMIT:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(views)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_dcx__analytics__views_commands" \
+"*::: :->views" \
+&& ret=0
+
+    case $state in
+    (views)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-analytics-views-command-$line[1]:"
+        case $line[1] in
+            (create-all)
+_arguments "${_arguments_options[@]}" : \
+'--prefix=[Prefix for view names (e.g., "adk_" → adk_llm_request)]:PREFIX:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__analytics__views__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-analytics-views-help-command-$line[1]:"
+        case $line[1] in
+            (create-all)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__analytics__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-analytics-help-command-$line[1]:"
+        case $line[1] in
+            (doctor)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(evaluate)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get-trace)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list-traces)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(insights)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(drift)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(distribution)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(hitl-metrics)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(views)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__analytics__help__views_commands" \
+"*::: :->views" \
+&& ret=0
+
+    case $state in
+    (views)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-analytics-help-views-command-$line[1]:"
+        case $line[1] in
+            (create-all)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(auth)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_dcx__auth_commands" \
+"*::: :->auth" \
+&& ret=0
+
+    case $state in
+    (auth)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-auth-command-$line[1]:"
+        case $line[1] in
+            (login)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(status)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(logout)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__auth__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-auth-help-command-$line[1]:"
+        case $line[1] in
+            (login)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(status)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(logout)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(ca)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_dcx__ca_commands" \
+"*::: :->ca" \
+&& ret=0
+
+    case $state in
+    (ca)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-ca-command-$line[1]:"
+        case $line[1] in
+            (ask)
+_arguments "${_arguments_options[@]}" : \
+'--agent=[Data agent to use (e.g. agent-analytics)]:AGENT:_default' \
+'*--tables=[Table references for context (e.g. project.dataset.table)]:TABLES:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+':question -- The question to ask:_default' \
+&& ret=0
+;;
+(create-agent)
+_arguments "${_arguments_options[@]}" : \
+'--name=[Agent name / ID (alphanumeric, hyphens, underscores, dots)]:NAME:_default' \
+'*--tables=[Table references (project.dataset.table)]:TABLES:_default' \
+'*--views=[View references to include as additional data sources]:VIEWS:_default' \
+'--verified-queries=[Path to verified queries YAML file (defaults to bundled)]:VERIFIED_QUERIES:_default' \
+'--instructions=[System instructions for the agent]:INSTRUCTIONS:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list-agents)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(add-verified-query)
+_arguments "${_arguments_options[@]}" : \
+'--agent=[Agent ID to add the query to]:AGENT:_default' \
+'--question=[Natural language question]:QUESTION:_default' \
+'--query=[SQL query to associate with the question]:QUERY:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__ca__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-ca-help-command-$line[1]:"
+        case $line[1] in
+            (ask)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(create-agent)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list-agents)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add-verified-query)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(generate-skills)
+_arguments "${_arguments_options[@]}" : \
+'--output-dir=[Output directory for generated skill files]:OUTPUT_DIR:_default' \
+'*--filter=[Generate only skills matching these names (e.g. dcx-datasets)]:FILTER:_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(completions)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+':shell -- Shell to generate completions for:(bash zsh fish)' \
+&& ret=0
+;;
+(datasets)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_dcx__datasets_commands" \
+"*::: :->datasets" \
+&& ret=0
+
+    case $state in
+    (datasets)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-datasets-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'--access-policy-version=[Optional. The version of the access policy schema to fetch. Valid values are 0, 1, and 3. Requests specifying an invalid value will be rejected. Requests for conditional access policy binding in datasets must specify version 3. Dataset with no conditional role bindings in access policy may specify any valid value or leave the field unset. This field will be mapped to \[IAM Policy version\] (https\://cloud.google.com/iam/docs/policies#versions) and will be used to fetch policy from IAM. If unset or if 0 or 1 value is used for dataset with conditional bindings, access entry with condition will have role string appended by '\''withcond'\'' string followed by a hash value. For example \: { "access"\: \[ { "role"\: "roles/bigquery.dataViewer_with_conditionalbinding_7a34awqsda", "userByEmail"\: "user@example.com", } \] } Please refer https\://cloud.google.com/iam/docs/troubleshooting-withcond for more details.]: :_default' \
+'--dataset-view=[Optional. Specifies the view that determines which dataset information is returned. By default, metadata and ACL information are returned.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--filter=[An expression for filtering the results of the request by label. The syntax is \`labels.\[\:\]\`. Multiple filters can be AND-ed together by connecting with a space. Example\: \`labels.department\:receiving labels.active\`. See \[Filtering datasets using labels\](https\://cloud.google.com/bigquery/docs/filtering-labels#filtering_datasets_using_labels) for details.]: :_default' \
+'--max-results=[The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.]: :_default' \
+'--page-token=[Page token, returned by a previous call, to request the next page of results]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--all[Whether to list all datasets, including hidden ones]' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__datasets__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-datasets-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(models)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_dcx__models_commands" \
+"*::: :->models" \
+&& ret=0
+
+    case $state in
+    (models)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-models-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'--model-id=[Required. Model ID of the requested model.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--max-results=[The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.]: :_default' \
+'--page-token=[Page token, returned by a previous call to request the next page of results]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__models__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-models-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(routines)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_dcx__routines_commands" \
+"*::: :->routines" \
+&& ret=0
+
+    case $state in
+    (routines)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-routines-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'--routine-id=[Required. Routine ID of the requested routine]: :_default' \
+'--read-mask=[If set, only the Routine fields in the field mask are returned in the response. If unset, all Routine fields are returned.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--filter=[If set, then only the Routines matching this filter are returned. The supported format is \`routineType\:{RoutineType}\`, where \`{RoutineType}\` is a RoutineType enum. For example\: \`routineType\:SCALAR_FUNCTION\`.]: :_default' \
+'--max-results=[The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.]: :_default' \
+'--page-token=[Page token, returned by a previous call, to request the next page of results]: :_default' \
+'--read-mask=[If set, then only the Routine fields in the field mask, as well as project_id, dataset_id and routine_id, are returned in the response. If unset, then the following Routine fields are returned\: etag, project_id, dataset_id, routine_id, routine_type, creation_time, last_modified_time, and language.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__routines__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-routines-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(tables)
+_arguments "${_arguments_options[@]}" : \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_dcx__tables_commands" \
+"*::: :->tables" \
+&& ret=0
+
+    case $state in
+    (tables)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-tables-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'--table-id=[Required. Table ID of the requested table]: :_default' \
+'--selected-fields=[List of table schema fields to return (comma-separated). If unspecified, all fields are returned. A fieldMask cannot be used here because the fields will automatically be converted from camelCase to snake_case and the conversion will fail if there are underscores. Since these are fields in BigQuery table schemas, underscores are allowed.]: :_default' \
+'--view=[Optional. Specifies the view that determines which table information is returned. By default, basic table information and storage statistics (STORAGE_STATS) are returned.]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--max-results=[The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.]: :_default' \
+'--page-token=[Page token, returned by a previous call, to request the next page of results]: :_default' \
+'--project-id=[GCP project ID]:PROJECT_ID:_default' \
+'--dataset-id=[BigQuery dataset]:DATASET_ID:_default' \
+'--location=[BigQuery location]:LOCATION:_default' \
+'--table=[Table name]:TABLE:_default' \
+'--format=[Output format]:FORMAT:(json table text)' \
+'--token=[Bearer token for authentication (overrides all other auth methods)]:TOKEN:_default' \
+'--credentials-file=[Path to service account credentials JSON file]:CREDENTIALS_FILE:_default' \
+'--sanitize=[Model Armor template for response sanitization (e.g. projects/my-proj/locations/us-central1/templates/my-template)]:SANITIZE:_default' \
+'--dry-run[Show the request that would be sent without executing it]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__tables__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-tables-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-command-$line[1]:"
+        case $line[1] in
+            (jobs)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help__jobs_commands" \
+"*::: :->jobs" \
+&& ret=0
+
+    case $state in
+    (jobs)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-jobs-command-$line[1]:"
+        case $line[1] in
+            (query)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(analytics)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help__analytics_commands" \
+"*::: :->analytics" \
+&& ret=0
+
+    case $state in
+    (analytics)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-analytics-command-$line[1]:"
+        case $line[1] in
+            (doctor)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(evaluate)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get-trace)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list-traces)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(insights)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(drift)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(distribution)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(hitl-metrics)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(views)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help__analytics__views_commands" \
+"*::: :->views" \
+&& ret=0
+
+    case $state in
+    (views)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-analytics-views-command-$line[1]:"
+        case $line[1] in
+            (create-all)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(auth)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help__auth_commands" \
+"*::: :->auth" \
+&& ret=0
+
+    case $state in
+    (auth)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-auth-command-$line[1]:"
+        case $line[1] in
+            (login)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(status)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(logout)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(ca)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help__ca_commands" \
+"*::: :->ca" \
+&& ret=0
+
+    case $state in
+    (ca)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-ca-command-$line[1]:"
+        case $line[1] in
+            (ask)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(create-agent)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list-agents)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add-verified-query)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(generate-skills)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(completions)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(datasets)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help__datasets_commands" \
+"*::: :->datasets" \
+&& ret=0
+
+    case $state in
+    (datasets)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-datasets-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(models)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help__models_commands" \
+"*::: :->models" \
+&& ret=0
+
+    case $state in
+    (models)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-models-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(routines)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help__routines_commands" \
+"*::: :->routines" \
+&& ret=0
+
+    case $state in
+    (routines)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-routines-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(tables)
+_arguments "${_arguments_options[@]}" : \
+":: :_dcx__help__tables_commands" \
+"*::: :->tables" \
+&& ret=0
+
+    case $state in
+    (tables)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:dcx-help-tables-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_dcx_commands] )) ||
+_dcx_commands() {
+    local commands; commands=(
+'jobs:BigQuery jobs operations' \
+'analytics:Agent analytics operations' \
+'auth:Authentication management' \
+'ca:Conversational Analytics operations' \
+'generate-skills:Generate SKILL.md and agents/openai.yaml for BigQuery API commands' \
+'completions:Generate shell completion scripts' \
+'datasets:BigQuery datasets operations (generated from API)' \
+'models:BigQuery models operations (generated from API)' \
+'routines:BigQuery routines operations (generated from API)' \
+'tables:BigQuery tables operations (generated from API)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx commands' commands "$@"
+}
+(( $+functions[_dcx__analytics_commands] )) ||
+_dcx__analytics_commands() {
+    local commands; commands=(
+'doctor:Health check on BigQuery table and configuration' \
+'evaluate:Evaluate agent sessions against a threshold' \
+'get-trace:Retrieve a session trace' \
+'list-traces:List recent traces matching filter criteria' \
+'insights:Generate comprehensive agent insights report' \
+'drift:Run drift detection against a golden question set' \
+'distribution:Analyze event distribution patterns' \
+'hitl-metrics:Show human-in-the-loop interaction metrics' \
+'views:Manage per-event-type BigQuery views' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx analytics commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__distribution_commands] )) ||
+_dcx__analytics__distribution_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics distribution commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__doctor_commands] )) ||
+_dcx__analytics__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics doctor commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__drift_commands] )) ||
+_dcx__analytics__drift_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics drift commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__evaluate_commands] )) ||
+_dcx__analytics__evaluate_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics evaluate commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__get-trace_commands] )) ||
+_dcx__analytics__get-trace_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics get-trace commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help_commands] )) ||
+_dcx__analytics__help_commands() {
+    local commands; commands=(
+'doctor:Health check on BigQuery table and configuration' \
+'evaluate:Evaluate agent sessions against a threshold' \
+'get-trace:Retrieve a session trace' \
+'list-traces:List recent traces matching filter criteria' \
+'insights:Generate comprehensive agent insights report' \
+'drift:Run drift detection against a golden question set' \
+'distribution:Analyze event distribution patterns' \
+'hitl-metrics:Show human-in-the-loop interaction metrics' \
+'views:Manage per-event-type BigQuery views' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx analytics help commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__distribution_commands] )) ||
+_dcx__analytics__help__distribution_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help distribution commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__doctor_commands] )) ||
+_dcx__analytics__help__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help doctor commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__drift_commands] )) ||
+_dcx__analytics__help__drift_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help drift commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__evaluate_commands] )) ||
+_dcx__analytics__help__evaluate_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help evaluate commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__get-trace_commands] )) ||
+_dcx__analytics__help__get-trace_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help get-trace commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__help_commands] )) ||
+_dcx__analytics__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help help commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__hitl-metrics_commands] )) ||
+_dcx__analytics__help__hitl-metrics_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help hitl-metrics commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__insights_commands] )) ||
+_dcx__analytics__help__insights_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help insights commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__list-traces_commands] )) ||
+_dcx__analytics__help__list-traces_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help list-traces commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__views_commands] )) ||
+_dcx__analytics__help__views_commands() {
+    local commands; commands=(
+'create-all:Create views for all 18 standard event types' \
+    )
+    _describe -t commands 'dcx analytics help views commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__help__views__create-all_commands] )) ||
+_dcx__analytics__help__views__create-all_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics help views create-all commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__hitl-metrics_commands] )) ||
+_dcx__analytics__hitl-metrics_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics hitl-metrics commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__insights_commands] )) ||
+_dcx__analytics__insights_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics insights commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__list-traces_commands] )) ||
+_dcx__analytics__list-traces_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics list-traces commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__views_commands] )) ||
+_dcx__analytics__views_commands() {
+    local commands; commands=(
+'create-all:Create views for all 18 standard event types' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx analytics views commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__views__create-all_commands] )) ||
+_dcx__analytics__views__create-all_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics views create-all commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__views__help_commands] )) ||
+_dcx__analytics__views__help_commands() {
+    local commands; commands=(
+'create-all:Create views for all 18 standard event types' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx analytics views help commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__views__help__create-all_commands] )) ||
+_dcx__analytics__views__help__create-all_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics views help create-all commands' commands "$@"
+}
+(( $+functions[_dcx__analytics__views__help__help_commands] )) ||
+_dcx__analytics__views__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx analytics views help help commands' commands "$@"
+}
+(( $+functions[_dcx__auth_commands] )) ||
+_dcx__auth_commands() {
+    local commands; commands=(
+'login:Authenticate with Google OAuth (opens browser)' \
+'status:Show current authentication status' \
+'logout:Clear stored credentials' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx auth commands' commands "$@"
+}
+(( $+functions[_dcx__auth__help_commands] )) ||
+_dcx__auth__help_commands() {
+    local commands; commands=(
+'login:Authenticate with Google OAuth (opens browser)' \
+'status:Show current authentication status' \
+'logout:Clear stored credentials' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx auth help commands' commands "$@"
+}
+(( $+functions[_dcx__auth__help__help_commands] )) ||
+_dcx__auth__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx auth help help commands' commands "$@"
+}
+(( $+functions[_dcx__auth__help__login_commands] )) ||
+_dcx__auth__help__login_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx auth help login commands' commands "$@"
+}
+(( $+functions[_dcx__auth__help__logout_commands] )) ||
+_dcx__auth__help__logout_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx auth help logout commands' commands "$@"
+}
+(( $+functions[_dcx__auth__help__status_commands] )) ||
+_dcx__auth__help__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx auth help status commands' commands "$@"
+}
+(( $+functions[_dcx__auth__login_commands] )) ||
+_dcx__auth__login_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx auth login commands' commands "$@"
+}
+(( $+functions[_dcx__auth__logout_commands] )) ||
+_dcx__auth__logout_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx auth logout commands' commands "$@"
+}
+(( $+functions[_dcx__auth__status_commands] )) ||
+_dcx__auth__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx auth status commands' commands "$@"
+}
+(( $+functions[_dcx__ca_commands] )) ||
+_dcx__ca_commands() {
+    local commands; commands=(
+'ask:Ask a natural language question via Conversational Analytics' \
+'create-agent:Create a new Conversational Analytics data agent' \
+'list-agents:List data agents in the project' \
+'add-verified-query:Add a verified query to an existing data agent' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx ca commands' commands "$@"
+}
+(( $+functions[_dcx__ca__add-verified-query_commands] )) ||
+_dcx__ca__add-verified-query_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx ca add-verified-query commands' commands "$@"
+}
+(( $+functions[_dcx__ca__ask_commands] )) ||
+_dcx__ca__ask_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx ca ask commands' commands "$@"
+}
+(( $+functions[_dcx__ca__create-agent_commands] )) ||
+_dcx__ca__create-agent_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx ca create-agent commands' commands "$@"
+}
+(( $+functions[_dcx__ca__help_commands] )) ||
+_dcx__ca__help_commands() {
+    local commands; commands=(
+'ask:Ask a natural language question via Conversational Analytics' \
+'create-agent:Create a new Conversational Analytics data agent' \
+'list-agents:List data agents in the project' \
+'add-verified-query:Add a verified query to an existing data agent' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx ca help commands' commands "$@"
+}
+(( $+functions[_dcx__ca__help__add-verified-query_commands] )) ||
+_dcx__ca__help__add-verified-query_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx ca help add-verified-query commands' commands "$@"
+}
+(( $+functions[_dcx__ca__help__ask_commands] )) ||
+_dcx__ca__help__ask_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx ca help ask commands' commands "$@"
+}
+(( $+functions[_dcx__ca__help__create-agent_commands] )) ||
+_dcx__ca__help__create-agent_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx ca help create-agent commands' commands "$@"
+}
+(( $+functions[_dcx__ca__help__help_commands] )) ||
+_dcx__ca__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx ca help help commands' commands "$@"
+}
+(( $+functions[_dcx__ca__help__list-agents_commands] )) ||
+_dcx__ca__help__list-agents_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx ca help list-agents commands' commands "$@"
+}
+(( $+functions[_dcx__ca__list-agents_commands] )) ||
+_dcx__ca__list-agents_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx ca list-agents commands' commands "$@"
+}
+(( $+functions[_dcx__completions_commands] )) ||
+_dcx__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx completions commands' commands "$@"
+}
+(( $+functions[_dcx__datasets_commands] )) ||
+_dcx__datasets_commands() {
+    local commands; commands=(
+'get:Returns the dataset specified by datasetID.' \
+'list:Lists all datasets in the specified project to which the user has been granted the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx datasets commands' commands "$@"
+}
+(( $+functions[_dcx__datasets__get_commands] )) ||
+_dcx__datasets__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx datasets get commands' commands "$@"
+}
+(( $+functions[_dcx__datasets__help_commands] )) ||
+_dcx__datasets__help_commands() {
+    local commands; commands=(
+'get:Returns the dataset specified by datasetID.' \
+'list:Lists all datasets in the specified project to which the user has been granted the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx datasets help commands' commands "$@"
+}
+(( $+functions[_dcx__datasets__help__get_commands] )) ||
+_dcx__datasets__help__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx datasets help get commands' commands "$@"
+}
+(( $+functions[_dcx__datasets__help__help_commands] )) ||
+_dcx__datasets__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx datasets help help commands' commands "$@"
+}
+(( $+functions[_dcx__datasets__help__list_commands] )) ||
+_dcx__datasets__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx datasets help list commands' commands "$@"
+}
+(( $+functions[_dcx__datasets__list_commands] )) ||
+_dcx__datasets__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx datasets list commands' commands "$@"
+}
+(( $+functions[_dcx__generate-skills_commands] )) ||
+_dcx__generate-skills_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx generate-skills commands' commands "$@"
+}
+(( $+functions[_dcx__help_commands] )) ||
+_dcx__help_commands() {
+    local commands; commands=(
+'jobs:BigQuery jobs operations' \
+'analytics:Agent analytics operations' \
+'auth:Authentication management' \
+'ca:Conversational Analytics operations' \
+'generate-skills:Generate SKILL.md and agents/openai.yaml for BigQuery API commands' \
+'completions:Generate shell completion scripts' \
+'datasets:BigQuery datasets operations (generated from API)' \
+'models:BigQuery models operations (generated from API)' \
+'routines:BigQuery routines operations (generated from API)' \
+'tables:BigQuery tables operations (generated from API)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx help commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics_commands] )) ||
+_dcx__help__analytics_commands() {
+    local commands; commands=(
+'doctor:Health check on BigQuery table and configuration' \
+'evaluate:Evaluate agent sessions against a threshold' \
+'get-trace:Retrieve a session trace' \
+'list-traces:List recent traces matching filter criteria' \
+'insights:Generate comprehensive agent insights report' \
+'drift:Run drift detection against a golden question set' \
+'distribution:Analyze event distribution patterns' \
+'hitl-metrics:Show human-in-the-loop interaction metrics' \
+'views:Manage per-event-type BigQuery views' \
+    )
+    _describe -t commands 'dcx help analytics commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__distribution_commands] )) ||
+_dcx__help__analytics__distribution_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help analytics distribution commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__doctor_commands] )) ||
+_dcx__help__analytics__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help analytics doctor commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__drift_commands] )) ||
+_dcx__help__analytics__drift_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help analytics drift commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__evaluate_commands] )) ||
+_dcx__help__analytics__evaluate_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help analytics evaluate commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__get-trace_commands] )) ||
+_dcx__help__analytics__get-trace_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help analytics get-trace commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__hitl-metrics_commands] )) ||
+_dcx__help__analytics__hitl-metrics_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help analytics hitl-metrics commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__insights_commands] )) ||
+_dcx__help__analytics__insights_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help analytics insights commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__list-traces_commands] )) ||
+_dcx__help__analytics__list-traces_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help analytics list-traces commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__views_commands] )) ||
+_dcx__help__analytics__views_commands() {
+    local commands; commands=(
+'create-all:Create views for all 18 standard event types' \
+    )
+    _describe -t commands 'dcx help analytics views commands' commands "$@"
+}
+(( $+functions[_dcx__help__analytics__views__create-all_commands] )) ||
+_dcx__help__analytics__views__create-all_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help analytics views create-all commands' commands "$@"
+}
+(( $+functions[_dcx__help__auth_commands] )) ||
+_dcx__help__auth_commands() {
+    local commands; commands=(
+'login:Authenticate with Google OAuth (opens browser)' \
+'status:Show current authentication status' \
+'logout:Clear stored credentials' \
+    )
+    _describe -t commands 'dcx help auth commands' commands "$@"
+}
+(( $+functions[_dcx__help__auth__login_commands] )) ||
+_dcx__help__auth__login_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help auth login commands' commands "$@"
+}
+(( $+functions[_dcx__help__auth__logout_commands] )) ||
+_dcx__help__auth__logout_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help auth logout commands' commands "$@"
+}
+(( $+functions[_dcx__help__auth__status_commands] )) ||
+_dcx__help__auth__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help auth status commands' commands "$@"
+}
+(( $+functions[_dcx__help__ca_commands] )) ||
+_dcx__help__ca_commands() {
+    local commands; commands=(
+'ask:Ask a natural language question via Conversational Analytics' \
+'create-agent:Create a new Conversational Analytics data agent' \
+'list-agents:List data agents in the project' \
+'add-verified-query:Add a verified query to an existing data agent' \
+    )
+    _describe -t commands 'dcx help ca commands' commands "$@"
+}
+(( $+functions[_dcx__help__ca__add-verified-query_commands] )) ||
+_dcx__help__ca__add-verified-query_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help ca add-verified-query commands' commands "$@"
+}
+(( $+functions[_dcx__help__ca__ask_commands] )) ||
+_dcx__help__ca__ask_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help ca ask commands' commands "$@"
+}
+(( $+functions[_dcx__help__ca__create-agent_commands] )) ||
+_dcx__help__ca__create-agent_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help ca create-agent commands' commands "$@"
+}
+(( $+functions[_dcx__help__ca__list-agents_commands] )) ||
+_dcx__help__ca__list-agents_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help ca list-agents commands' commands "$@"
+}
+(( $+functions[_dcx__help__completions_commands] )) ||
+_dcx__help__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help completions commands' commands "$@"
+}
+(( $+functions[_dcx__help__datasets_commands] )) ||
+_dcx__help__datasets_commands() {
+    local commands; commands=(
+'get:Returns the dataset specified by datasetID.' \
+'list:Lists all datasets in the specified project to which the user has been granted the READER dataset role.' \
+    )
+    _describe -t commands 'dcx help datasets commands' commands "$@"
+}
+(( $+functions[_dcx__help__datasets__get_commands] )) ||
+_dcx__help__datasets__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help datasets get commands' commands "$@"
+}
+(( $+functions[_dcx__help__datasets__list_commands] )) ||
+_dcx__help__datasets__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help datasets list commands' commands "$@"
+}
+(( $+functions[_dcx__help__generate-skills_commands] )) ||
+_dcx__help__generate-skills_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help generate-skills commands' commands "$@"
+}
+(( $+functions[_dcx__help__help_commands] )) ||
+_dcx__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help help commands' commands "$@"
+}
+(( $+functions[_dcx__help__jobs_commands] )) ||
+_dcx__help__jobs_commands() {
+    local commands; commands=(
+'query:Execute a SQL query' \
+    )
+    _describe -t commands 'dcx help jobs commands' commands "$@"
+}
+(( $+functions[_dcx__help__jobs__query_commands] )) ||
+_dcx__help__jobs__query_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help jobs query commands' commands "$@"
+}
+(( $+functions[_dcx__help__models_commands] )) ||
+_dcx__help__models_commands() {
+    local commands; commands=(
+'get:Gets the specified model resource by model ID.' \
+'list:Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.' \
+    )
+    _describe -t commands 'dcx help models commands' commands "$@"
+}
+(( $+functions[_dcx__help__models__get_commands] )) ||
+_dcx__help__models__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help models get commands' commands "$@"
+}
+(( $+functions[_dcx__help__models__list_commands] )) ||
+_dcx__help__models__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help models list commands' commands "$@"
+}
+(( $+functions[_dcx__help__routines_commands] )) ||
+_dcx__help__routines_commands() {
+    local commands; commands=(
+'get:Gets the specified routine resource by routine ID.' \
+'list:Lists all routines in the specified dataset. Requires the READER dataset role.' \
+    )
+    _describe -t commands 'dcx help routines commands' commands "$@"
+}
+(( $+functions[_dcx__help__routines__get_commands] )) ||
+_dcx__help__routines__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help routines get commands' commands "$@"
+}
+(( $+functions[_dcx__help__routines__list_commands] )) ||
+_dcx__help__routines__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help routines list commands' commands "$@"
+}
+(( $+functions[_dcx__help__tables_commands] )) ||
+_dcx__help__tables_commands() {
+    local commands; commands=(
+'get:Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.' \
+'list:Lists all tables in the specified dataset. Requires the READER dataset role.' \
+    )
+    _describe -t commands 'dcx help tables commands' commands "$@"
+}
+(( $+functions[_dcx__help__tables__get_commands] )) ||
+_dcx__help__tables__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help tables get commands' commands "$@"
+}
+(( $+functions[_dcx__help__tables__list_commands] )) ||
+_dcx__help__tables__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx help tables list commands' commands "$@"
+}
+(( $+functions[_dcx__jobs_commands] )) ||
+_dcx__jobs_commands() {
+    local commands; commands=(
+'query:Execute a SQL query' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx jobs commands' commands "$@"
+}
+(( $+functions[_dcx__jobs__help_commands] )) ||
+_dcx__jobs__help_commands() {
+    local commands; commands=(
+'query:Execute a SQL query' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx jobs help commands' commands "$@"
+}
+(( $+functions[_dcx__jobs__help__help_commands] )) ||
+_dcx__jobs__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx jobs help help commands' commands "$@"
+}
+(( $+functions[_dcx__jobs__help__query_commands] )) ||
+_dcx__jobs__help__query_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx jobs help query commands' commands "$@"
+}
+(( $+functions[_dcx__jobs__query_commands] )) ||
+_dcx__jobs__query_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx jobs query commands' commands "$@"
+}
+(( $+functions[_dcx__models_commands] )) ||
+_dcx__models_commands() {
+    local commands; commands=(
+'get:Gets the specified model resource by model ID.' \
+'list:Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx models commands' commands "$@"
+}
+(( $+functions[_dcx__models__get_commands] )) ||
+_dcx__models__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx models get commands' commands "$@"
+}
+(( $+functions[_dcx__models__help_commands] )) ||
+_dcx__models__help_commands() {
+    local commands; commands=(
+'get:Gets the specified model resource by model ID.' \
+'list:Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx models help commands' commands "$@"
+}
+(( $+functions[_dcx__models__help__get_commands] )) ||
+_dcx__models__help__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx models help get commands' commands "$@"
+}
+(( $+functions[_dcx__models__help__help_commands] )) ||
+_dcx__models__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx models help help commands' commands "$@"
+}
+(( $+functions[_dcx__models__help__list_commands] )) ||
+_dcx__models__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx models help list commands' commands "$@"
+}
+(( $+functions[_dcx__models__list_commands] )) ||
+_dcx__models__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx models list commands' commands "$@"
+}
+(( $+functions[_dcx__routines_commands] )) ||
+_dcx__routines_commands() {
+    local commands; commands=(
+'get:Gets the specified routine resource by routine ID.' \
+'list:Lists all routines in the specified dataset. Requires the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx routines commands' commands "$@"
+}
+(( $+functions[_dcx__routines__get_commands] )) ||
+_dcx__routines__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx routines get commands' commands "$@"
+}
+(( $+functions[_dcx__routines__help_commands] )) ||
+_dcx__routines__help_commands() {
+    local commands; commands=(
+'get:Gets the specified routine resource by routine ID.' \
+'list:Lists all routines in the specified dataset. Requires the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx routines help commands' commands "$@"
+}
+(( $+functions[_dcx__routines__help__get_commands] )) ||
+_dcx__routines__help__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx routines help get commands' commands "$@"
+}
+(( $+functions[_dcx__routines__help__help_commands] )) ||
+_dcx__routines__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx routines help help commands' commands "$@"
+}
+(( $+functions[_dcx__routines__help__list_commands] )) ||
+_dcx__routines__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx routines help list commands' commands "$@"
+}
+(( $+functions[_dcx__routines__list_commands] )) ||
+_dcx__routines__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx routines list commands' commands "$@"
+}
+(( $+functions[_dcx__tables_commands] )) ||
+_dcx__tables_commands() {
+    local commands; commands=(
+'get:Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.' \
+'list:Lists all tables in the specified dataset. Requires the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx tables commands' commands "$@"
+}
+(( $+functions[_dcx__tables__get_commands] )) ||
+_dcx__tables__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx tables get commands' commands "$@"
+}
+(( $+functions[_dcx__tables__help_commands] )) ||
+_dcx__tables__help_commands() {
+    local commands; commands=(
+'get:Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.' \
+'list:Lists all tables in the specified dataset. Requires the READER dataset role.' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'dcx tables help commands' commands "$@"
+}
+(( $+functions[_dcx__tables__help__get_commands] )) ||
+_dcx__tables__help__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx tables help get commands' commands "$@"
+}
+(( $+functions[_dcx__tables__help__help_commands] )) ||
+_dcx__tables__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx tables help help commands' commands "$@"
+}
+(( $+functions[_dcx__tables__help__list_commands] )) ||
+_dcx__tables__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx tables help list commands' commands "$@"
+}
+(( $+functions[_dcx__tables__list_commands] )) ||
+_dcx__tables__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'dcx tables list commands' commands "$@"
+}
+
+if [ "$funcstack[1]" = "_dcx" ]; then
+    _dcx "$@"
+else
+    compdef _dcx dcx
+fi

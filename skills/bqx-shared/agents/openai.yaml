@@ -1,7 +1,0 @@
-interface:
-  display_name: "bqx Shared Setup"
-  short_description: "Auth, flags, and output formats for bqx"
-  default_prompt: "Use $bqx-shared to set up authentication and configure global flags for the bqx CLI."
-
-policy:
-  allow_implicit_invocation: true

@@ -10,44 +10,44 @@ fn cargo_bin() -> String {
     assert!(output.status.success(), "Build failed");
 
     let target_dir = std::env::var("CARGO_TARGET_DIR").unwrap_or_else(|_| String::from("target"));
-    format!("{target_dir}/debug/bqx")
+    format!("{target_dir}/debug/dcx")
 }
 
-fn run_bqx(args: &[&str]) -> std::process::Output {
+fn run_dcx(args: &[&str]) -> std::process::Output {
     let bin = cargo_bin();
     Command::new(&bin)
         .args(args)
-        .env_remove("BQX_TOKEN")
-        .env_remove("BQX_CREDENTIALS_FILE")
+        .env_remove("DCX_TOKEN")
+        .env_remove("DCX_CREDENTIALS_FILE")
         .env_remove("GOOGLE_APPLICATION_CREDENTIALS")
-        .env("BQX_PROJECT", "test-project")
+        .env("DCX_PROJECT", "test-project")
         .output()
-        .expect("Failed to run bqx")
+        .expect("Failed to run dcx")
 }
 
-fn run_bqx_with_env(args: &[&str], env: &[(&str, &str)]) -> std::process::Output {
+fn run_dcx_with_env(args: &[&str], env: &[(&str, &str)]) -> std::process::Output {
     let bin = cargo_bin();
     let mut cmd = Command::new(&bin);
     cmd.args(args)
-        .env_remove("BQX_TOKEN")
-        .env_remove("BQX_CREDENTIALS_FILE")
+        .env_remove("DCX_TOKEN")
+        .env_remove("DCX_CREDENTIALS_FILE")
         .env_remove("GOOGLE_APPLICATION_CREDENTIALS")
-        .env("BQX_PROJECT", "test-project");
+        .env("DCX_PROJECT", "test-project");
     for (k, v) in env {
         cmd.env(k, v);
     }
-    cmd.output().expect("Failed to run bqx")
+    cmd.output().expect("Failed to run dcx")
 }
 
 // ── Precedence tests ──
 
 #[test]
 fn explicit_token_takes_highest_priority() {
-    let output = run_bqx_with_env(&["auth", "status"], &[("BQX_TOKEN", "my-test-token")]);
+    let output = run_dcx_with_env(&["auth", "status"], &[("DCX_TOKEN", "my-test-token")]);
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("BQX_TOKEN"),
-        "Expected BQX_TOKEN source, got: {stderr}"
+        stderr.contains("DCX_TOKEN"),
+        "Expected DCX_TOKEN source, got: {stderr}"
     );
 }
 
@@ -68,9 +68,9 @@ fn credentials_file_takes_priority_over_adc() {
     )
     .unwrap();
 
-    let output = run_bqx_with_env(
+    let output = run_dcx_with_env(
         &["auth", "status"],
-        &[("BQX_CREDENTIALS_FILE", creds_path.to_str().unwrap())],
+        &[("DCX_CREDENTIALS_FILE", creds_path.to_str().unwrap())],
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -86,9 +86,9 @@ fn credentials_file_rejects_invalid_type() {
     let mut f = std::fs::File::create(&creds_path).unwrap();
     writeln!(f, r#"{{"type": "unknown_type"}}"#).unwrap();
 
-    let output = run_bqx_with_env(
+    let output = run_dcx_with_env(
         &["auth", "status"],
-        &[("BQX_CREDENTIALS_FILE", creds_path.to_str().unwrap())],
+        &[("DCX_CREDENTIALS_FILE", creds_path.to_str().unwrap())],
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -113,9 +113,9 @@ fn credentials_file_handles_authorized_user() {
     )
     .unwrap();
 
-    let output = run_bqx_with_env(
+    let output = run_dcx_with_env(
         &["auth", "status"],
-        &[("BQX_CREDENTIALS_FILE", creds_path.to_str().unwrap())],
+        &[("DCX_CREDENTIALS_FILE", creds_path.to_str().unwrap())],
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     // It should identify as credentials file (even if token refresh fails)
@@ -132,9 +132,9 @@ fn credentials_file_rejects_missing_fields() {
     let mut f = std::fs::File::create(&creds_path).unwrap();
     writeln!(f, r#"{{"type": "authorized_user", "client_id": "test"}}"#).unwrap();
 
-    let output = run_bqx_with_env(
+    let output = run_dcx_with_env(
         &["auth", "status"],
-        &[("BQX_CREDENTIALS_FILE", creds_path.to_str().unwrap())],
+        &[("DCX_CREDENTIALS_FILE", creds_path.to_str().unwrap())],
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -147,9 +147,9 @@ fn credentials_file_rejects_missing_fields() {
 
 #[test]
 fn auth_status_reports_explicit_token_source() {
-    let output = run_bqx_with_env(&["auth", "status"], &[("BQX_TOKEN", "test-bearer")]);
+    let output = run_dcx_with_env(&["auth", "status"], &[("DCX_TOKEN", "test-bearer")]);
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("BQX_TOKEN / --token"));
+    assert!(stderr.contains("DCX_TOKEN / --token"));
     assert!(stderr.contains("Token: valid"));
 }
 
@@ -174,7 +174,7 @@ fn auth_status_reports_google_application_credentials() {
     )
     .unwrap();
 
-    let output = run_bqx_with_env(
+    let output = run_dcx_with_env(
         &["auth", "status"],
         &[("GOOGLE_APPLICATION_CREDENTIALS", sa_path.to_str().unwrap())],
     );
@@ -191,7 +191,7 @@ fn auth_status_reports_google_application_credentials() {
 
 #[test]
 fn auth_help_shows_subcommands() {
-    let output = run_bqx(&["auth", "--help"]);
+    let output = run_dcx(&["auth", "--help"]);
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("login"), "Missing login subcommand");
     assert!(stdout.contains("status"), "Missing status subcommand");
@@ -200,7 +200,7 @@ fn auth_help_shows_subcommands() {
 
 #[test]
 fn auth_logout_succeeds() {
-    let output = run_bqx(&["auth", "logout"]);
+    let output = run_dcx(&["auth", "logout"]);
     assert!(output.status.success(), "auth logout should succeed");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("Stored credentials cleared"));
@@ -211,10 +211,10 @@ fn auth_logout_succeeds() {
 #[test]
 fn auth_status_respects_token_cli_flag() {
     // --token flag should be passed through to auth status (not just env var)
-    let output = run_bqx(&["--token", "cli-flag-token", "auth", "status"]);
+    let output = run_dcx(&["--token", "cli-flag-token", "auth", "status"]);
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("BQX_TOKEN / --token"),
+        stderr.contains("DCX_TOKEN / --token"),
         "Expected --token flag recognized, got: {stderr}"
     );
     assert!(
@@ -239,7 +239,7 @@ fn auth_status_respects_credentials_file_cli_flag() {
     )
     .unwrap();
 
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "--credentials-file",
         creds_path.to_str().unwrap(),
         "auth",
@@ -256,20 +256,20 @@ fn auth_status_respects_credentials_file_cli_flag() {
 
 #[test]
 fn login_generate_random_produces_valid_output() {
-    // Verify that `bqx auth login` starts without crashing (tests the random generation path).
+    // Verify that `dcx auth login` starts without crashing (tests the random generation path).
     // We can't complete the OAuth flow, but we can verify it gets far enough to print the URL.
     // Use a timeout via the process to avoid hanging on the listener.
     let bin = cargo_bin();
     let child = std::process::Command::new(&bin)
         .args(["auth", "login"])
-        .env_remove("BQX_TOKEN")
-        .env_remove("BQX_CREDENTIALS_FILE")
+        .env_remove("DCX_TOKEN")
+        .env_remove("DCX_CREDENTIALS_FILE")
         .env_remove("GOOGLE_APPLICATION_CREDENTIALS")
-        .env("BQX_PROJECT", "test-project")
+        .env("DCX_PROJECT", "test-project")
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .expect("Failed to start bqx auth login");
+        .expect("Failed to start dcx auth login");
 
     // Give it a moment to start and print the URL
     std::thread::sleep(std::time::Duration::from_secs(2));
@@ -299,7 +299,7 @@ fn login_generate_random_produces_valid_output() {
 
 #[test]
 fn dry_run_does_not_require_auth() {
-    let output = run_bqx(&["jobs", "query", "--query", "SELECT 1", "--dry-run"]);
+    let output = run_dcx(&["jobs", "query", "--query", "SELECT 1", "--dry-run"]);
     assert!(
         output.status.success(),
         "dry-run should succeed without auth"
@@ -310,7 +310,7 @@ fn dry_run_does_not_require_auth() {
 
 #[test]
 fn dry_run_json_format() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",
@@ -327,7 +327,7 @@ fn dry_run_json_format() {
 
 #[test]
 fn dry_run_table_format() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",
@@ -347,7 +347,7 @@ fn dry_run_table_format() {
 
 #[test]
 fn dry_run_text_format() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",
@@ -377,7 +377,7 @@ fn dry_run_text_format() {
 
 #[test]
 fn format_text_is_accepted_by_help() {
-    let output = run_bqx(&["--help"]);
+    let output = run_dcx(&["--help"]);
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("text"),

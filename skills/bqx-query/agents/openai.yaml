@@ -1,7 +1,0 @@
-interface:
-  display_name: "bqx Query"
-  short_description: "Run raw BigQuery SQL through bqx"
-  default_prompt: "Use $bqx-query to execute a SQL query against BigQuery using the bqx CLI."
-
-policy:
-  allow_implicit_invocation: true

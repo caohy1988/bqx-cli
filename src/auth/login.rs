@@ -15,17 +15,17 @@ const GOOGLE_USERINFO_URL: &str = "https://www.googleapis.com/oauth2/v2/userinfo
 const SCOPES: &str =
     "https://www.googleapis.com/auth/bigquery https://www.googleapis.com/auth/userinfo.email";
 
-// Default OAuth client for bqx CLI (installed-app / desktop type).
-// Users can override via BQX_CLIENT_ID / BQX_CLIENT_SECRET env vars.
+// Default OAuth client for dcx CLI (installed-app / desktop type).
+// Users can override via DCX_CLIENT_ID / DCX_CLIENT_SECRET env vars.
 const DEFAULT_CLIENT_ID: &str =
     "764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com";
 const DEFAULT_CLIENT_SECRET: &str = "d-FL95Q19q7MQmFpd7hHD0Ty";
 
 /// Run the interactive login flow with PKCE and state protection.
 pub async fn run_login() -> Result<()> {
-    let client_id = std::env::var("BQX_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.into());
+    let client_id = std::env::var("DCX_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.into());
     let client_secret =
-        std::env::var("BQX_CLIENT_SECRET").unwrap_or_else(|_| DEFAULT_CLIENT_SECRET.into());
+        std::env::var("DCX_CLIENT_SECRET").unwrap_or_else(|_| DEFAULT_CLIENT_SECRET.into());
 
     // Bind to a random port for the OAuth callback
     let listener = TcpListener::bind("127.0.0.1:0")?;
@@ -140,7 +140,7 @@ pub async fn run_status(opts: &super::AuthOptions) -> Result<()> {
             eprintln!("Active credential source: {}", resolved.source);
             match &resolved.source {
                 AuthSource::ExplicitToken => {
-                    eprintln!("  via: BQX_TOKEN environment variable or --token flag");
+                    eprintln!("  via: DCX_TOKEN environment variable or --token flag");
                 }
                 AuthSource::CredentialsFile(path) => {
                     eprintln!("  via: {path}");
@@ -171,9 +171,9 @@ pub async fn run_status(opts: &super::AuthOptions) -> Result<()> {
             eprintln!("Error: {e}");
             eprintln!();
             eprintln!("To authenticate, run one of:");
-            eprintln!("  bqx auth login");
+            eprintln!("  dcx auth login");
             eprintln!("  gcloud auth application-default login");
-            eprintln!("  export BQX_TOKEN=<your-token>");
+            eprintln!("  export DCX_TOKEN=<your-token>");
         }
     }
 

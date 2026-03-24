@@ -3,8 +3,8 @@ source: tests/skill_generation_tests.rs
 expression: "&tables_skill.skill_md"
 ---
 ---
-name: bqx-tables
-description: Use bqx to manage BigQuery tables via the get, list commands. Generated from the BigQuery v2 Discovery API.
+name: dcx-tables
+description: Use dcx to manage BigQuery tables via the get, list commands. Generated from the BigQuery v2 Discovery API.
 ---
 
 ## When to use this skill
@@ -15,11 +15,11 @@ Use when the user asks about:
 - "show me BigQuery tables"
 - "what tables are in my project"
 
-Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) — use bqx-analytics instead.
+Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) — use dcx-analytics instead.
 
 ## Prerequisites
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 Requires: `--project-id` and `--dataset-id`
 
@@ -30,7 +30,7 @@ Requires: `--project-id` and `--dataset-id`
 Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.
 
 ```bash
-bqx tables get \
+dcx tables get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --table-id <tableId> \
@@ -53,7 +53,7 @@ bqx tables get \
 Lists all tables in the specified dataset. Requires the READER dataset role.
 
 ```bash
-bqx tables list \
+dcx tables list \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   [--max-results] \
@@ -81,14 +81,14 @@ bqx tables list \
 
 ```bash
 # Get tables
-bqx tables get \
+dcx tables get \
   --project-id my-proj \
   --dataset-id my_dataset \
   --table-id my_tableid \
   --format table
 
 # List tables
-bqx tables list \
+dcx tables list \
   --project-id my-proj \
   --dataset-id my_dataset \
   --format table

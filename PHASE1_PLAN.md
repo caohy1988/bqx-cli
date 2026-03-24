@@ -2,20 +2,20 @@
 
 ## Goal
 
-Move `bqx` from the current demoable MVP to the Phase 1 target defined in
+Move `dcx` from the current demoable MVP to the Phase 1 target defined in
 [README.md](/Users/haiyuancao/bqx-cli/README.md):
 
 - stable core CLI scaffold
 - `analytics doctor`, `evaluate`, `get-trace`
 - `--exit-code` for CI/CD
 - `json`, `table`, and `text` output
-- auth support for ADC, service account, and `bqx auth login`
-- npm distribution via `npx bqx`
+- auth support for ADC, service account, and `dcx auth login`
+- npm distribution via `npx dcx`
 - 5 core skills
 
 Authority note:
 the current MVP scope in
-[docs/bqx_prd_rfc.md](/Users/haiyuancao/bqx-cli/docs/bqx_prd_rfc.md) is
+[docs/dcx_prd_rfc.md](/Users/haiyuancao/bqx-cli/docs/dcx_prd_rfc.md) is
 intentionally narrower than the README roadmap. This plan targets the
 README Phase 1 scope in §7, not the PRD's MVP stopping point.
 
@@ -33,7 +33,7 @@ Implemented:
 - `json` and `table` output in [src/output.rs](/Users/haiyuancao/bqx-cli/src/output.rs)
 - CI for formatting, lint, build, and tests in
   [.github/workflows/ci.yml](/Users/haiyuancao/bqx-cli/.github/workflows/ci.yml)
-- **Milestone 1 complete**: credential resolver, `bqx auth login|status|logout`,
+- **Milestone 1 complete**: credential resolver, `dcx auth login|status|logout`,
   PKCE+state OAuth, OS keychain storage, 5-level precedence chain, refresh
   token support, cross-platform random generation, 16 tests (2 unit + 14
   integration). See PRs #5 and #6.
@@ -89,20 +89,20 @@ tests/
 ├── golden/
 └── integration/
 skills/
-├── bqx-shared/
-├── bqx-analytics/
-├── bqx-analytics-evaluate/
-├── bqx-analytics-trace/
-└── bqx-query/
+├── dcx-shared/
+├── dcx-analytics/
+├── dcx-analytics-evaluate/
+├── dcx-analytics-trace/
+└── dcx-query/
 ```
 
 ### Auth Model
 
 Credential resolution order:
 
-1. `BQX_TOKEN`
-2. `BQX_CREDENTIALS_FILE`
-3. stored `bqx auth login` credentials
+1. `DCX_TOKEN`
+2. `DCX_CREDENTIALS_FILE`
+3. stored `dcx auth login` credentials
 4. `GOOGLE_APPLICATION_CREDENTIALS`
 5. default ADC / `gcloud auth application-default`
 
@@ -135,16 +135,16 @@ Supported formats:
 Status: **Complete** (PRs #5, #6)
 
 Objective:
-replace ADC-only auth with a credential resolver and ship `bqx auth login`.
+replace ADC-only auth with a credential resolver and ship `dcx auth login`.
 
 Delivered:
 
 - `src/auth/` module: `resolver.rs`, `login.rs`, `store.rs`
 - credential resolver with 5-level precedence:
-  BQX_TOKEN → BQX_CREDENTIALS_FILE → stored login → GOOGLE_APPLICATION_CREDENTIALS → default ADC
-- `bqx auth login` with installed-app OAuth, PKCE S256, and CSRF state
-- `bqx auth status` reports active source with token validation
-- `bqx auth logout` clears keychain and config
+  DCX_TOKEN → DCX_CREDENTIALS_FILE → stored login → GOOGLE_APPLICATION_CREDENTIALS → default ADC
+- `dcx auth login` with installed-app OAuth, PKCE S256, and CSRF state
+- `dcx auth status` reports active source with token validation
+- `dcx auth logout` clears keychain and config
 - OS keychain storage via `keyring`, config directory via `directories`
 - refresh token support: stored login and authorized_user credentials files
   use `Refreshable` tokens that exchange on each `token()` call
@@ -161,8 +161,8 @@ Exit criteria met:
 
 - every command authenticates through the same resolver path ✅
 - both token and service-account credentials work without code changes ✅
-- a user can authenticate without `gcloud` (via `bqx auth login`) ✅
-- `bqx auth status` explains which auth source is active ✅
+- a user can authenticate without `gcloud` (via `dcx auth login`) ✅
+- `dcx auth status` explains which auth source is active ✅
 
 #### Auth Smoke-Check Procedure
 
@@ -171,33 +171,33 @@ requirements):
 
 1. **Interactive login**:
    ```sh
-   bqx auth login
+   dcx auth login
    # Opens browser → complete Google OAuth → "Authenticated as: user@example.com"
-   bqx auth status
-   # Reports: "bqx auth login (user@example.com)", "Token: valid"
+   dcx auth status
+   # Reports: "dcx auth login (user@example.com)", "Token: valid"
    ```
 
 2. **Service account via credentials file**:
    ```sh
-   bqx auth status --credentials-file /path/to/sa.json
+   dcx auth status --credentials-file /path/to/sa.json
    # Reports: "credentials file: /path/to/sa.json", "Token: valid"
    ```
 
 3. **Explicit token**:
    ```sh
-   BQX_TOKEN=$(gcloud auth print-access-token) bqx auth status
-   # Reports: "BQX_TOKEN / --token", "Token: valid"
+   DCX_TOKEN=$(gcloud auth print-access-token) dcx auth status
+   # Reports: "DCX_TOKEN / --token", "Token: valid"
    ```
 
 4. **Precedence verification**: set multiple sources, verify highest wins:
    ```sh
-   BQX_TOKEN=my-token bqx auth status --credentials-file /path/to/sa.json
-   # Should report BQX_TOKEN (highest priority), not credentials file
+   DCX_TOKEN=my-token dcx auth status --credentials-file /path/to/sa.json
+   # Should report DCX_TOKEN (highest priority), not credentials file
    ```
 
 5. **Data command end-to-end**:
    ```sh
-   bqx jobs query --query "SELECT 1"
+   dcx jobs query --query "SELECT 1"
    # Should succeed with any active credential source
    ```
 
@@ -306,11 +306,11 @@ ship the 5 core Phase 1 skills.
 
 Skills to add:
 
-- `bqx-shared`
-- `bqx-analytics`
-- `bqx-analytics-evaluate`
-- `bqx-analytics-trace`
-- `bqx-query`
+- `dcx-shared`
+- `dcx-analytics`
+- `dcx-analytics-evaluate`
+- `dcx-analytics-trace`
+- `dcx-query`
 
 Tasks:
 
@@ -326,18 +326,18 @@ Done when:
 ### Milestone 7: npm Distribution
 
 Objective:
-make `bqx` installable via `npx bqx`.
+make `dcx` installable via `npx dcx`.
 
 Tasks:
 
 - build release binaries for macOS, Linux, and Windows
 - create npm wrapper package with platform-specific binary resolution
 - add versioning and packaging metadata
-- smoke-test `npx bqx --help`
+- smoke-test `npx dcx --help`
 
 Done when:
 
-- a clean machine can run `npx bqx --help`
+- a clean machine can run `npx dcx --help`
 - packaged binaries map to the right platform automatically
 
 ### Milestone 8: Release and CI Completion
@@ -396,7 +396,7 @@ packaging should come after auth, output, and test contracts are stable.
 ### Auth
 
 - add global flags: `--token`, `--credentials-file`
-- support env vars: `BQX_TOKEN`, `BQX_CREDENTIALS_FILE`
+- support env vars: `DCX_TOKEN`, `DCX_CREDENTIALS_FILE`
 - decide config file location for stored auth metadata
 - define token refresh behavior and failure messaging
 - add `auth status` output that names the active credential source
@@ -478,7 +478,7 @@ Decision needed:
 
 Recommended default:
 
-- one thin root npm package named `@bigquery/bqx`
+- one thin root npm package named `@bigquery/dcx`
 - one platform package per target, using optional dependencies
 - a small JS launcher that resolves the current platform binary
 
@@ -487,18 +487,18 @@ Suggested layout:
 ```text
 npm/
 ├── package.json
-├── bin/bqx.js
+├── bin/dcx.js
 └── packages/
-    ├── bqx-darwin-arm64/
-    ├── bqx-darwin-x64/
-    ├── bqx-linux-x64/
-    └── bqx-win32-x64/
+    ├── dcx-darwin-arm64/
+    ├── dcx-darwin-x64/
+    ├── dcx-linux-x64/
+    └── dcx-win32-x64/
 ```
 
 Why:
 
 - this follows the same basic model used by `esbuild` and `turbo`
-- it keeps `npx bqx` simple for users
+- it keeps `npx dcx` simple for users
 - it cleanly separates JS install logic from Rust release artifacts
 
 Open question:
@@ -545,7 +545,7 @@ Recommended answer:
 
 ### Risk 1: Overbuilding auth
 
-If `bqx auth login` turns into a full account management subsystem, Phase 1
+If `dcx auth login` turns into a full account management subsystem, Phase 1
 will slip.
 
 Mitigation:
@@ -577,21 +577,21 @@ Mitigation:
 
 Phase 1 is complete when all of the following are true:
 
-- `bqx analytics doctor`, `evaluate`, and `get-trace` are stable
-- `bqx auth login` works without `gcloud`
+- `dcx analytics doctor`, `evaluate`, and `get-trace` are stable
+- `dcx auth login` works without `gcloud`
 - service-account auth works in CI
 - all Phase 1 commands support `json`, `table`, and `text`
-- `npx bqx --help` works on a clean machine
+- `npx dcx --help` works on a clean machine
 - the 5 Phase 1 skills exist under `skills/`
 - `cargo test` includes real unit, golden, and integration coverage
-- GitHub Actions can run `bqx analytics evaluate --last=1h --exit-code`
+- GitHub Actions can run `dcx analytics evaluate --last=1h --exit-code`
 
 ## Suggested First PRs
 
 1. `refactor(auth): introduce credential resolver and service-account support`
-2. `feat(auth): add bqx auth login and auth status`
+2. `feat(auth): add dcx auth login and auth status`
 3. `feat(output): add text renderer and stabilize command-specific output`
 4. `test(cli): add golden snapshots and mocked BigQuery integration tests`
 5. `docs(skills): add 5 core Phase 1 skills`
-6. `build(npm): package bqx for npx installation`
+6. `build(npm): package dcx for npx installation`
 7. `ci(release): add binary and npm release workflows`

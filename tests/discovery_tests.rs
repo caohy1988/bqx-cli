@@ -1,5 +1,5 @@
-use bqx::bigquery::discovery::{self, DiscoverySource};
-use bqx::bigquery::dynamic::model::{
+use dcx::bigquery::discovery::{self, DiscoverySource};
+use dcx::bigquery::dynamic::model::{
     extract_methods, filter_allowed, to_generated_command, ArgValueType, ParamLocation,
     ALLOWED_METHODS,
 };

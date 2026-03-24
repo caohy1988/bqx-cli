@@ -92,7 +92,7 @@ mod tests {
         let names: Vec<&str> = skills.iter().map(|s| s.dir_name.as_str()).collect();
         assert_eq!(
             names,
-            vec!["bqx-datasets", "bqx-models", "bqx-routines", "bqx-tables"]
+            vec!["dcx-datasets", "dcx-models", "dcx-routines", "dcx-tables"]
         );
     }
 
@@ -163,16 +163,16 @@ mod tests {
     fn filter_skills_by_name() {
         let commands = load_generated_commands();
         let skills = generate_all(&commands);
-        let filtered = filter_skills(skills, &["bqx-datasets".to_string()]);
+        let filtered = filter_skills(skills, &["dcx-datasets".to_string()]);
         assert_eq!(filtered.len(), 1);
-        assert_eq!(filtered[0].dir_name, "bqx-datasets");
+        assert_eq!(filtered[0].dir_name, "dcx-datasets");
     }
 
     #[test]
     fn filter_skills_nonexistent_returns_empty() {
         let commands = load_generated_commands();
         let skills = generate_all(&commands);
-        let filtered = filter_skills(skills, &["bqx-nonexistent".to_string()]);
+        let filtered = filter_skills(skills, &["dcx-nonexistent".to_string()]);
         assert!(filtered.is_empty());
     }
 

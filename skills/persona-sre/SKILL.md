@@ -1,6 +1,6 @@
 ---
 name: persona-sre
-description: On-call SRE workflows for monitoring and triaging AI agent issues using bqx analytics, conversational analytics, and raw queries.
+description: On-call SRE workflows for monitoring and triaging AI agent issues using dcx analytics, conversational analytics, and raw queries.
 ---
 
 ## When to use this skill
@@ -13,29 +13,29 @@ Use when the user is:
 
 ## Prerequisites
 
-Load the following skills: `bqx-analytics`, `bqx-ca`, `bqx-query`
+Load the following skills: `dcx-analytics`, `dcx-ca`, `dcx-query`
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Incident Triage Workflow
 
 1. Check overall health:
-   `bqx analytics doctor`
+   `dcx analytics doctor`
 2. Look for error spikes:
-   `bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=1h`
+   `dcx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=1h`
 3. Identify failing sessions:
-   `bqx analytics evaluate --evaluator=latency --threshold=5000 --last=1h --format=table`
+   `dcx analytics evaluate --evaluator=latency --threshold=5000 --last=1h --format=table`
 4. Inspect a specific failure:
-   `bqx analytics get-trace --session-id=<ID_FROM_STEP_3>`
+   `dcx analytics get-trace --session-id=<ID_FROM_STEP_3>`
 5. Ask follow-up in natural language:
-   `bqx ca ask "What tools failed most in the last hour?" --agent=agent-analytics`
+   `dcx ca ask "What tools failed most in the last hour?" --agent=agent-analytics`
 
 ## Daily Health Check
 
 ```bash
-bqx analytics doctor && \
-bqx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h && \
-bqx analytics evaluate --evaluator=latency --threshold=5000 --last=24h
+dcx analytics doctor && \
+dcx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h && \
+dcx analytics evaluate --evaluator=latency --threshold=5000 --last=24h
 ```
 
 ## Deep Dive Workflow
@@ -44,16 +44,16 @@ When the health check surfaces issues, drill deeper:
 
 ```bash
 # Get insights summary
-bqx analytics insights --last=1h --format=text
+dcx analytics insights --last=1h --format=text
 
 # Check event distribution for anomalies
-bqx analytics distribution --last=1h --format=table
+dcx analytics distribution --last=1h --format=table
 
 # Check HITL escalation rate
-bqx analytics hitl-metrics --last=1h --format=table
+dcx analytics hitl-metrics --last=1h --format=table
 
 # Drift check against golden questions
-bqx analytics drift --golden-dataset=golden_questions --last=24h --format=text
+dcx analytics drift --golden-dataset=golden_questions --last=24h --format=text
 ```
 
 ## Natural Language Investigation
@@ -62,13 +62,13 @@ Use CA to ask ad-hoc questions during an incident:
 
 ```bash
 # BigQuery agent — ask about agent events
-bqx ca ask "Which agents have error rate above 5% in the last hour?" \
+dcx ca ask "Which agents have error rate above 5% in the last hour?" \
   --agent=agent-analytics
 
-bqx ca ask "What's causing high latency in the last hour?" \
+dcx ca ask "What's causing high latency in the last hour?" \
   --agent=agent-analytics
 
-bqx ca ask "Which tools failed most in the last 24 hours?" \
+dcx ca ask "Which tools failed most in the last 24 hours?" \
   --agent=agent-analytics
 ```
 
@@ -78,11 +78,11 @@ When operational data lives in database sources, use profiles:
 
 ```bash
 # AlloyDB — check application database health
-bqx ca ask --profile ops-alloydb.yaml "show active connections"
-bqx ca ask --profile ops-alloydb.yaml "any blocked queries right now?"
+dcx ca ask --profile ops-alloydb.yaml "show active connections"
+dcx ca ask --profile ops-alloydb.yaml "any blocked queries right now?"
 
 # Spanner — check transaction health
-bqx ca ask --profile finance-spanner.yaml "failed transactions last hour"
+dcx ca ask --profile finance-spanner.yaml "failed transactions last hour"
 ```
 
 ## Weekly Review Script
@@ -94,27 +94,27 @@ set -euo pipefail
 echo "=== Weekly Agent Health Report ==="
 
 echo "--- Insights ---"
-bqx analytics insights --last=7d --format=text
+dcx analytics insights --last=7d --format=text
 
 echo ""
 echo "--- Drift Check ---"
-bqx analytics drift --golden-dataset=golden_questions --last=7d --exit-code || \
+dcx analytics drift --golden-dataset=golden_questions --last=7d --exit-code || \
   echo "WARNING: Drift detected!"
 
 echo ""
 echo "--- HITL Metrics ---"
-bqx analytics hitl-metrics --last=7d --format=table
+dcx analytics hitl-metrics --last=7d --format=table
 
 echo ""
 echo "--- Event Distribution ---"
-bqx analytics distribution --last=7d --format=table
+dcx analytics distribution --last=7d --format=table
 ```
 
 ## Tips
 
 - Use `--format=table` for quick visual scans during incidents.
 - Pipe `--format=json` output to `jq` for scripted analysis.
-- Set `BQX_PROJECT` and `BQX_DATASET` env vars to avoid repetitive flags.
+- Set `DCX_PROJECT` and `DCX_DATASET` env vars to avoid repetitive flags.
 - Use `--exit-code` with `evaluate` and `drift` in automated health checks.
 - Use `--agent-id` to focus on the specific agent mentioned in the alert.
 
@@ -129,7 +129,7 @@ bqx analytics distribution --last=7d --format=table
 ## Constraints
 
 - This persona covers SRE/on-call scenarios, not agent development (see `persona-agent-developer`)
-- BigQuery CA requires a configured data agent (see `bqx-ca-create-agent`)
-- Database CA (AlloyDB, Spanner, Cloud SQL) requires profiles (see `bqx-ca-database`)
-- Agent events must already be flowing to BigQuery — bqx does not handle ingestion
-- Alerting integrations (Slack, PagerDuty) must be configured outside bqx
+- BigQuery CA requires a configured data agent (see `dcx-ca-create-agent`)
+- Database CA (AlloyDB, Spanner, Cloud SQL) requires profiles (see `dcx-ca-database`)
+- Agent events must already be flowing to BigQuery — dcx does not handle ingestion
+- Alerting integrations (Slack, PagerDuty) must be configured outside dcx

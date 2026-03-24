@@ -12,9 +12,9 @@ Use when the user wants to:
 
 ## Prerequisites
 
-Load the `bqx-analytics` skill.
+Load the `dcx-analytics` skill.
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Recipe
 
@@ -36,14 +36,14 @@ jobs:
   agent-quality-gate:
     runs-on: ubuntu-latest
     steps:
-      - name: Install bqx
-        run: npm install -g bqx
+      - name: Install dcx
+        run: npm install -g dcx
 
       - name: Check latency
         run: |
-          bqx analytics evaluate \
+          dcx analytics evaluate \
             --project-id ${{ secrets.GCP_PROJECT }} \
-            --dataset-id ${{ secrets.BQX_DATASET }} \
+            --dataset-id ${{ secrets.DCX_DATASET }} \
             --evaluator latency \
             --threshold 5000 \
             --last 24h \
@@ -52,9 +52,9 @@ jobs:
 
       - name: Check error rate
         run: |
-          bqx analytics evaluate \
+          dcx analytics evaluate \
             --project-id ${{ secrets.GCP_PROJECT }} \
-            --dataset-id ${{ secrets.BQX_DATASET }} \
+            --dataset-id ${{ secrets.DCX_DATASET }} \
             --evaluator error-rate \
             --threshold 0.05 \
             --last 24h \
@@ -72,7 +72,7 @@ PROJECT_ID="${1:?Usage: eval-gate.sh <project-id> <dataset-id>}"
 DATASET_ID="${2:?Usage: eval-gate.sh <project-id> <dataset-id>}"
 
 echo "=== Latency gate ==="
-bqx analytics evaluate \
+dcx analytics evaluate \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
   --evaluator latency \
@@ -82,7 +82,7 @@ bqx analytics evaluate \
   --format table
 
 echo "=== Error rate gate ==="
-bqx analytics evaluate \
+dcx analytics evaluate \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
   --evaluator error-rate \
@@ -105,7 +105,7 @@ service account key path, or use workload identity federation.
 After running for a week, review pass rates:
 
 ```bash
-bqx analytics evaluate \
+dcx analytics evaluate \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --evaluator latency \

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use bqx::ca::profiles::{self, parse_looker_explore, ProfileFamily, SourceType};
+use dcx::ca::profiles::{self, parse_looker_explore, ProfileFamily, SourceType};
 
 #[test]
 fn load_bigquery_demo_profile() {
@@ -104,14 +104,14 @@ fn profile_does_not_require_project_id() {
             "deploy/ca/profiles/bigquery-demo.yaml",
             "test question",
         ])
-        .env("BQX_TOKEN", "fake-token")
+        .env("DCX_TOKEN", "fake-token")
         .output()
-        .expect("failed to run bqx");
+        .expect("failed to run dcx");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     // Must NOT fail with "project-id is required"
     assert!(
-        !stderr.contains("--project-id or BQX_PROJECT is required"),
+        !stderr.contains("--project-id or DCX_PROJECT is required"),
         "Profile should supply project, but got: {stderr}"
     );
     // Must NOT fail with "unexpected argument"
@@ -136,9 +136,9 @@ fn profile_rejects_conflicting_agent_flag() {
             "some-agent",
             "test question",
         ])
-        .env("BQX_TOKEN", "fake-token")
+        .env("DCX_TOKEN", "fake-token")
         .output()
-        .expect("failed to run bqx");
+        .expect("failed to run dcx");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -161,9 +161,9 @@ fn looker_profile_does_not_return_unsupported() {
             "deploy/ca/profiles/looker-sales.yaml",
             "test question",
         ])
-        .env("BQX_TOKEN", "fake-token")
+        .env("DCX_TOKEN", "fake-token")
         .output()
-        .expect("failed to run bqx");
+        .expect("failed to run dcx");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     // Must NOT fail with the old "not yet supported" message
@@ -206,9 +206,9 @@ fn profile_rejects_conflicting_tables_flag() {
             "p.d.t",
             "test question",
         ])
-        .env("BQX_TOKEN", "fake-token")
+        .env("DCX_TOKEN", "fake-token")
         .output()
-        .expect("failed to run bqx");
+        .expect("failed to run dcx");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(

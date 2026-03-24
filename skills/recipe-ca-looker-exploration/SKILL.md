@@ -12,9 +12,9 @@ Use when the user wants to:
 
 ## Prerequisites
 
-Load the following skills: `bqx-ca`, `bqx-ca-looker`
+Load the following skills: `dcx-ca`, `dcx-ca-looker`
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Recipe
 
@@ -31,7 +31,7 @@ your Looker instance under Explore > select an explore > check the URL.
 ### Step 2: Create a profile
 
 ```bash
-cat > ~/.config/bqx/profiles/sales-looker.yaml << 'EOF'
+cat > ~/.config/dcx/profiles/sales-looker.yaml << 'EOF'
 name: sales-looker
 source_type: looker
 project: my-gcp-project
@@ -46,7 +46,7 @@ EOF
 If your Looker instance requires API credentials:
 
 ```bash
-cat > ~/.config/bqx/profiles/sales-looker.yaml << 'EOF'
+cat > ~/.config/dcx/profiles/sales-looker.yaml << 'EOF'
 name: sales-looker
 source_type: looker
 project: my-gcp-project
@@ -63,7 +63,7 @@ EOF
 
 ```bash
 # Should not produce errors
-bqx ca ask --profile ~/.config/bqx/profiles/sales-looker.yaml "test"
+dcx ca ask --profile ~/.config/dcx/profiles/sales-looker.yaml "test"
 ```
 
 If you see an error about the Looker instance, verify the URL and credentials.
@@ -72,13 +72,13 @@ If you see an error about the Looker instance, verify the URL and credentials.
 
 ```bash
 # Start with broad questions
-bqx ca ask --profile sales-looker.yaml "What are the top selling products?"
+dcx ca ask --profile sales-looker.yaml "What are the top selling products?"
 
 # Drill into specifics
-bqx ca ask --profile sales-looker.yaml "Revenue by region last quarter"
+dcx ca ask --profile sales-looker.yaml "Revenue by region last quarter"
 
 # Get detailed results
-bqx ca ask --profile sales-looker.yaml --format text \
+dcx ca ask --profile sales-looker.yaml --format text \
   "Which customers have the highest lifetime value?"
 ```
 
@@ -86,10 +86,10 @@ bqx ca ask --profile sales-looker.yaml --format text \
 
 ```bash
 # Copy the profile to a shared location or check it into your repo
-cp ~/.config/bqx/profiles/sales-looker.yaml deploy/ca/profiles/
+cp ~/.config/dcx/profiles/sales-looker.yaml deploy/ca/profiles/
 
 # Team members can use it directly
-bqx ca ask --profile deploy/ca/profiles/sales-looker.yaml "monthly revenue trend"
+dcx ca ask --profile deploy/ca/profiles/sales-looker.yaml "monthly revenue trend"
 ```
 
 ## Tips

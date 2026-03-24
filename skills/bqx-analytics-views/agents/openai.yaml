@@ -1,7 +1,0 @@
-interface:
-  display_name: "bqx Analytics Views"
-  short_description: "Manage per-event-type views over agent_events"
-  default_prompt: "Use $bqx-analytics-views to create and query per-event-type views on the agent_events table."
-
-policy:
-  allow_implicit_invocation: true

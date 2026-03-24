@@ -1,10 +1,10 @@
 use serde_json::json;
 
-use bqx::bigquery::client::{QueryResult, TableSchema};
-use bqx::cli::EvaluatorType;
-use bqx::commands::analytics::doctor::{doctor_report_from_rows, find_missing_columns};
-use bqx::commands::analytics::evaluate::eval_result_from_rows;
-use bqx::commands::analytics::get_trace::trace_result_from_rows;
+use dcx::bigquery::client::{QueryResult, TableSchema};
+use dcx::cli::EvaluatorType;
+use dcx::commands::analytics::doctor::{doctor_report_from_rows, find_missing_columns};
+use dcx::commands::analytics::evaluate::eval_result_from_rows;
+use dcx::commands::analytics::get_trace::trace_result_from_rows;
 
 fn make_row(pairs: Vec<(&str, serde_json::Value)>) -> serde_json::Map<String, serde_json::Value> {
     let mut map = serde_json::Map::new();
@@ -74,7 +74,7 @@ fn snapshot_doctor_missing_columns() {
     let missing = find_missing_columns(&columns);
 
     // Build the report that run_with_executor would create for missing columns
-    let report = bqx::commands::analytics::doctor::DoctorReport {
+    let report = dcx::commands::analytics::doctor::DoctorReport {
         status: "error".into(),
         table: "proj.ds.agent_events".into(),
         total_rows: 0,
@@ -83,7 +83,7 @@ fn snapshot_doctor_missing_columns() {
         earliest_event: None,
         latest_event: None,
         minutes_since_last_event: None,
-        null_checks: bqx::commands::analytics::doctor::NullChecks {
+        null_checks: dcx::commands::analytics::doctor::NullChecks {
             session_id: 0,
             agent: 0,
             event_type: 0,
@@ -255,7 +255,7 @@ fn snapshot_trace_with_error_event() {
 
 #[test]
 fn snapshot_sql_trace_query() {
-    let sql = bqx::commands::analytics::get_trace::build_trace_query(
+    let sql = dcx::commands::analytics::get_trace::build_trace_query(
         "my-project",
         "analytics_ds",
         "agent_events",
@@ -266,7 +266,7 @@ fn snapshot_sql_trace_query() {
 
 #[test]
 fn snapshot_sql_evaluate_latency() {
-    let sql = bqx::commands::analytics::evaluate::build_evaluate_query(
+    let sql = dcx::commands::analytics::evaluate::build_evaluate_query(
         &EvaluatorType::Latency,
         "my-project",
         "analytics_ds",
@@ -280,7 +280,7 @@ fn snapshot_sql_evaluate_latency() {
 
 #[test]
 fn snapshot_sql_evaluate_error_rate_with_agent() {
-    let sql = bqx::commands::analytics::evaluate::build_evaluate_query(
+    let sql = dcx::commands::analytics::evaluate::build_evaluate_query(
         &EvaluatorType::ErrorRate,
         "my-project",
         "analytics_ds",
@@ -294,13 +294,13 @@ fn snapshot_sql_evaluate_error_rate_with_agent() {
 
 #[test]
 fn snapshot_sql_doctor_columns() {
-    let sql = bqx::commands::analytics::doctor::build_columns_query("proj", "ds", "agent_events");
+    let sql = dcx::commands::analytics::doctor::build_columns_query("proj", "ds", "agent_events");
     insta::assert_snapshot!("sql_doctor_columns", sql);
 }
 
 #[test]
 fn snapshot_sql_doctor_stats() {
-    let sql = bqx::commands::analytics::doctor::build_stats_query("proj", "ds", "agent_events");
+    let sql = dcx::commands::analytics::doctor::build_stats_query("proj", "ds", "agent_events");
     insta::assert_snapshot!("sql_doctor_stats", sql);
 }
 
@@ -336,7 +336,7 @@ fn snapshot_text_doctor_healthy() {
     let report = doctor_report_from_rows("proj.ds.agent_events", columns, &result).unwrap();
 
     let mut buf = String::new();
-    bqx::output::text::fmt_doctor(&mut buf, &report);
+    dcx::output::text::fmt_doctor(&mut buf, &report);
     insta::assert_snapshot!("text_doctor_healthy", buf);
 }
 
@@ -367,13 +367,13 @@ fn snapshot_text_evaluate_mixed() {
     let eval = eval_result_from_rows(&EvaluatorType::Latency, 5000.0, "24h".into(), None, &result);
 
     let mut buf = String::new();
-    bqx::output::text::fmt_evaluate(&mut buf, &eval);
+    dcx::output::text::fmt_evaluate(&mut buf, &eval);
     insta::assert_snapshot!("text_evaluate_mixed", buf);
 }
 
 #[test]
 fn snapshot_text_trace() {
-    let trace = bqx::commands::analytics::get_trace::TraceResult {
+    let trace = dcx::commands::analytics::get_trace::TraceResult {
         session_id: "adcp-a20d176b82af".into(),
         agent: "yahoo_sales_agent".into(),
         event_count: 2,
@@ -381,7 +381,7 @@ fn snapshot_text_trace() {
         ended_at: Some("2026-03-05 09:27:03.208 UTC".into()),
         has_errors: false,
         events: vec![
-            bqx::commands::analytics::get_trace::TraceEvent {
+            dcx::commands::analytics::get_trace::TraceEvent {
                 event_type: "LLM_REQUEST".into(),
                 timestamp: "2026-03-05 09:26:59.270 UTC".into(),
                 status: Some("OK".into()),
@@ -389,7 +389,7 @@ fn snapshot_text_trace() {
                 latency_ms: None,
                 content: None,
             },
-            bqx::commands::analytics::get_trace::TraceEvent {
+            dcx::commands::analytics::get_trace::TraceEvent {
                 event_type: "LLM_RESPONSE".into(),
                 timestamp: "2026-03-05 09:27:03.208 UTC".into(),
                 status: Some("OK".into()),
@@ -401,7 +401,7 @@ fn snapshot_text_trace() {
     };
 
     let mut buf = String::new();
-    bqx::output::text::fmt_trace(&mut buf, &trace);
+    dcx::output::text::fmt_trace(&mut buf, &trace);
     insta::assert_snapshot!("text_trace", buf);
 }
 
@@ -413,7 +413,7 @@ fn snapshot_text_query() {
         vec!["s2".into(), "agent_b".into(), "TOOL_CALL".into()],
     ];
     let mut buf = String::new();
-    bqx::output::text::fmt_query(&mut buf, 2, &columns, &rows);
+    dcx::output::text::fmt_query(&mut buf, 2, &columns, &rows);
     insta::assert_snapshot!("text_query", buf);
 }
 
@@ -436,7 +436,7 @@ fn snapshot_table_rows() {
             "TOOL_CALL".into(),
         ],
     ];
-    let table = bqx::output::fmt_rows_as_table(&columns, &rows);
+    let table = dcx::output::fmt_rows_as_table(&columns, &rows);
     insta::assert_snapshot!("table_rows", table);
 }
 
@@ -447,7 +447,7 @@ fn snapshot_table_kv() {
     map.insert("table".into(), json!("proj.ds.agent_events"));
     map.insert("total_rows".into(), json!(296));
     map.insert("distinct_sessions".into(), json!(12));
-    let table = bqx::output::fmt_kv_table(&map);
+    let table = dcx::output::fmt_kv_table(&map);
     insta::assert_snapshot!("table_kv", table);
 }
 
@@ -478,7 +478,7 @@ fn snapshot_table_doctor_report() {
     ];
     let report = doctor_report_from_rows("proj.ds.agent_events", columns, &result).unwrap();
     let value = serde_json::to_value(&report).unwrap();
-    let table = bqx::output::fmt_value_as_table(&value).unwrap();
+    let table = dcx::output::fmt_value_as_table(&value).unwrap();
     insta::assert_snapshot!("table_doctor_report", table);
 }
 
@@ -507,14 +507,14 @@ fn snapshot_table_evaluate_result() {
         total_rows: 2,
     };
     let eval = eval_result_from_rows(
-        &bqx::cli::EvaluatorType::Latency,
+        &dcx::cli::EvaluatorType::Latency,
         5000.0,
         "24h".into(),
         None,
         &result,
     );
     let value = serde_json::to_value(&eval).unwrap();
-    let table = bqx::output::fmt_value_as_table(&value).unwrap();
+    let table = dcx::output::fmt_value_as_table(&value).unwrap();
     insta::assert_snapshot!("table_evaluate_result", table);
 }
 
@@ -548,7 +548,7 @@ fn snapshot_table_trace_events() {
     };
     let trace = trace_result_from_rows("s1".into(), &result).unwrap();
     let value = serde_json::to_value(&trace).unwrap();
-    let table = bqx::output::fmt_value_as_table(&value).unwrap();
+    let table = dcx::output::fmt_value_as_table(&value).unwrap();
     insta::assert_snapshot!("table_trace_events", table);
 }
 
@@ -561,6 +561,6 @@ fn snapshot_table_query_rows() {
             {"session_id": "s2", "agent": "agent_b", "event_type": "TOOL_CALL"}
         ]
     });
-    let table = bqx::output::fmt_value_as_table(&value).unwrap();
+    let table = dcx::output::fmt_value_as_table(&value).unwrap();
     insta::assert_snapshot!("table_query_rows", table);
 }

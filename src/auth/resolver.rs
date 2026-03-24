@@ -11,11 +11,11 @@ const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 /// The credential source that was used to obtain a token.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuthSource {
-    /// BQX_TOKEN env var or --token flag
+    /// DCX_TOKEN env var or --token flag
     ExplicitToken,
-    /// BQX_CREDENTIALS_FILE env var or --credentials-file flag
+    /// DCX_CREDENTIALS_FILE env var or --credentials-file flag
     CredentialsFile(String),
-    /// Stored credentials from `bqx auth login`
+    /// Stored credentials from `dcx auth login`
     StoredLogin(String),
     /// GOOGLE_APPLICATION_CREDENTIALS env var
     GoogleApplicationCredentials(String),
@@ -26,9 +26,9 @@ pub enum AuthSource {
 impl std::fmt::Display for AuthSource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AuthSource::ExplicitToken => write!(f, "BQX_TOKEN / --token"),
+            AuthSource::ExplicitToken => write!(f, "DCX_TOKEN / --token"),
             AuthSource::CredentialsFile(path) => write!(f, "credentials file: {path}"),
-            AuthSource::StoredLogin(account) => write!(f, "bqx auth login ({account})"),
+            AuthSource::StoredLogin(account) => write!(f, "dcx auth login ({account})"),
             AuthSource::GoogleApplicationCredentials(path) => {
                 write!(f, "GOOGLE_APPLICATION_CREDENTIALS: {path}")
             }
@@ -103,9 +103,9 @@ pub struct AuthOptions {
 
 /// Resolve credentials using the Phase 1 precedence chain:
 ///
-/// 1. `BQX_TOKEN` env var / `--token` flag
-/// 2. `BQX_CREDENTIALS_FILE` env var / `--credentials-file` flag
-/// 3. Stored `bqx auth login` credentials (uses refresh_token)
+/// 1. `DCX_TOKEN` env var / `--token` flag
+/// 2. `DCX_CREDENTIALS_FILE` env var / `--credentials-file` flag
+/// 3. Stored `dcx auth login` credentials (uses refresh_token)
 /// 4. `GOOGLE_APPLICATION_CREDENTIALS`
 /// 5. Default ADC / `gcloud auth application-default`
 pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
@@ -174,9 +174,9 @@ pub async fn resolve(opts: &AuthOptions) -> Result<ResolvedAuth> {
     let provider = gcp_auth::provider().await.map_err(|e| {
         anyhow::anyhow!(
             "No credentials found. Options:\n\
-             - Set BQX_TOKEN or --token\n\
-             - Set BQX_CREDENTIALS_FILE or --credentials-file\n\
-             - Run 'bqx auth login'\n\
+             - Set DCX_TOKEN or --token\n\
+             - Set DCX_CREDENTIALS_FILE or --credentials-file\n\
+             - Run 'dcx auth login'\n\
              - Run 'gcloud auth application-default login'\n\
              Error: {e}"
         )

@@ -1,14 +1,14 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use bqx::ca::client::{CaAgentManager, CaExecutor, CreateAgentParams};
-use bqx::ca::models::{
+use dcx::ca::client::{CaAgentManager, CaExecutor, CreateAgentParams};
+use dcx::ca::models::{
     AddVerifiedQueryResponse, CaQuestionRequest, CaQuestionResponse, CreateAgentResponse,
     DataAgentSummary, ListAgentsResponse,
 };
-use bqx::cli::OutputFormat;
-use bqx::commands::ca::ask::{build_request, validate_inputs};
-use bqx::config::Config;
+use dcx::cli::OutputFormat;
+use dcx::commands::ca::ask::{build_request, validate_inputs};
+use dcx::config::Config;
 
 // ── MockCaExecutor ──
 
@@ -201,7 +201,7 @@ async fn run_with_executor_json_output() {
     });
 
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::ca::ask::run_with_executor(
+    let result = dcx::commands::ca::ask::run_with_executor(
         &mock,
         "test question".into(),
         Some("my-agent".into()),
@@ -225,7 +225,7 @@ async fn run_with_executor_text_output() {
     });
 
     let config = test_config(OutputFormat::Text);
-    let result = bqx::commands::ca::ask::run_with_executor(
+    let result = dcx::commands::ca::ask::run_with_executor(
         &mock,
         "test question".into(),
         None,
@@ -250,7 +250,7 @@ async fn run_with_executor_empty_question_fails() {
 
     let config = test_config(OutputFormat::Json);
     let result =
-        bqx::commands::ca::ask::run_with_executor(&mock, "".into(), None, None, "us", &config)
+        dcx::commands::ca::ask::run_with_executor(&mock, "".into(), None, None, "us", &config)
             .await;
 
     assert!(result.is_err());
@@ -324,7 +324,7 @@ impl CaAgentManager for MockCaAgentManager {
 
 #[test]
 fn create_agent_validate_rejects_empty_tables() {
-    use bqx::commands::ca::create_agent::validate_inputs;
+    use dcx::commands::ca::create_agent::validate_inputs;
     let result = validate_inputs("my-agent", &[], None);
     assert!(result.is_err());
     assert!(result
@@ -335,7 +335,7 @@ fn create_agent_validate_rejects_empty_tables() {
 
 #[test]
 fn create_agent_validate_rejects_invalid_name() {
-    use bqx::commands::ca::create_agent::validate_inputs;
+    use dcx::commands::ca::create_agent::validate_inputs;
     let result = validate_inputs("bad/name", &["p.d.t".into()], None);
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("Invalid agent_id"));
@@ -343,7 +343,7 @@ fn create_agent_validate_rejects_invalid_name() {
 
 #[test]
 fn create_agent_validate_rejects_invalid_table_ref() {
-    use bqx::commands::ca::create_agent::validate_inputs;
+    use dcx::commands::ca::create_agent::validate_inputs;
     let result = validate_inputs("my-agent", &["bad_ref".into()], None);
     assert!(result.is_err());
     assert!(result
@@ -354,7 +354,7 @@ fn create_agent_validate_rejects_invalid_table_ref() {
 
 #[test]
 fn create_agent_validate_accepts_valid_inputs() {
-    use bqx::commands::ca::create_agent::validate_inputs;
+    use dcx::commands::ca::create_agent::validate_inputs;
     assert!(validate_inputs("my-agent", &["p.d.t".into()], None).is_ok());
 }
 
@@ -364,7 +364,7 @@ fn create_agent_validate_accepts_valid_inputs() {
 
 #[test]
 fn add_vq_validate_rejects_empty_question() {
-    use bqx::commands::ca::add_verified_query::validate_inputs;
+    use dcx::commands::ca::add_verified_query::validate_inputs;
     let result = validate_inputs("my-agent", "", "SELECT 1");
     assert!(result.is_err());
     assert!(result
@@ -375,7 +375,7 @@ fn add_vq_validate_rejects_empty_question() {
 
 #[test]
 fn add_vq_validate_rejects_empty_query() {
-    use bqx::commands::ca::add_verified_query::validate_inputs;
+    use dcx::commands::ca::add_verified_query::validate_inputs;
     let result = validate_inputs("my-agent", "test?", "  ");
     assert!(result.is_err());
     assert!(result
@@ -386,7 +386,7 @@ fn add_vq_validate_rejects_empty_query() {
 
 #[test]
 fn add_vq_validate_rejects_invalid_agent() {
-    use bqx::commands::ca::add_verified_query::validate_inputs;
+    use dcx::commands::ca::add_verified_query::validate_inputs;
     let result = validate_inputs("bad/agent", "test?", "SELECT 1");
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("Invalid agent_id"));
@@ -394,7 +394,7 @@ fn add_vq_validate_rejects_invalid_agent() {
 
 #[test]
 fn add_vq_validate_accepts_valid_inputs() {
-    use bqx::commands::ca::add_verified_query::validate_inputs;
+    use dcx::commands::ca::add_verified_query::validate_inputs;
     assert!(validate_inputs("my-agent", "How many?", "SELECT COUNT(*) FROM t").is_ok());
 }
 
@@ -404,7 +404,7 @@ fn add_vq_validate_accepts_valid_inputs() {
 
 #[test]
 fn bundled_verified_queries_load() {
-    let queries = bqx::ca::verified_queries::load(None).unwrap();
+    let queries = dcx::ca::verified_queries::load(None).unwrap();
     assert!(queries.len() >= 4);
 }
 
@@ -416,7 +416,7 @@ fn bundled_verified_queries_load() {
 async fn create_agent_with_executor_json() {
     let mock = MockCaAgentManager;
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::ca::create_agent::run_with_executor(
+    let result = dcx::commands::ca::create_agent::run_with_executor(
         &mock,
         "my-agent".into(),
         vec!["p.d.t".into()],
@@ -433,7 +433,7 @@ async fn create_agent_with_executor_json() {
 async fn create_agent_with_executor_text() {
     let mock = MockCaAgentManager;
     let config = test_config(OutputFormat::Text);
-    let result = bqx::commands::ca::create_agent::run_with_executor(
+    let result = dcx::commands::ca::create_agent::run_with_executor(
         &mock,
         "my-agent".into(),
         vec!["p.d.t".into()],
@@ -450,7 +450,7 @@ async fn create_agent_with_executor_text() {
 async fn create_agent_empty_tables_fails() {
     let mock = MockCaAgentManager;
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::ca::create_agent::run_with_executor(
+    let result = dcx::commands::ca::create_agent::run_with_executor(
         &mock,
         "my-agent".into(),
         vec![],
@@ -467,7 +467,7 @@ async fn create_agent_empty_tables_fails() {
 async fn list_agents_with_executor() {
     let mock = MockCaAgentManager;
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::ca::list_agents::run_with_executor(&mock, &config).await;
+    let result = dcx::commands::ca::list_agents::run_with_executor(&mock, &config).await;
     assert!(result.is_ok());
 }
 
@@ -475,7 +475,7 @@ async fn list_agents_with_executor() {
 async fn list_agents_with_executor_text() {
     let mock = MockCaAgentManager;
     let config = test_config(OutputFormat::Text);
-    let result = bqx::commands::ca::list_agents::run_with_executor(&mock, &config).await;
+    let result = dcx::commands::ca::list_agents::run_with_executor(&mock, &config).await;
     assert!(result.is_ok());
 }
 
@@ -483,7 +483,7 @@ async fn list_agents_with_executor_text() {
 async fn add_verified_query_with_executor() {
     let mock = MockCaAgentManager;
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::ca::add_verified_query::run_with_executor(
+    let result = dcx::commands::ca::add_verified_query::run_with_executor(
         &mock,
         "my-agent".into(),
         "What is the error rate?".into(),
@@ -498,7 +498,7 @@ async fn add_verified_query_with_executor() {
 async fn add_verified_query_empty_question_fails() {
     let mock = MockCaAgentManager;
     let config = test_config(OutputFormat::Json);
-    let result = bqx::commands::ca::add_verified_query::run_with_executor(
+    let result = dcx::commands::ca::add_verified_query::run_with_executor(
         &mock,
         "my-agent".into(),
         "".into(),

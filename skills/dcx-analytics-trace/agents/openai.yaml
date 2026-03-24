@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Trace"
+  short_description: "Inspect a session's event trace"
+  default_prompt: "Use $dcx-analytics-trace to retrieve and debug the event trace for a specific agent session."
+
+policy:
+  allow_implicit_invocation: true

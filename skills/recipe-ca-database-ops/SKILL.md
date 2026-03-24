@@ -12,9 +12,9 @@ Use when the user wants to:
 
 ## Prerequisites
 
-Load the following skills: `bqx-ca`, `bqx-ca-database`
+Load the following skills: `dcx-ca`, `dcx-ca-database`
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Recipe: Spanner (simplest setup)
 
@@ -27,7 +27,7 @@ gcloud services enable spanner.googleapis.com --project=PROJECT_ID
 ### Step 2: Create a profile
 
 ```bash
-cat > ~/.config/bqx/profiles/finance-spanner.yaml << 'EOF'
+cat > ~/.config/dcx/profiles/finance-spanner.yaml << 'EOF'
 name: finance-spanner
 source_type: spanner
 project: my-gcp-project
@@ -40,8 +40,8 @@ EOF
 ### Step 3: Query
 
 ```bash
-bqx ca ask --profile finance-spanner.yaml "show all tables"
-bqx ca ask --profile finance-spanner.yaml "total revenue by region"
+dcx ca ask --profile finance-spanner.yaml "show all tables"
+dcx ca ask --profile finance-spanner.yaml "total revenue by region"
 ```
 
 ## Recipe: AlloyDB
@@ -67,7 +67,7 @@ gcloud alloydb users create USER@DOMAIN \
 ### Step 2: Create a profile
 
 ```bash
-cat > ~/.config/bqx/profiles/ops-alloydb.yaml << 'EOF'
+cat > ~/.config/dcx/profiles/ops-alloydb.yaml << 'EOF'
 name: ops-alloydb
 source_type: alloy_db
 project: my-gcp-project
@@ -81,8 +81,8 @@ EOF
 ### Step 3: Query
 
 ```bash
-bqx ca ask --profile ops-alloydb.yaml "show all tables"
-bqx ca ask --profile ops-alloydb.yaml "what are the largest tables?"
+dcx ca ask --profile ops-alloydb.yaml "show all tables"
+dcx ca ask --profile ops-alloydb.yaml "what are the largest tables?"
 ```
 
 ## Recipe: Cloud SQL
@@ -103,7 +103,7 @@ gcloud sql users create USER@DOMAIN --instance=INSTANCE_ID --type=CLOUD_IAM_USER
 ### Step 2: Create a profile
 
 ```bash
-cat > ~/.config/bqx/profiles/app-cloudsql.yaml << 'EOF'
+cat > ~/.config/dcx/profiles/app-cloudsql.yaml << 'EOF'
 name: app-cloudsql
 source_type: cloud_sql
 project: my-gcp-project
@@ -117,8 +117,8 @@ EOF
 ### Step 3: Query
 
 ```bash
-bqx ca ask --profile app-cloudsql.yaml "show all tables"
-bqx ca ask --profile app-cloudsql.yaml "what is 1 + 1?"
+dcx ca ask --profile app-cloudsql.yaml "show all tables"
+dcx ca ask --profile app-cloudsql.yaml "what is 1 + 1?"
 ```
 
 ## Multi-environment setup
@@ -150,8 +150,8 @@ EOF
 Then use the right profile per environment:
 
 ```bash
-bqx ca ask --profile deploy/ca/profiles/prod-spanner.yaml "active users today"
-bqx ca ask --profile deploy/ca/profiles/staging-spanner.yaml "active users today"
+dcx ca ask --profile deploy/ca/profiles/prod-spanner.yaml "active users today"
+dcx ca ask --profile deploy/ca/profiles/staging-spanner.yaml "active users today"
 ```
 
 ## Verification checklist
@@ -160,8 +160,8 @@ For each database profile, verify:
 1. The API is enabled (`gcloud services list --enabled`)
 2. Data API access is enabled (AlloyDB and Cloud SQL only)
 3. IAM authentication is configured (AlloyDB and Cloud SQL only)
-4. Basic query works: `bqx ca ask --profile PROFILE "what is 1 + 1?"`
-5. Schema query works: `bqx ca ask --profile PROFILE "show all tables"`
+4. Basic query works: `dcx ca ask --profile PROFILE "what is 1 + 1?"`
+5. Schema query works: `dcx ca ask --profile PROFILE "show all tables"`
 
 ## Constraints
 

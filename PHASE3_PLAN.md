@@ -2,17 +2,17 @@
 
 ## Goal
 
-Move `bqx` from the current Phase 2 state to the Phase 3 target defined in
+Move `dcx` from the current Phase 2 state to the Phase 3 target defined in
 [README.md](/Users/haiyuancao/bqx-cli/README.md):
 
-- `bqx ca ask`
-- `bqx ca create-agent`
-- `bqx ca add-verified-query`
+- `dcx ca ask`
+- `dcx ca create-agent`
+- `dcx ca add-verified-query`
 - ship `deploy/ca/verified_queries.yaml`
 - remaining CA-dependent skills:
-  - `bqx-ca`
-  - `bqx-ca-ask`
-  - `bqx-ca-create-agent`
+  - `dcx-ca`
+  - `dcx-ca-ask`
+  - `dcx-ca-create-agent`
   - `persona-sre`
   - `recipe-ca-data-agent-setup`
   - `recipe-error-alerting`
@@ -46,7 +46,7 @@ README alignment notes:
 
 - the README Phase 3 roadmap is authoritative for scope and exit criteria
 - the README examples show a slightly broader CA surface than the roadmap
-  bullets, including `bqx ca list-agents`
+  bullets, including `dcx ca list-agents`
 - this plan treats `list-agents` as a Phase 3 usability add-on if the CA API
   shape supports it cleanly, but not as a hard exit criterion
 - the CA API is still preview-dependent, so Phase 3 must isolate CA failures
@@ -94,7 +94,7 @@ What Phase 3 still needs:
 
 In scope:
 
-- hand-written CA command tree under `bqx ca`
+- hand-written CA command tree under `dcx ca`
 - CA API client and request/response modeling
 - stable JSON output contract for CA commands
 - verified-query asset packaging
@@ -150,9 +150,9 @@ src/
 ├── output.rs
 └── main.rs
 completions/
-├── bqx.bash
-├── _bqx
-└── bqx.fish
+├── dcx.bash
+├── _dcx
+└── dcx.fish
 deploy/
 └── ca/
     └── verified_queries.yaml
@@ -186,10 +186,10 @@ Directory note:
 
 Phase 3 introduces a third static command domain:
 
-- `bqx ca ask`
-- `bqx ca create-agent`
-- `bqx ca add-verified-query`
-- optional: `bqx ca list-agents`
+- `dcx ca ask`
+- `dcx ca create-agent`
+- `dcx ca add-verified-query`
+- optional: `dcx ca list-agents`
 
 Recommended command model:
 
@@ -219,7 +219,7 @@ Design constraints:
 
 ### 2. CA Output Contract
 
-`bqx ca ask` needs a stable contract that agents can reason about.
+`dcx ca ask` needs a stable contract that agents can reason about.
 
 Recommended JSON shape:
 
@@ -277,12 +277,12 @@ existing `agent_events` model rather than over-generalizing the CLI.
 
 Recommended command surface:
 
-- `bqx analytics list-traces`
-- `bqx analytics insights`
-- `bqx analytics drift`
-- `bqx analytics distribution`
-- `bqx analytics hitl-metrics`
-- `bqx analytics views`
+- `dcx analytics list-traces`
+- `dcx analytics insights`
+- `dcx analytics drift`
+- `dcx analytics distribution`
+- `dcx analytics hitl-metrics`
+- `dcx analytics views`
 
 Recommended implementation strategy:
 
@@ -313,7 +313,7 @@ Specific guidance:
     guessing
 - `views`
   - this likely needs subcommands, with `create-all` as the first required one
-    because the README already documents `bqx analytics views create-all --prefix=adk_`
+    because the README already documents `dcx analytics views create-all --prefix=adk_`
 
 ### 5. Skill Completion
 
@@ -321,9 +321,9 @@ Phase 2 shipped 19 non-CA skills. Phase 3 closes the full 26-skill set.
 
 Remaining skills to add:
 
-- `bqx-ca`
-- `bqx-ca-ask`
-- `bqx-ca-create-agent`
+- `dcx-ca`
+- `dcx-ca-ask`
+- `dcx-ca-create-agent`
 - `persona-sre`
 - `recipe-ca-data-agent-setup`
 - `recipe-error-alerting`
@@ -334,7 +334,7 @@ Recommended rule:
 - these remain curated skills, not generated skills
 - they should point only to commands that actually ship in Phase 3
 - `persona-sre` should move from recipe-level approximation to real command
-  guidance now that `bqx ca ask` exists
+  guidance now that `dcx ca ask` exists
 
 ### 6. Completion Scripts
 
@@ -366,14 +366,14 @@ Recommended safeguards:
 
 ## Milestones
 
-### Milestone 1: CA Client and `bqx ca ask`
+### Milestone 1: CA Client and `dcx ca ask`
 
 Add the minimal CA client and the single most important user-facing command.
 
 Tasks:
 
 - add `Ca` to [src/cli.rs](/Users/haiyuancao/bqx-cli/src/cli.rs)
-- implement `bqx ca ask <question>` with optional:
+- implement `dcx ca ask <question>` with optional:
   - `--agent`
   - `--tables`
   - `--instructions` only if the API requires it
@@ -390,7 +390,7 @@ Tasks:
 
 Done when:
 
-- `bqx ca ask "error rate for support_bot?" --agent=agent-analytics`
+- `dcx ca ask "error rate for support_bot?" --agent=agent-analytics`
   returns structured output in tests and local mocked runs
 - CA failures do not affect unrelated command paths
 
@@ -400,9 +400,9 @@ Make the `agent-analytics` setup flow concrete and reproducible.
 
 Tasks:
 
-- add `bqx ca create-agent`
-- add `bqx ca add-verified-query`
-- optional: add `bqx ca list-agents`
+- add `dcx ca create-agent`
+- add `dcx ca add-verified-query`
+- optional: add `dcx ca list-agents`
 - add [deploy/ca/verified_queries.yaml](/Users/haiyuancao/bqx-cli/deploy/ca/verified_queries.yaml)
 - add local YAML validation and loading helpers
 - make `create-agent` accept:
@@ -426,8 +426,8 @@ Phase 1 workflows.
 
 Tasks:
 
-- add `bqx analytics list-traces`
-- add `bqx analytics views create-all`
+- add `dcx analytics list-traces`
+- add `dcx analytics views create-all`
 - add any supporting SQL builders and mappers
 - define output contracts for:
   - trace listings
@@ -445,10 +445,10 @@ Ship the summary/reporting analytics commands.
 
 Tasks:
 
-- add `bqx analytics insights`
-- add `bqx analytics drift`
-- add `bqx analytics distribution`
-- add `bqx analytics hitl-metrics`
+- add `dcx analytics insights`
+- add `dcx analytics drift`
+- add `dcx analytics distribution`
+- add `dcx analytics hitl-metrics`
 - align flags with README examples before adding extras
 - add fixture-backed tests and snapshots for all commands
 
@@ -509,7 +509,7 @@ Tasks:
 
 Done when:
 
-- `bqx ca ask "error rate for support_bot?"` returns SQL and results in live
+- `dcx ca ask "error rate for support_bot?"` returns SQL and results in live
   validation
 - all analytics commands pass integration tests
 - completion scripts are generated and documented
@@ -694,9 +694,9 @@ Mitigation:
 
 Phase 3 is done when all of the following are true:
 
-- `bqx ca ask` is implemented and returns structured output with SQL and
+- `dcx ca ask` is implemented and returns structured output with SQL and
   results
-- `bqx ca create-agent` and `bqx ca add-verified-query` are implemented
+- `dcx ca create-agent` and `dcx ca add-verified-query` are implemented
 - the repo ships [deploy/ca/verified_queries.yaml](/Users/haiyuancao/bqx-cli/deploy/ca/verified_queries.yaml)
 - `insights`, `drift`, `distribution`, `views`, `hitl-metrics`, and
   `list-traces` are implemented
@@ -712,7 +712,7 @@ Phase 3 is done when all of the following are true:
 
 Recommended first PR sequence:
 
-1. `feat(ca): add CA client and bqx ca ask`
+1. `feat(ca): add CA client and dcx ca ask`
 2. `feat(ca): add create-agent, verified-query asset, and add-verified-query`
 3. `feat(analytics): add list-traces and views create-all`
 4. `feat(analytics): add insights, drift, distribution, and hitl-metrics`

@@ -1,8 +1,8 @@
-# Phase 4 Plan: bqx to Agentic Data Cloud CLI (Proposed)
+# Phase 4 Plan: dcx to Agentic Data Cloud CLI (Proposed)
 
 ## Goal
 
-Repurpose `bqx` from a BigQuery-first agent CLI into a broader **agentic Data
+Repurpose `dcx` from a BigQuery-first agent CLI into a broader **agentic Data
 Cloud CLI** for Google Cloud.
 
 This is a proposed Phase 4 direction. The committed roadmap in
@@ -34,7 +34,7 @@ But the support model is split:
 - `QueryData` is for database sources such as AlloyDB, Spanner, and Cloud SQL
 
 That means the current Phase 3 framing - "BigQuery CLI with CA support" - is no
-longer enough. Phase 4 should turn `bqx` into the CLI layer for **agent access
+longer enough. Phase 4 should turn `dcx` into the CLI layer for **agent access
 to Google Cloud Data Cloud sources**, starting with CA and source-aware
 workflows.
 
@@ -47,7 +47,7 @@ the repo is currently at `0.3.0` in
 
 Short version:
 
-- keep `bqx` as the implementation vehicle and binary for continuity
+- keep `dcx` as the implementation vehicle and binary for continuity
 - reposition it as an **agentic Data Cloud CLI**
 - broaden CA support from BigQuery-only to multi-source CA across Data Cloud
 - defer broad admin/CRUD ambitions for AlloyDB and Spanner until after the CA
@@ -138,7 +138,7 @@ Phase 3 established the current starting point:
   [src/](/Users/haiyuancao/bqx-cli/src)
 - 26 checked-in skills under [skills/](/Users/haiyuancao/bqx-cli/skills)
 - Gemini extension manifest and release automation
-- npm distribution via `bqx`
+- npm distribution via `dcx`
 - bash/zsh/fish completions
 - live e2e validation docs in
   [docs/e2e-validation.md](/Users/haiyuancao/bqx-cli/docs/e2e-validation.md)
@@ -152,7 +152,7 @@ What the current repo does **not** provide:
 - no unified "Data Cloud source profile" model
 - no source-aware CA routing that understands `Chat` versus `QueryData`
 - no non-BigQuery product story in the skill layer
-- no naming or docs framing for `bqx` as a broader Data Cloud CLI
+- no naming or docs framing for `dcx` as a broader Data Cloud CLI
 
 ## Scope
 
@@ -167,7 +167,7 @@ In scope:
   - Spanner
   - Cloud SQL / Cloud SQL for PostgreSQL
 - introduce a source-profile model for CA requests
-- keep `bqx` as the binary while broadening the product framing
+- keep `dcx` as the binary while broadening the product framing
 - add the source-aware command surface, skills, docs, and validation needed to
   make the CLI feel intentionally multi-source
 
@@ -314,22 +314,22 @@ The current `ca` commands should expand carefully instead of being replaced.
 
 Recommended Phase 4 command surface:
 
-- `bqx ca ask --profile <name> "<question>"`
+- `dcx ca ask --profile <name> "<question>"`
   - unified entry point for all CA sources
   - the CLI reads the source type from the profile and routes internally:
     - BigQuery, Looker, Looker Studio → `Chat` / `DataAgent` API
     - AlloyDB, Spanner, Cloud SQL → `QueryData` API
   - agents and users never need to know the API split — the profile handles it
-- `bqx ca create-agent --profile <name>`
+- `dcx ca create-agent --profile <name>`
   - accepts a profile to set the source context
   - validates source type: only Chat/DataAgent sources (BigQuery, Looker,
     Looker Studio) support agent creation
   - returns a clear error if the profile points to a database source
-- `bqx ca list-agents`
-- `bqx ca add-verified-query`
-- `bqx ca profiles add`
-- `bqx ca profiles list`
-- `bqx ca profiles get`
+- `dcx ca list-agents`
+- `dcx ca add-verified-query`
+- `dcx ca profiles add`
+- `dcx ca profiles list`
+- `dcx ca profiles get`
 
 Recommended rule:
 
@@ -390,7 +390,7 @@ Important constraints from official docs:
 Recommended Phase 4 outcome:
 
 - a user can create or reference a source profile for Looker or Studio
-- `bqx ca ask --profile sales-looker "..."` works
+- `dcx ca ask --profile sales-looker "..."` works
 - response rendering remains stable across these source types
 
 ### 5. Database CA Family
@@ -413,18 +413,18 @@ Important constraints from official docs:
 
 Recommended Phase 4 outcome:
 
-- `bqx ca ask --profile ops-alloydb "top error categories last 24h"`
-- `bqx ca ask --profile finance-spanner "daily failed payments by region"`
+- `dcx ca ask --profile ops-alloydb "top error categories last 24h"`
+- `dcx ca ask --profile finance-spanner "daily failed payments by region"`
 - stable JSON shape that includes generated SQL, result rows, and reasoning if
   returned by the API
 
 ### 6. Branding and Product Framing
 
-The repo can stay on the `bqx` binary in Phase 4.
+The repo can stay on the `dcx` binary in Phase 4.
 
 Recommended framing:
 
-- short term: "`bqx` is evolving into an agentic Data Cloud CLI"
+- short term: "`dcx` is evolving into an agentic Data Cloud CLI"
 - medium term: validate whether the broader Data Cloud scope warrants a rename
   or alias
 
@@ -468,8 +468,8 @@ Tasks:
 
 Done when:
 
-- `bqx ca ask` works against Looker profiles
-- `bqx ca ask` works against Looker Studio profiles
+- `dcx ca ask` works against Looker profiles
+- `dcx ca ask` works against Looker Studio profiles
 - docs clearly explain what is different from BigQuery CA
 
 ### Milestone 3: AlloyDB + Spanner + Cloud SQL QueryData
@@ -489,7 +489,7 @@ Tasks:
 
 Done when:
 
-- `bqx ca ask --profile ops-alloydb "..."` routes to QueryData and returns
+- `dcx ca ask --profile ops-alloydb "..."` routes to QueryData and returns
   results
 - Spanner profiles work the same way
 - Cloud SQL support is either working or explicitly deferred with a clear
@@ -505,10 +505,10 @@ expand the skill story from BigQuery-only to Data Cloud source workflows.
 Tasks:
 
 - add CA source-specific skills:
-  - `bqx-ca-looker` — Looker explore profile setup and CA usage
-  - `bqx-ca-database` — database source profiles (AlloyDB, Spanner, Cloud SQL)
-  - `bqx-ca-alloydb` — AlloyDB-specific context and troubleshooting patterns
-  - `bqx-ca-spanner` — Spanner-specific query patterns
+  - `dcx-ca-looker` — Looker explore profile setup and CA usage
+  - `dcx-ca-database` — database source profiles (AlloyDB, Spanner, Cloud SQL)
+  - `dcx-ca-alloydb` — AlloyDB-specific context and troubleshooting patterns
+  - `dcx-ca-spanner` — Spanner-specific query patterns
 - update routing skills to select the right `--profile` for the user's data
   source
 - add recipes for:
@@ -554,7 +554,7 @@ Tasks:
 - complete version bump and release notes
 - refresh package/docs/manifest metadata as needed
 - validate the final supported source matrix
-- decide whether to keep the `bqx` name only or add a broader product alias in
+- decide whether to keep the `dcx` name only or add a broader product alias in
   docs
 
 Done when:
@@ -618,12 +618,12 @@ Docs validation:
 ### 1. Naming
 
 Question:
-should the binary remain `bqx` once it stops being BigQuery-only?
+should the binary remain `dcx` once it stops being BigQuery-only?
 
 Recommended answer:
-keep `bqx` in Phase 4 for continuity and speed. Make a concrete rename
+keep `dcx` in Phase 4 for continuity and speed. Make a concrete rename
 decision in M6: if multi-source CA is validated, pick an alias (e.g., `dcx`,
-`dcloud`) and ship it alongside `bqx` in the 0.4.0 release. The name `bqx`
+`dcloud`) and ship it alongside `dcx` in the 0.4.0 release. The name `dcx`
 actively works against a "Data Cloud CLI" pitch — this should be resolved at
 release, not deferred indefinitely.
 
@@ -696,7 +696,7 @@ Mitigation:
 ### 4. Naming confusion
 
 Risk:
-`bqx` sounds BigQuery-specific even if the product broadens.
+`dcx` sounds BigQuery-specific even if the product broadens.
 
 Mitigation:
 
@@ -708,7 +708,7 @@ Mitigation:
 
 This proposed Phase 4 is complete when:
 
-- `bqx` supports CA across BigQuery, Looker, AlloyDB, and Spanner at minimum
+- `dcx` supports CA across BigQuery, Looker, AlloyDB, and Spanner at minimum
 - the CLI has a clear source-profile model
 - `ca ask --profile` routes to the right API for each source type
 - the skill layer reflects the broader Data Cloud source model
@@ -721,7 +721,7 @@ This proposed Phase 4 is complete when:
 2. `feat(ca): add Looker and Looker Studio profiles to ca ask`
 3. `feat(ca): add QueryData routing for AlloyDB and Spanner via ca ask`
 4. `skills(ca): add Data Cloud source-specific CA skills`
-5. `docs: reposition bqx as agentic Data Cloud CLI`
+5. `docs: reposition dcx as agentic Data Cloud CLI`
 
 ## Recommended Starting Point
 

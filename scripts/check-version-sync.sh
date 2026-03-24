@@ -82,7 +82,7 @@ for dep_version in $(node -e "
 done
 
 # Check platform packages
-for dir in bqx-darwin-arm64 bqx-darwin-x64 bqx-linux-x64 bqx-linux-arm64 bqx-win32-x64 bqx-win32-arm64; do
+for dir in dcx-darwin-arm64 dcx-darwin-x64 dcx-linux-x64 dcx-linux-arm64 dcx-win32-x64 dcx-win32-arm64; do
   check_package "$REPO_ROOT/npm/$dir/package.json"
 done
 

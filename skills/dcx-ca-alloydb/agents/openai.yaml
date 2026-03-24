@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx CA AlloyDB"
+  short_description: "AlloyDB-specific CA setup, prerequisites, and troubleshooting"
+  default_prompt: "Use $dcx-ca-alloydb to set up and troubleshoot Conversational Analytics for AlloyDB databases."
+
+policy:
+  allow_implicit_invocation: true

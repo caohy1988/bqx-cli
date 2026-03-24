@@ -3,8 +3,8 @@ source: tests/skill_generation_tests.rs
 expression: "&models_skill.skill_md"
 ---
 ---
-name: bqx-models
-description: Use bqx to manage BigQuery models via the get, list commands. Generated from the BigQuery v2 Discovery API.
+name: dcx-models
+description: Use dcx to manage BigQuery models via the get, list commands. Generated from the BigQuery v2 Discovery API.
 ---
 
 ## When to use this skill
@@ -15,11 +15,11 @@ Use when the user asks about:
 - "show me BigQuery models"
 - "what models are in my project"
 
-Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) — use bqx-analytics instead.
+Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) — use dcx-analytics instead.
 
 ## Prerequisites
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 Requires: `--project-id` and `--dataset-id`
 
@@ -30,7 +30,7 @@ Requires: `--project-id` and `--dataset-id`
 Gets the specified model resource by model ID.
 
 ```bash
-bqx models get \
+dcx models get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --model-id <modelId> \
@@ -49,7 +49,7 @@ bqx models get \
 Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.
 
 ```bash
-bqx models list \
+dcx models list \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   [--max-results] \
@@ -77,14 +77,14 @@ bqx models list \
 
 ```bash
 # Get models
-bqx models get \
+dcx models get \
   --project-id my-proj \
   --dataset-id my_dataset \
   --model-id my_modelid \
   --format table
 
 # List models
-bqx models list \
+dcx models list \
   --project-id my-proj \
   --dataset-id my_dataset \
   --format table

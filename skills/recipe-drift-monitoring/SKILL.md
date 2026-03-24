@@ -12,9 +12,9 @@ Use when the user wants to:
 
 ## Prerequisites
 
-Load the following skills: `bqx-analytics`, `bqx-analytics-drift`
+Load the following skills: `dcx-analytics`, `dcx-analytics-drift`
 
-See **bqx-shared** for authentication and global flags.
+See **dcx-shared** for authentication and global flags.
 
 ## Recipe
 
@@ -30,7 +30,7 @@ LATENCY_THRESHOLD="${3:-5000}"
 ERROR_THRESHOLD="${4:-0.10}"
 
 echo "=== Latency drift check (7d window) ==="
-bqx analytics evaluate \
+dcx analytics evaluate \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
   --evaluator latency \
@@ -40,7 +40,7 @@ bqx analytics evaluate \
 
 echo ""
 echo "=== Error rate drift check (7d window) ==="
-bqx analytics evaluate \
+dcx analytics evaluate \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
   --evaluator error-rate \
@@ -50,7 +50,7 @@ bqx analytics evaluate \
 
 echo ""
 echo "=== Health check ==="
-bqx analytics doctor \
+dcx analytics doctor \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
   --format table
@@ -76,14 +76,14 @@ jobs:
   drift-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Install bqx
-        run: npm install -g bqx
+      - name: Install dcx
+        run: npm install -g dcx
 
       - name: Run drift check
         run: |
-          bqx analytics evaluate \
+          dcx analytics evaluate \
             --project-id ${{ secrets.GCP_PROJECT }} \
-            --dataset-id ${{ secrets.BQX_DATASET }} \
+            --dataset-id ${{ secrets.DCX_DATASET }} \
             --evaluator latency \
             --threshold 5000 \
             --last 7d \
@@ -97,7 +97,7 @@ For deeper drift analysis, capture JSON output from two time windows:
 
 ```bash
 # Baseline: previous 30 days
-bqx analytics evaluate \
+dcx analytics evaluate \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --evaluator latency \
@@ -106,7 +106,7 @@ bqx analytics evaluate \
   --format json > baseline.json
 
 # Current: last 7 days
-bqx analytics evaluate \
+dcx analytics evaluate \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --evaluator latency \
@@ -126,7 +126,7 @@ jq '.pass_rate' current.json
 Combine `--exit-code` with notification tools:
 
 ```bash
-if ! bqx analytics evaluate \
+if ! dcx analytics evaluate \
   --project-id "$PROJECT_ID" \
   --dataset-id "$DATASET_ID" \
   --evaluator error-rate \
@@ -153,5 +153,5 @@ fi
 
 - Drift detection relies on consistent event volume — gaps in data may cause false positives
 - The `--last` flag measures from the current time, not fixed calendar windows
-- Alerting integrations (Slack, PagerDuty) must be configured outside bqx
+- Alerting integrations (Slack, PagerDuty) must be configured outside dcx
 - For sub-daily monitoring, use shorter windows with `recipe-eval-pipeline` instead

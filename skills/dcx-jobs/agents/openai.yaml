@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Jobs"
+  short_description: "Execute BigQuery SQL queries via dcx"
+  default_prompt: "Use $dcx-jobs to run SQL queries against BigQuery using the dcx CLI."
+
+policy:
+  allow_implicit_invocation: true

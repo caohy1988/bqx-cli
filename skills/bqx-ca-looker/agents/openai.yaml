@@ -1,7 +1,0 @@
-interface:
-  display_name: "bqx CA Looker"
-  short_description: "Set up and use Conversational Analytics with Looker explores"
-  default_prompt: "Use $bqx-ca-looker to set up a Looker CA profile and ask natural language questions over Looker data."
-
-policy:
-  allow_implicit_invocation: true

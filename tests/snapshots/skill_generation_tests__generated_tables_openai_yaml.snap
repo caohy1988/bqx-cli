@@ -3,9 +3,9 @@ source: tests/skill_generation_tests.rs
 expression: "&tables_skill.openai_yaml"
 ---
 interface:
-  display_name: "bqx Tables"
-  short_description: "get/list BigQuery tables via bqx"
-  default_prompt: "Use $bqx-tables to get/list BigQuery tables using the bqx CLI."
+  display_name: "dcx Tables"
+  short_description: "get/list BigQuery tables via dcx"
+  default_prompt: "Use $dcx-tables to get/list BigQuery tables using the dcx CLI."
 
 policy:
   allow_implicit_invocation: true

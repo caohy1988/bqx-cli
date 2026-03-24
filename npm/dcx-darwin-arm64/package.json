@@ -1,0 +1,13 @@
+{
+  "name": "@dcx-cli/darwin-arm64",
+  "version": "0.4.0",
+  "description": "dcx binary for macOS ARM64 (Apple Silicon)",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/haiyuancao/bqx-cli.git"
+  },
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "files": ["dcx"]
+}

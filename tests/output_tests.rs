@@ -8,26 +8,26 @@ fn cargo_bin() -> String {
     assert!(output.status.success(), "Build failed");
 
     let target_dir = std::env::var("CARGO_TARGET_DIR").unwrap_or_else(|_| String::from("target"));
-    format!("{target_dir}/debug/bqx")
+    format!("{target_dir}/debug/dcx")
 }
 
-fn run_bqx(args: &[&str]) -> std::process::Output {
+fn run_dcx(args: &[&str]) -> std::process::Output {
     let bin = cargo_bin();
     Command::new(&bin)
         .args(args)
-        .env_remove("BQX_TOKEN")
-        .env_remove("BQX_CREDENTIALS_FILE")
+        .env_remove("DCX_TOKEN")
+        .env_remove("DCX_CREDENTIALS_FILE")
         .env_remove("GOOGLE_APPLICATION_CREDENTIALS")
-        .env("BQX_PROJECT", "test-project")
+        .env("DCX_PROJECT", "test-project")
         .output()
-        .expect("Failed to run bqx")
+        .expect("Failed to run dcx")
 }
 
 // ── Text format dry-run rendering ──
 
 #[test]
 fn text_dry_run_shows_structured_output() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",
@@ -49,7 +49,7 @@ fn text_dry_run_shows_structured_output() {
 
 #[test]
 fn text_dry_run_with_legacy_sql() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",
@@ -71,7 +71,7 @@ fn text_dry_run_with_legacy_sql() {
 
 #[test]
 fn json_dry_run_shape_unchanged() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",
@@ -96,7 +96,7 @@ fn json_dry_run_shape_unchanged() {
 
 #[test]
 fn format_flag_accepts_json() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",
@@ -110,7 +110,7 @@ fn format_flag_accepts_json() {
 
 #[test]
 fn format_flag_accepts_table() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",
@@ -124,7 +124,7 @@ fn format_flag_accepts_table() {
 
 #[test]
 fn format_flag_accepts_text() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",
@@ -138,7 +138,7 @@ fn format_flag_accepts_text() {
 
 #[test]
 fn format_flag_rejects_invalid() {
-    let output = run_bqx(&[
+    let output = run_dcx(&[
         "jobs",
         "query",
         "--query",

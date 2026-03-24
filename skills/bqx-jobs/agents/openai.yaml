@@ -1,7 +1,0 @@
-interface:
-  display_name: "bqx Jobs"
-  short_description: "Execute BigQuery SQL queries via bqx"
-  default_prompt: "Use $bqx-jobs to run SQL queries against BigQuery using the bqx CLI."
-
-policy:
-  allow_implicit_invocation: true

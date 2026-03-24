@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Datasets"
+  short_description: "get/list BigQuery datasets via dcx"
+  default_prompt: "Use $dcx-datasets to get/list BigQuery datasets using the dcx CLI."
+
+policy:
+  allow_implicit_invocation: true
