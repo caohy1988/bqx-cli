@@ -160,12 +160,7 @@ looker_client_secret: super-secret-value
 
 #[test]
 fn profiles_show_missing_profile_fails() {
-    let output = run_dcx(&[
-        "profiles",
-        "show",
-        "--profile",
-        "nonexistent-profile-xyz",
-    ]);
+    let output = run_dcx(&["profiles", "show", "--profile", "nonexistent-profile-xyz"]);
     assert!(!output.status.success());
 
     let stderr = String::from_utf8_lossy(&output.stderr);

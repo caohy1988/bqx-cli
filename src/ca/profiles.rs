@@ -411,11 +411,7 @@ pub fn discover_all_profiles() -> Result<Vec<(CaProfile, String)>> {
                             results.push((p, source.clone()));
                         }
                         Err(e) => {
-                            eprintln!(
-                                "Warning: skipping {}: {}",
-                                path.display(),
-                                e
-                            );
+                            eprintln!("Warning: skipping {}: {}", path.display(), e);
                         }
                     }
                 }
@@ -451,11 +447,7 @@ pub fn discover_all_profiles() -> Result<Vec<(CaProfile, String)>> {
                         }
                     }
                     Err(e) => {
-                        eprintln!(
-                            "Warning: skipping {}: {}",
-                            path.display(),
-                            e
-                        );
+                        eprintln!("Warning: skipping {}: {}", path.display(), e);
                     }
                 }
             }
