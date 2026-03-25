@@ -38,7 +38,10 @@ fn top_level_help_includes_looker() {
 fn looker_help_shows_subcommands() {
     let output = run_dcx(&["looker", "--help"]);
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("explores"), "Should show explores subcommand");
+    assert!(
+        stdout.contains("explores"),
+        "Should show explores subcommand"
+    );
     assert!(
         stdout.contains("dashboards"),
         "Should show dashboards subcommand"

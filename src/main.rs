@@ -262,19 +262,33 @@ async fn run_static(cli: Cli) {
             token: cli.token.clone(),
             credentials_file: cli.credentials_file.clone(),
         };
+        let sanitize = cli.sanitize.as_deref();
         let result = match command {
             LookerCommand::Explores { command } => match command {
                 LookerExploresCommand::List { profile } => {
-                    commands::looker::explores::run_list(profile, &auth_opts, &cli.format).await
+                    commands::looker::explores::run_list(profile, &auth_opts, &cli.format, sanitize)
+                        .await
                 }
                 LookerExploresCommand::Get { profile, explore } => {
-                    commands::looker::explores::run_get(profile, explore, &auth_opts, &cli.format)
-                        .await
+                    commands::looker::explores::run_get(
+                        profile,
+                        explore,
+                        &auth_opts,
+                        &cli.format,
+                        sanitize,
+                    )
+                    .await
                 }
             },
             LookerCommand::Dashboards { command } => match command {
                 LookerDashboardsCommand::List { profile } => {
-                    commands::looker::dashboards::run_list(profile, &auth_opts, &cli.format).await
+                    commands::looker::dashboards::run_list(
+                        profile,
+                        &auth_opts,
+                        &cli.format,
+                        sanitize,
+                    )
+                    .await
                 }
                 LookerDashboardsCommand::Get {
                     profile,
@@ -285,6 +299,7 @@ async fn run_static(cli: Cli) {
                         dashboard_id,
                         &auth_opts,
                         &cli.format,
+                        sanitize,
                     )
                     .await
                 }

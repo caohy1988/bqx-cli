@@ -13,6 +13,7 @@ pub async fn run_list(
     profile_ref: &str,
     auth_opts: &AuthOptions,
     format: &OutputFormat,
+    sanitize_template: Option<&str>,
 ) -> Result<()> {
     let profile = profiles::resolve_profile(profile_ref)?;
     if profile.source_type != SourceType::Looker {
@@ -34,12 +35,12 @@ pub async fn run_list(
         explores,
     };
 
-    if *format == OutputFormat::Text {
+    if *format == OutputFormat::Text && sanitize_template.is_none() {
         render_explores_text(&response);
         return Ok(());
     }
 
-    output::render(&response, format)
+    maybe_sanitize_and_render(&response, auth_opts, format, sanitize_template).await
 }
 
 /// Get detailed metadata for a single explore.
@@ -48,6 +49,7 @@ pub async fn run_get(
     explore_ref: &str,
     auth_opts: &AuthOptions,
     format: &OutputFormat,
+    sanitize_template: Option<&str>,
 ) -> Result<()> {
     let profile = profiles::resolve_profile(profile_ref)?;
     if profile.source_type != SourceType::Looker {
@@ -71,23 +73,30 @@ pub async fn run_get(
         explore: detail,
     };
 
-    if *format == OutputFormat::Text {
+    if *format == OutputFormat::Text && sanitize_template.is_none() {
         render_explore_detail_text(&response);
         return Ok(());
     }
 
-    output::render(&response, format)
+    maybe_sanitize_and_render(&response, auth_opts, format, sanitize_template).await
 }
 
 /// Resolve a bearer token for the Looker API.
 ///
-/// If the profile has `looker_client_id` / `looker_client_secret`, use Looker
-/// API key auth to get a token. Otherwise fall back to GCP auth (for Looker
-/// instances that accept Google-issued tokens).
+/// Precedence (matches global auth contract):
+/// 1. Explicit token from `--token` / `DCX_TOKEN` (highest priority)
+/// 2. Looker API credentials from profile (`client_id` / `client_secret`)
+/// 3. GCP auth fallback (for Google-auth Looker instances)
 pub(crate) async fn resolve_looker_token(
     profile: &profiles::CaProfile,
     auth_opts: &AuthOptions,
 ) -> Result<String> {
+    // 1. Explicit token always wins (global contract: --token overrides all)
+    if let Some(ref token) = auth_opts.token {
+        return Ok(token.clone());
+    }
+
+    // 2. Looker API credentials from profile
     if let (Some(client_id), Some(client_secret)) = (
         profile.looker_client_id.as_deref(),
         profile.looker_client_secret.as_deref(),
@@ -115,12 +124,33 @@ pub(crate) async fn resolve_looker_token(
         let token = data["access_token"]
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("No access_token in Looker login response"))?;
-        Ok(token.to_string())
-    } else {
-        // Fall back to GCP auth
-        let resolved = auth::resolve(auth_opts).await?;
-        resolved.token().await
+        return Ok(token.to_string());
     }
+
+    // 3. Fall back to GCP auth
+    let resolved = auth::resolve(auth_opts).await?;
+    resolved.token().await
+}
+
+/// Apply Model Armor sanitization if configured, then render.
+pub(crate) async fn maybe_sanitize_and_render<T: serde::Serialize>(
+    response: &T,
+    auth_opts: &AuthOptions,
+    format: &OutputFormat,
+    sanitize_template: Option<&str>,
+) -> Result<()> {
+    if let Some(template) = sanitize_template {
+        let resolved = auth::resolve(auth_opts).await?;
+        let json_val = serde_json::to_value(response)?;
+        let sanitize_result =
+            crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+        if sanitize_result.sanitized {
+            return crate::output::render(&sanitize_result.content, format);
+        }
+    }
+
+    output::render(response, format)
 }
 
 fn render_explores_text(response: &ExploresListResponse) {

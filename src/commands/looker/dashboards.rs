@@ -3,7 +3,6 @@ use anyhow::{bail, Result};
 use crate::auth::AuthOptions;
 use crate::ca::profiles::{self, SourceType};
 use crate::cli::OutputFormat;
-use crate::output;
 use crate::sources::looker::client::HttpLookerClient;
 use crate::sources::looker::client::LookerClient;
 use crate::sources::looker::models::{DashboardGetResponse, DashboardsListResponse};
@@ -13,6 +12,7 @@ pub async fn run_list(
     profile_ref: &str,
     auth_opts: &AuthOptions,
     format: &OutputFormat,
+    sanitize_template: Option<&str>,
 ) -> Result<()> {
     let profile = profiles::resolve_profile(profile_ref)?;
     if profile.source_type != SourceType::Looker {
@@ -34,12 +34,13 @@ pub async fn run_list(
         dashboards,
     };
 
-    if *format == OutputFormat::Text {
+    if *format == OutputFormat::Text && sanitize_template.is_none() {
         render_dashboards_text(&response);
         return Ok(());
     }
 
-    output::render(&response, format)
+    super::explores::maybe_sanitize_and_render(&response, auth_opts, format, sanitize_template)
+        .await
 }
 
 /// Get detailed metadata for a single dashboard.
@@ -48,6 +49,7 @@ pub async fn run_get(
     dashboard_id: &str,
     auth_opts: &AuthOptions,
     format: &OutputFormat,
+    sanitize_template: Option<&str>,
 ) -> Result<()> {
     let profile = profiles::resolve_profile(profile_ref)?;
     if profile.source_type != SourceType::Looker {
@@ -69,12 +71,13 @@ pub async fn run_get(
         dashboard: detail,
     };
 
-    if *format == OutputFormat::Text {
+    if *format == OutputFormat::Text && sanitize_template.is_none() {
         render_dashboard_detail_text(&response);
         return Ok(());
     }
 
-    output::render(&response, format)
+    super::explores::maybe_sanitize_and_render(&response, auth_opts, format, sanitize_template)
+        .await
 }
 
 fn render_dashboards_text(response: &DashboardsListResponse) {
