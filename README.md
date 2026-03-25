@@ -1042,6 +1042,28 @@ Data Cloud support; docs updated.
 
 See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 
+### Phase 5: Native Data Cloud Commands Beyond BigQuery (v0.5) — Proposed
+
+- [ ] Add top-level profile utilities: `dcx profiles list|show|validate`
+- [ ] Add direct non-BigQuery command domains:
+  - `dcx looker`
+  - `dcx spanner`
+  - `dcx alloydb`
+  - `dcx cloudsql`
+- [ ] Ship read-only `list|get` inventory commands for each non-BigQuery source
+  family
+- [ ] Add schema and source-inspection helpers where profile context makes them
+  safe and predictable
+- [ ] Expand skills and docs so agents can choose between `ca ask` and direct
+  source commands
+- [ ] Release `0.5.0` with a validated cross-source command matrix
+
+**Exit criteria:** `dcx` supports direct, structured, non-CA commands for
+Looker, Spanner, AlloyDB, and Cloud SQL in addition to the existing BigQuery
+command surface.
+
+See [PHASE5_PLAN.md](PHASE5_PLAN.md) for the full plan.
+
 ### Testing Strategy
 
 - **Unit tests:** Core parsing, auth resolution, output formatting
@@ -1059,7 +1081,7 @@ See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 | Tool | Role | Relationship to `dcx` |
 |------|------|----------------------|
 | `bq` CLI | Legacy BigQuery CLI | `dcx` is a successor, not a wrapper. Coexists — users can migrate gradually. |
-| `gcloud` | Google Cloud CLI | `dcx` handles BigQuery-specific workflows; delegates to `gcloud` for IAM, projects. |
+| `gcloud` | Google Cloud CLI | `dcx` handles Data Cloud-specific workflows and source-aware operations; delegates to `gcloud` for IAM, projects, and infrastructure admin. |
 | `gws` CLI | Google Workspace CLI | Architectural template. Same skills format, same output patterns, different domain. |
 | `bq-agent-sdk` (from PRD) | Python CLI from current PRD | Ships first as a preview CLI. Once `dcx analytics` reaches feature parity (v0.2), the Python CLI is sunset; the Python SDK *library* continues independently. |
 | BigQuery Console | Web UI | `dcx ca ask` brings CA to terminal; `dcx analytics` brings SDK to terminal. |
