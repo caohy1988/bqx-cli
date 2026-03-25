@@ -5,8 +5,9 @@ use dcx::auth;
 use dcx::bigquery::discovery::{self, DiscoverySource};
 use dcx::bigquery::dynamic::{clap_tree, executor, model};
 use dcx::cli::{
-    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat,
-    ProfilesCommand, ShellType, ViewsCommand,
+    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, LookerCommand,
+    LookerDashboardsCommand, LookerExploresCommand, OutputFormat, ProfilesCommand, ShellType,
+    ViewsCommand,
 };
 use dcx::commands;
 use dcx::config::Config;
@@ -21,6 +22,7 @@ const STATIC_COMMANDS: &[&str] = &[
     "generate-skills",
     "completions",
     "profiles",
+    "looker",
 ];
 
 #[tokio::main]
@@ -254,6 +256,47 @@ async fn run_static(cli: Cli) {
         return;
     }
 
+    // looker commands use profile-based auth, no project/dataset needed
+    if let Command::Looker { ref command } = cli.command {
+        let auth_opts = auth::AuthOptions {
+            token: cli.token.clone(),
+            credentials_file: cli.credentials_file.clone(),
+        };
+        let result = match command {
+            LookerCommand::Explores { command } => match command {
+                LookerExploresCommand::List { profile } => {
+                    commands::looker::explores::run_list(profile, &auth_opts, &cli.format).await
+                }
+                LookerExploresCommand::Get { profile, explore } => {
+                    commands::looker::explores::run_get(profile, explore, &auth_opts, &cli.format)
+                        .await
+                }
+            },
+            LookerCommand::Dashboards { command } => match command {
+                LookerDashboardsCommand::List { profile } => {
+                    commands::looker::dashboards::run_list(profile, &auth_opts, &cli.format).await
+                }
+                LookerDashboardsCommand::Get {
+                    profile,
+                    dashboard_id,
+                } => {
+                    commands::looker::dashboards::run_get(
+                        profile,
+                        dashboard_id,
+                        &auth_opts,
+                        &cli.format,
+                    )
+                    .await
+                }
+            },
+        };
+        if let Err(e) = result {
+            eprintln!("{}", json!({"error": e.to_string()}));
+            std::process::exit(1);
+        }
+        return;
+    }
+
     // ca ask --profile bypasses Config::from_cli() because the profile
     // supplies its own project/location — no --project-id required.
     if let Command::Ca {
@@ -415,7 +458,8 @@ async fn run_static(cli: Cli) {
         Command::Auth { .. }
         | Command::GenerateSkills { .. }
         | Command::Completions { .. }
-        | Command::Profiles { .. } => {
+        | Command::Profiles { .. }
+        | Command::Looker { .. } => {
             unreachable!()
         }
     };
