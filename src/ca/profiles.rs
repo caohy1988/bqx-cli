@@ -320,10 +320,27 @@ pub fn resolve_profile(profile_ref: &str) -> Result<CaProfile> {
         return load_profile(path);
     }
 
+    // Collect search directories for error reporting.
+    let mut searched_dirs: Vec<String> = Vec::new();
+
     // 1. User-local profiles directory.
     if let Some(config_dir) = user_profiles_dir() {
+        searched_dirs.push(config_dir.display().to_string());
         let profiles = load_profiles_from_dir(&config_dir)?;
-        if let Some(p) = profiles.into_iter().find(|p| p.name == profile_ref) {
+        let matches: Vec<CaProfile> = profiles
+            .into_iter()
+            .filter(|p| p.name == profile_ref)
+            .collect();
+        if matches.len() > 1 {
+            bail!(
+                "Ambiguous profile name '{}': found {} profiles with that name in {}. \
+                 Use --profile <path> to specify the exact file.",
+                profile_ref,
+                matches.len(),
+                config_dir.display()
+            );
+        }
+        if let Some(p) = matches.into_iter().next() {
             return Ok(p);
         }
     }
@@ -331,16 +348,37 @@ pub fn resolve_profile(profile_ref: &str) -> Result<CaProfile> {
     // 2. Repo-local fallback (deploy/ca/profiles/).
     let repo_dir = repo_profiles_dir();
     if repo_dir.exists() {
+        searched_dirs.push(repo_dir.display().to_string());
         let profiles = load_profiles_from_dir(&repo_dir)?;
-        if let Some(p) = profiles.into_iter().find(|p| p.name == profile_ref) {
+        let matches: Vec<CaProfile> = profiles
+            .into_iter()
+            .filter(|p| p.name == profile_ref)
+            .collect();
+        if matches.len() > 1 {
+            bail!(
+                "Ambiguous profile name '{}': found {} profiles with that name in {}. \
+                 Use --profile <path> to specify the exact file.",
+                profile_ref,
+                matches.len(),
+                repo_dir.display()
+            );
+        }
+        if let Some(p) = matches.into_iter().next() {
             return Ok(p);
         }
     }
 
+    let dirs_list = if searched_dirs.is_empty() {
+        "no profile directories found".to_string()
+    } else {
+        searched_dirs.join(" and ")
+    };
+
     bail!(
-        "Profile '{}' not found. Looked in ~/.config/dcx/profiles/ and deploy/ca/profiles/. \
+        "Profile '{}' not found. Looked in {}. \
          You can also pass a path: --profile path/to/profile.yaml",
-        profile_ref
+        profile_ref,
+        dirs_list
     )
 }
 
@@ -361,6 +399,14 @@ pub fn discover_all_profiles() -> Result<Vec<(CaProfile, String)>> {
                 if path.extension().is_some_and(|e| e == "yaml" || e == "yml") {
                     match load_profile(&path) {
                         Ok(p) => {
+                            if seen_names.contains(&p.name) {
+                                bail!(
+                                    "Duplicate profile name '{}' in {}. \
+                                     Each profile must have a unique name.",
+                                    p.name,
+                                    user_dir.display()
+                                );
+                            }
                             seen_names.insert(p.name.clone());
                             results.push((p, source.clone()));
                         }
@@ -381,12 +427,24 @@ pub fn discover_all_profiles() -> Result<Vec<(CaProfile, String)>> {
     let repo_dir = repo_profiles_dir();
     if repo_dir.exists() {
         let source = repo_dir.display().to_string();
+        let mut repo_seen = std::collections::HashSet::new();
         for entry in std::fs::read_dir(&repo_dir)? {
             let entry = entry?;
             let path = entry.path();
             if path.extension().is_some_and(|e| e == "yaml" || e == "yml") {
                 match load_profile(&path) {
                     Ok(p) => {
+                        // Reject duplicates within the repo-local directory.
+                        if repo_seen.contains(&p.name) {
+                            bail!(
+                                "Duplicate profile name '{}' in {}. \
+                                 Each profile must have a unique name.",
+                                p.name,
+                                repo_dir.display()
+                            );
+                        }
+                        repo_seen.insert(p.name.clone());
+                        // Skip names already provided by user-local (shadowing).
                         if !seen_names.contains(&p.name) {
                             seen_names.insert(p.name.clone());
                             results.push((p, source.clone()));
