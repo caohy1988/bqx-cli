@@ -78,6 +78,11 @@ pub enum Command {
         #[arg(value_enum)]
         shell: ShellType,
     },
+    /// Manage and inspect source profiles
+    Profiles {
+        #[command(subcommand)]
+        command: ProfilesCommand,
+    },
 }
 
 #[derive(Clone, ValueEnum)]
@@ -85,6 +90,24 @@ pub enum ShellType {
     Bash,
     Zsh,
     Fish,
+}
+
+#[derive(Subcommand)]
+pub enum ProfilesCommand {
+    /// List all discoverable profiles
+    List,
+    /// Show a profile's resolved configuration (secrets redacted)
+    Show {
+        /// Profile name or path to YAML file
+        #[arg(long)]
+        profile: String,
+    },
+    /// Validate a profile's structure
+    Validate {
+        /// Profile name or path to YAML file
+        #[arg(long)]
+        profile: String,
+    },
 }
 
 #[derive(Subcommand)]

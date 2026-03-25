@@ -1,11 +1,9 @@
-use std::path::Path;
-
 use anyhow::{bail, Result};
 
 use crate::auth::{self, AuthOptions};
 use crate::ca::client::{parse_table_refs, CaClient, CaExecutor};
 use crate::ca::models::{CaQuestionRequest, CaQuestionResponse};
-use crate::ca::profiles::{CaProfile, ProfileFamily, SourceType};
+use crate::ca::profiles::{self, CaProfile, ProfileFamily, SourceType};
 use crate::cli::OutputFormat;
 use crate::config::{self, Config};
 use crate::output;
@@ -51,52 +49,9 @@ pub fn validate_inputs(
     Ok(())
 }
 
-/// Resolve a --profile value to a CaProfile.
-///
-/// Resolution order:
-/// 1. If the value looks like a file path (contains '/' or ends in .yaml/.yml),
-///    load it from disk directly.
-/// 2. Look up by name in ~/.config/dcx/profiles/ (user-local).
-/// 3. Look up by name in deploy/ca/profiles/ (repo-local fallback).
+/// Resolve a --profile value to a CaProfile using the shared resolution logic.
 fn resolve_profile(profile_ref: &str) -> Result<CaProfile> {
-    let path = Path::new(profile_ref);
-    if path.extension().is_some_and(|e| e == "yaml" || e == "yml") || profile_ref.contains('/') {
-        return crate::ca::profiles::load_profile(path);
-    }
-
-    // 1. User-local profiles directory.
-    if let Some(config_dir) = dirs_for_profile_lookup() {
-        let profiles = crate::ca::profiles::load_profiles_from_dir(&config_dir)?;
-        if let Some(p) = profiles.into_iter().find(|p| p.name == profile_ref) {
-            return Ok(p);
-        }
-    }
-
-    // 2. Repo-local fallback (deploy/ca/profiles/).
-    let repo_dir = Path::new("deploy/ca/profiles");
-    if repo_dir.exists() {
-        let profiles = crate::ca::profiles::load_profiles_from_dir(repo_dir)?;
-        if let Some(p) = profiles.into_iter().find(|p| p.name == profile_ref) {
-            return Ok(p);
-        }
-    }
-
-    bail!(
-        "Profile '{}' not found. Looked in ~/.config/dcx/profiles/ and deploy/ca/profiles/. \
-         You can also pass a path: --profile path/to/profile.yaml",
-        profile_ref
-    )
-}
-
-/// Returns the user-local profiles directory (~/.config/dcx/profiles/) if it exists.
-fn dirs_for_profile_lookup() -> Option<std::path::PathBuf> {
-    let dir = directories::ProjectDirs::from("", "", "dcx")?;
-    let profiles_dir = dir.config_dir().join("profiles");
-    if profiles_dir.exists() {
-        Some(profiles_dir)
-    } else {
-        None
-    }
+    profiles::resolve_profile(profile_ref)
 }
 
 // ── Entry points ──

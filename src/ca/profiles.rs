@@ -281,6 +281,196 @@ pub fn load_profiles_from_dir(dir: &Path) -> Result<Vec<CaProfile>> {
     Ok(profiles)
 }
 
+/// Returns the user-local profiles directory if it exists.
+///
+/// Checks `$XDG_CONFIG_HOME/dcx/profiles/` first, then falls back to
+/// `~/.config/dcx/profiles/`.
+pub fn user_profiles_dir() -> Option<std::path::PathBuf> {
+    // Respect XDG_CONFIG_HOME if set
+    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
+        let dir = std::path::PathBuf::from(xdg).join("dcx/profiles");
+        if dir.exists() {
+            return Some(dir);
+        }
+    }
+    let dir = directories::ProjectDirs::from("", "", "dcx")?;
+    let profiles_dir = dir.config_dir().join("profiles");
+    if profiles_dir.exists() {
+        Some(profiles_dir)
+    } else {
+        None
+    }
+}
+
+/// Repo-local profiles directory (deploy/ca/profiles/).
+pub fn repo_profiles_dir() -> std::path::PathBuf {
+    std::path::PathBuf::from("deploy/ca/profiles")
+}
+
+/// Resolve a profile reference to a CaProfile.
+///
+/// Resolution order:
+/// 1. If the value looks like a file path (contains '/' or ends in .yaml/.yml),
+///    load it from disk directly.
+/// 2. Look up by name in the user-local profiles directory.
+/// 3. Look up by name in deploy/ca/profiles/ (repo-local fallback).
+pub fn resolve_profile(profile_ref: &str) -> Result<CaProfile> {
+    let path = Path::new(profile_ref);
+    if path.extension().is_some_and(|e| e == "yaml" || e == "yml") || profile_ref.contains('/') {
+        return load_profile(path);
+    }
+
+    // Collect search directories for error reporting.
+    let mut searched_dirs: Vec<String> = Vec::new();
+
+    // 1. User-local profiles directory.
+    if let Some(config_dir) = user_profiles_dir() {
+        searched_dirs.push(config_dir.display().to_string());
+        let profiles = load_profiles_from_dir(&config_dir)?;
+        let matches: Vec<CaProfile> = profiles
+            .into_iter()
+            .filter(|p| p.name == profile_ref)
+            .collect();
+        if matches.len() > 1 {
+            bail!(
+                "Ambiguous profile name '{}': found {} profiles with that name in {}. \
+                 Use --profile <path> to specify the exact file.",
+                profile_ref,
+                matches.len(),
+                config_dir.display()
+            );
+        }
+        if let Some(p) = matches.into_iter().next() {
+            return Ok(p);
+        }
+    }
+
+    // 2. Repo-local fallback (deploy/ca/profiles/).
+    let repo_dir = repo_profiles_dir();
+    if repo_dir.exists() {
+        searched_dirs.push(repo_dir.display().to_string());
+        let profiles = load_profiles_from_dir(&repo_dir)?;
+        let matches: Vec<CaProfile> = profiles
+            .into_iter()
+            .filter(|p| p.name == profile_ref)
+            .collect();
+        if matches.len() > 1 {
+            bail!(
+                "Ambiguous profile name '{}': found {} profiles with that name in {}. \
+                 Use --profile <path> to specify the exact file.",
+                profile_ref,
+                matches.len(),
+                repo_dir.display()
+            );
+        }
+        if let Some(p) = matches.into_iter().next() {
+            return Ok(p);
+        }
+    }
+
+    let dirs_list = if searched_dirs.is_empty() {
+        "no profile directories found".to_string()
+    } else {
+        searched_dirs.join(" and ")
+    };
+
+    bail!(
+        "Profile '{}' not found. Looked in {}. \
+         You can also pass a path: --profile path/to/profile.yaml",
+        profile_ref,
+        dirs_list
+    )
+}
+
+/// Collect all discoverable profiles from all search directories.
+///
+/// Returns profiles sorted by name with source path info.
+pub fn discover_all_profiles() -> Result<Vec<(CaProfile, String)>> {
+    let mut results: Vec<(CaProfile, String)> = Vec::new();
+    let mut seen_names = std::collections::HashSet::new();
+
+    // 1. User-local profiles (higher priority).
+    if let Some(user_dir) = user_profiles_dir() {
+        if user_dir.exists() {
+            let source = user_dir.display().to_string();
+            for entry in std::fs::read_dir(&user_dir)? {
+                let entry = entry?;
+                let path = entry.path();
+                if path.extension().is_some_and(|e| e == "yaml" || e == "yml") {
+                    match load_profile(&path) {
+                        Ok(p) => {
+                            if seen_names.contains(&p.name) {
+                                bail!(
+                                    "Duplicate profile name '{}' in {}. \
+                                     Each profile must have a unique name.",
+                                    p.name,
+                                    user_dir.display()
+                                );
+                            }
+                            seen_names.insert(p.name.clone());
+                            results.push((p, source.clone()));
+                        }
+                        Err(e) => {
+                            eprintln!("Warning: skipping {}: {}", path.display(), e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Repo-local fallback.
+    let repo_dir = repo_profiles_dir();
+    if repo_dir.exists() {
+        let source = repo_dir.display().to_string();
+        let mut repo_seen = std::collections::HashSet::new();
+        for entry in std::fs::read_dir(&repo_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.extension().is_some_and(|e| e == "yaml" || e == "yml") {
+                match load_profile(&path) {
+                    Ok(p) => {
+                        // Reject duplicates within the repo-local directory.
+                        if repo_seen.contains(&p.name) {
+                            bail!(
+                                "Duplicate profile name '{}' in {}. \
+                                 Each profile must have a unique name.",
+                                p.name,
+                                repo_dir.display()
+                            );
+                        }
+                        repo_seen.insert(p.name.clone());
+                        // Skip names already provided by user-local (shadowing).
+                        if !seen_names.contains(&p.name) {
+                            seen_names.insert(p.name.clone());
+                            results.push((p, source.clone()));
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Warning: skipping {}: {}", path.display(), e);
+                    }
+                }
+            }
+        }
+    }
+
+    results.sort_by(|a, b| a.0.name.cmp(&b.0.name));
+    Ok(results)
+}
+
+/// Produce a redacted copy of a profile for display purposes.
+/// Replaces secret fields with "***REDACTED***".
+pub fn redact_profile(profile: &CaProfile) -> CaProfile {
+    let mut p = profile.clone();
+    if p.looker_client_id.is_some() {
+        p.looker_client_id = Some("***REDACTED***".into());
+    }
+    if p.looker_client_secret.is_some() {
+        p.looker_client_secret = Some("***REDACTED***".into());
+    }
+    p
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

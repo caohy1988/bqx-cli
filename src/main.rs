@@ -5,8 +5,8 @@ use dcx::auth;
 use dcx::bigquery::discovery::{self, DiscoverySource};
 use dcx::bigquery::dynamic::{clap_tree, executor, model};
 use dcx::cli::{
-    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat, ShellType,
-    ViewsCommand,
+    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat,
+    ProfilesCommand, ShellType, ViewsCommand,
 };
 use dcx::commands;
 use dcx::config::Config;
@@ -20,6 +20,7 @@ const STATIC_COMMANDS: &[&str] = &[
     "auth",
     "generate-skills",
     "completions",
+    "profiles",
 ];
 
 #[tokio::main]
@@ -235,6 +236,24 @@ async fn run_static(cli: Cli) {
         return;
     }
 
+    // profiles commands don't need project/dataset config
+    if let Command::Profiles { ref command } = cli.command {
+        let result = match command {
+            ProfilesCommand::List => commands::profiles::list::run(&cli.format),
+            ProfilesCommand::Show { profile } => {
+                commands::profiles::show::run(profile, &cli.format)
+            }
+            ProfilesCommand::Validate { profile } => {
+                commands::profiles::validate::run(profile, &cli.format)
+            }
+        };
+        if let Err(e) = result {
+            eprintln!("{}", json!({"error": e.to_string()}));
+            std::process::exit(1);
+        }
+        return;
+    }
+
     // ca ask --profile bypasses Config::from_cli() because the profile
     // supplies its own project/location — no --project-id required.
     if let Command::Ca {
@@ -393,7 +412,10 @@ async fn run_static(cli: Cli) {
                 }
             },
         },
-        Command::Auth { .. } | Command::GenerateSkills { .. } | Command::Completions { .. } => {
+        Command::Auth { .. }
+        | Command::GenerateSkills { .. }
+        | Command::Completions { .. }
+        | Command::Profiles { .. } => {
             unreachable!()
         }
     };
