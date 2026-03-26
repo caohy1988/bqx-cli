@@ -83,6 +83,11 @@ pub enum Command {
         #[command(subcommand)]
         command: ProfilesCommand,
     },
+    /// Looker native commands (explores, dashboards)
+    Looker {
+        #[command(subcommand)]
+        command: LookerCommand,
+    },
 }
 
 #[derive(Clone, ValueEnum)]
@@ -107,6 +112,58 @@ pub enum ProfilesCommand {
         /// Profile name or path to YAML file
         #[arg(long)]
         profile: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum LookerCommand {
+    /// Looker explore operations
+    Explores {
+        #[command(subcommand)]
+        command: LookerExploresCommand,
+    },
+    /// Looker dashboard operations
+    Dashboards {
+        #[command(subcommand)]
+        command: LookerDashboardsCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum LookerExploresCommand {
+    /// List all explores from the Looker instance
+    List {
+        /// Looker profile name or path
+        #[arg(long)]
+        profile: String,
+    },
+    /// Get detailed metadata for a single explore
+    Get {
+        /// Looker profile name or path
+        #[arg(long)]
+        profile: String,
+        /// Explore reference (model/explore, e.g. sales_model/orders)
+        #[arg(long)]
+        explore: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum LookerDashboardsCommand {
+    /// List all dashboards from the Looker instance
+    List {
+        /// Looker profile name or path
+        #[arg(long)]
+        profile: String,
+    },
+    /// Get detailed metadata for a single dashboard
+    Get {
+        /// Looker profile name or path
+        #[arg(long)]
+        profile: String,
+        /// Dashboard ID
+        #[arg(long)]
+        dashboard_id: String,
     },
 }
 
