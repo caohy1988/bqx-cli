@@ -87,6 +87,48 @@ fn alloydb_instances_list_requires_project_id() {
     );
 }
 
+// ── identifier validation ──
+
+#[test]
+fn alloydb_rejects_invalid_project_id() {
+    let output = run_dcx(&[
+        "alloydb",
+        "clusters",
+        "list",
+        "--project-id",
+        "bad proj",
+        "--token",
+        "test-token",
+    ]);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Invalid project-id"),
+        "Should reject invalid project-id locally, got: {stderr}"
+    );
+}
+
+#[test]
+fn alloydb_rejects_invalid_cluster_id() {
+    let output = run_dcx(&[
+        "alloydb",
+        "instances",
+        "list",
+        "--project-id",
+        "good-proj",
+        "--cluster",
+        "my/cluster",
+        "--token",
+        "test-token",
+    ]);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Invalid cluster"),
+        "Should reject invalid cluster locally, got: {stderr}"
+    );
+}
+
 // ── instances list requires --cluster ──
 
 #[test]

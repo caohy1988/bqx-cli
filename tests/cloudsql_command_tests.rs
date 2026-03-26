@@ -99,6 +99,48 @@ fn cloudsql_databases_list_requires_project_id() {
     );
 }
 
+// ── identifier validation ──
+
+#[test]
+fn cloudsql_rejects_invalid_project_id() {
+    let output = run_dcx(&[
+        "cloudsql",
+        "instances",
+        "list",
+        "--project-id",
+        "bad proj",
+        "--token",
+        "test-token",
+    ]);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Invalid project-id"),
+        "Should reject invalid project-id locally, got: {stderr}"
+    );
+}
+
+#[test]
+fn cloudsql_rejects_invalid_instance_id() {
+    let output = run_dcx(&[
+        "cloudsql",
+        "instances",
+        "get",
+        "--project-id",
+        "good-proj",
+        "--instance",
+        "my/inst",
+        "--token",
+        "test-token",
+    ]);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Invalid instance"),
+        "Should reject invalid instance locally, got: {stderr}"
+    );
+}
+
 // ── instances get requires --instance ──
 
 #[test]

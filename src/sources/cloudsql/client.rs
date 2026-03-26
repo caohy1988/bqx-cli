@@ -13,6 +13,7 @@ pub trait CloudSqlClient: Send + Sync {
 pub struct HttpCloudSqlClient {
     http: reqwest::Client,
     token: String,
+    base_url: String,
 }
 
 impl HttpCloudSqlClient {
@@ -20,18 +21,24 @@ impl HttpCloudSqlClient {
         Self {
             http: reqwest::Client::new(),
             token,
+            base_url: "https://sqladmin.googleapis.com/v1".to_string(),
         }
     }
 
-    fn base() -> &'static str {
-        "https://sqladmin.googleapis.com/v1"
+    #[cfg(test)]
+    fn with_base_url(token: String, base_url: String) -> Self {
+        Self {
+            http: reqwest::Client::new(),
+            token,
+            base_url,
+        }
     }
 }
 
 #[async_trait]
 impl CloudSqlClient for HttpCloudSqlClient {
     async fn list_instances(&self, project: &str) -> Result<Vec<CloudSqlInstance>> {
-        let url = format!("{}/projects/{project}/instances", Self::base());
+        let url = format!("{}/projects/{project}/instances", self.base_url);
         let mut all = Vec::new();
         let mut page_token: Option<String> = None;
 
@@ -62,7 +69,7 @@ impl CloudSqlClient for HttpCloudSqlClient {
     }
 
     async fn get_instance(&self, project: &str, instance: &str) -> Result<CloudSqlInstance> {
-        let url = format!("{}/projects/{project}/instances/{instance}", Self::base());
+        let url = format!("{}/projects/{project}/instances/{instance}", self.base_url);
 
         let resp = self.http.get(&url).bearer_auth(&self.token).send().await?;
         if !resp.status().is_success() {
@@ -78,7 +85,7 @@ impl CloudSqlClient for HttpCloudSqlClient {
     async fn list_databases(&self, project: &str, instance: &str) -> Result<Vec<CloudSqlDatabase>> {
         let url = format!(
             "{}/projects/{project}/instances/{instance}/databases",
-            Self::base()
+            self.base_url
         );
 
         let resp = self.http.get(&url).bearer_auth(&self.token).send().await?;
@@ -96,7 +103,7 @@ impl CloudSqlClient for HttpCloudSqlClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]
@@ -104,7 +111,7 @@ mod tests {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/projects/proj/instances"))
+            .and(path("/projects/proj/instances"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "kind": "sql#instancesList",
                 "items": [
@@ -122,17 +129,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let url = format!("{}/v1/projects/proj/instances", server.uri());
-        let client = HttpCloudSqlClient::new("test-token".into());
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .send()
-            .await
-            .unwrap();
-        let body: InstancesListResponse = resp.json().await.unwrap();
-        let items = body.items.unwrap();
+        let client = HttpCloudSqlClient::with_base_url("test-token".into(), server.uri());
+        let items = client.list_instances("proj").await.unwrap();
 
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].name.as_deref(), Some("prod-db"));
@@ -145,11 +143,42 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn list_instances_paginates() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/projects/proj/instances"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "items": [{"name": "inst-1", "state": "RUNNABLE"}],
+                "nextPageToken": "tok2"
+            })))
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/projects/proj/instances"))
+            .and(query_param("pageToken", "tok2"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "items": [{"name": "inst-2", "state": "RUNNABLE"}]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = HttpCloudSqlClient::with_base_url("test-token".into(), server.uri());
+        let items = client.list_instances("proj").await.unwrap();
+
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].name.as_deref(), Some("inst-1"));
+        assert_eq!(items[1].name.as_deref(), Some("inst-2"));
+    }
+
+    #[tokio::test]
     async fn get_instance_parses_response() {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/projects/proj/instances/prod-db"))
+            .and(path("/projects/proj/instances/prod-db"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "name": "prod-db",
                 "databaseVersion": "POSTGRES_15",
@@ -162,16 +191,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let url = format!("{}/v1/projects/proj/instances/prod-db", server.uri());
-        let client = HttpCloudSqlClient::new("test-token".into());
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .send()
-            .await
-            .unwrap();
-        let inst: CloudSqlInstance = resp.json().await.unwrap();
+        let client = HttpCloudSqlClient::with_base_url("test-token".into(), server.uri());
+        let inst = client.get_instance("proj", "prod-db").await.unwrap();
 
         assert_eq!(inst.name.as_deref(), Some("prod-db"));
         assert_eq!(
@@ -188,7 +209,7 @@ mod tests {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/projects/proj/instances/prod-db/databases"))
+            .and(path("/projects/proj/instances/prod-db/databases"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "kind": "sql#databasesList",
                 "items": [
@@ -199,20 +220,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let url = format!(
-            "{}/v1/projects/proj/instances/prod-db/databases",
-            server.uri()
-        );
-        let client = HttpCloudSqlClient::new("test-token".into());
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .send()
-            .await
-            .unwrap();
-        let body: DatabasesListResponse = resp.json().await.unwrap();
-        let dbs = body.items.unwrap();
+        let client = HttpCloudSqlClient::with_base_url("test-token".into(), server.uri());
+        let dbs = client.list_databases("proj", "prod-db").await.unwrap();
 
         assert_eq!(dbs.len(), 2);
         assert_eq!(dbs[0].name.as_deref(), Some("mydb"));
@@ -225,20 +234,16 @@ mod tests {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/projects/proj/instances/missing"))
+            .and(path("/projects/proj/instances/missing"))
             .respond_with(ResponseTemplate::new(404).set_body_string("Not Found"))
             .mount(&server)
             .await;
 
-        let url = format!("{}/v1/projects/proj/instances/missing", server.uri());
-        let client = HttpCloudSqlClient::new("test-token".into());
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .send()
-            .await
-            .unwrap();
-        assert_eq!(resp.status().as_u16(), 404);
+        let client = HttpCloudSqlClient::with_base_url("test-token".into(), server.uri());
+        let result = client.get_instance("proj", "missing").await;
+
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("404"), "Should contain status code: {msg}");
     }
 }

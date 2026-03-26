@@ -3,6 +3,7 @@ use anyhow::Result;
 use crate::auth::{self, AuthOptions};
 use crate::cli::OutputFormat;
 use crate::commands::common::{maybe_sanitize_and_render, resource_id};
+use crate::config::validate_identifier;
 use crate::sources::alloydb::client::{AlloyDbClient, HttpAlloyDbClient};
 use crate::sources::alloydb::models::AlloyDbClustersCliResponse;
 
@@ -13,10 +14,14 @@ pub async fn run_list(
     format: &OutputFormat,
     sanitize_template: Option<&str>,
 ) -> Result<()> {
+    validate_identifier(project, "project-id")?;
     // AlloyDB uses region-granularity locations. The global --location default
     // "US" is a BigQuery convention; for AlloyDB inventory, override to "-"
     // (all locations) when the user hasn't set an explicit region.
     let effective_location = if location == "US" { "-" } else { location };
+    if effective_location != "-" {
+        validate_identifier(effective_location, "location")?;
+    }
 
     let resolved = auth::resolve(auth_opts).await?;
     let token = resolved.token().await?;

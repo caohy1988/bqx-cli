@@ -12,6 +12,7 @@ pub trait SpannerClient: Send + Sync {
 pub struct HttpSpannerClient {
     http: reqwest::Client,
     token: String,
+    base_url: String,
 }
 
 impl HttpSpannerClient {
@@ -19,18 +20,24 @@ impl HttpSpannerClient {
         Self {
             http: reqwest::Client::new(),
             token,
+            base_url: "https://spanner.googleapis.com/v1".to_string(),
         }
     }
 
-    fn base() -> &'static str {
-        "https://spanner.googleapis.com/v1"
+    #[cfg(test)]
+    fn with_base_url(token: String, base_url: String) -> Self {
+        Self {
+            http: reqwest::Client::new(),
+            token,
+            base_url,
+        }
     }
 }
 
 #[async_trait]
 impl SpannerClient for HttpSpannerClient {
     async fn list_instances(&self, project: &str) -> Result<Vec<SpannerInstance>> {
-        let url = format!("{}/projects/{project}/instances", Self::base());
+        let url = format!("{}/projects/{project}/instances", self.base_url);
         let mut all = Vec::new();
         let mut page_token: Option<String> = None;
 
@@ -64,7 +71,7 @@ impl SpannerClient for HttpSpannerClient {
     async fn list_databases(&self, project: &str, instance: &str) -> Result<Vec<SpannerDatabase>> {
         let url = format!(
             "{}/projects/{project}/instances/{instance}/databases",
-            Self::base()
+            self.base_url
         );
         let mut all = Vec::new();
         let mut page_token: Option<String> = None;
@@ -100,43 +107,15 @@ impl SpannerClient for HttpSpannerClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
-
-    fn make_client(_base_url: &str, token: &str) -> HttpSpannerClient {
-        HttpSpannerClient {
-            http: reqwest::Client::new(),
-            token: token.into(),
-        }
-    }
-
-    // Override base URL for testing by calling the API directly via wiremock URL
-    async fn list_instances_via(
-        server: &MockServer,
-        project: &str,
-    ) -> Result<Vec<SpannerInstance>> {
-        let client = make_client(&server.uri(), "test-token");
-        let url = format!("{}/v1/projects/{project}/instances", server.uri());
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .query(&[("pageSize", "100")])
-            .send()
-            .await?;
-        if !resp.status().is_success() {
-            bail!("error");
-        }
-        let body: InstancesListResponse = resp.json().await?;
-        Ok(body.instances.unwrap_or_default())
-    }
 
     #[tokio::test]
     async fn list_instances_parses_response() {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/projects/test-proj/instances"))
+            .and(path("/projects/test-proj/instances"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "instances": [
                     {
@@ -157,7 +136,9 @@ mod tests {
             .mount(&server)
             .await;
 
-        let instances = list_instances_via(&server, "test-proj").await.unwrap();
+        let client = HttpSpannerClient::with_base_url("test-token".into(), server.uri());
+        let instances = client.list_instances("test-proj").await.unwrap();
+
         assert_eq!(instances.len(), 2);
         assert_eq!(instances[0].name, "projects/test-proj/instances/prod");
         assert_eq!(instances[0].display_name.as_deref(), Some("Production"));
@@ -167,11 +148,45 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn list_instances_paginates() {
+        let server = MockServer::start().await;
+
+        // Page 1: return one instance + nextPageToken
+        Mock::given(method("GET"))
+            .and(path("/projects/proj/instances"))
+            .and(query_param("pageSize", "100"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "instances": [{"name": "projects/proj/instances/first", "state": "READY"}],
+                "nextPageToken": "tok2"
+            })))
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+
+        // Page 2: return second instance, no nextPageToken
+        Mock::given(method("GET"))
+            .and(path("/projects/proj/instances"))
+            .and(query_param("pageToken", "tok2"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "instances": [{"name": "projects/proj/instances/second", "state": "READY"}]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = HttpSpannerClient::with_base_url("test-token".into(), server.uri());
+        let instances = client.list_instances("proj").await.unwrap();
+
+        assert_eq!(instances.len(), 2);
+        assert_eq!(instances[0].name, "projects/proj/instances/first");
+        assert_eq!(instances[1].name, "projects/proj/instances/second");
+    }
+
+    #[tokio::test]
     async fn list_databases_parses_response() {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/projects/test-proj/instances/prod/databases"))
+            .and(path("/projects/test-proj/instances/prod/databases"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "databases": [
                     {
@@ -189,21 +204,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let url = format!(
-            "{}/v1/projects/test-proj/instances/prod/databases",
-            server.uri()
-        );
-        let client = make_client(&server.uri(), "test-token");
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .query(&[("pageSize", "100")])
-            .send()
-            .await
-            .unwrap();
-        let body: DatabasesListResponse = resp.json().await.unwrap();
-        let databases = body.databases.unwrap();
+        let client = HttpSpannerClient::with_base_url("test-token".into(), server.uri());
+        let databases = client.list_databases("test-proj", "prod").await.unwrap();
 
         assert_eq!(databases.len(), 2);
         assert_eq!(
@@ -222,20 +224,16 @@ mod tests {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/projects/bad/instances"))
+            .and(path("/projects/bad/instances"))
             .respond_with(ResponseTemplate::new(403).set_body_string("Forbidden"))
             .mount(&server)
             .await;
 
-        let url = format!("{}/v1/projects/bad/instances", server.uri());
-        let client = make_client(&server.uri(), "bad-token");
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .send()
-            .await
-            .unwrap();
-        assert_eq!(resp.status().as_u16(), 403);
+        let client = HttpSpannerClient::with_base_url("bad-token".into(), server.uri());
+        let result = client.list_instances("bad").await;
+
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("403"), "Should contain status code: {msg}");
     }
 }

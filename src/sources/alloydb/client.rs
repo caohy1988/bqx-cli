@@ -17,6 +17,7 @@ pub trait AlloyDbClient: Send + Sync {
 pub struct HttpAlloyDbClient {
     http: reqwest::Client,
     token: String,
+    base_url: String,
 }
 
 impl HttpAlloyDbClient {
@@ -24,11 +25,17 @@ impl HttpAlloyDbClient {
         Self {
             http: reqwest::Client::new(),
             token,
+            base_url: "https://alloydb.googleapis.com/v1".to_string(),
         }
     }
 
-    fn base() -> &'static str {
-        "https://alloydb.googleapis.com/v1"
+    #[cfg(test)]
+    fn with_base_url(token: String, base_url: String) -> Self {
+        Self {
+            http: reqwest::Client::new(),
+            token,
+            base_url,
+        }
     }
 }
 
@@ -37,7 +44,7 @@ impl AlloyDbClient for HttpAlloyDbClient {
     async fn list_clusters(&self, project: &str, location: &str) -> Result<Vec<AlloyDbCluster>> {
         let url = format!(
             "{}/projects/{project}/locations/{location}/clusters",
-            Self::base()
+            self.base_url
         );
         let mut all = Vec::new();
         let mut page_token: Option<String> = None;
@@ -77,7 +84,7 @@ impl AlloyDbClient for HttpAlloyDbClient {
     ) -> Result<Vec<AlloyDbInstance>> {
         let url = format!(
             "{}/projects/{project}/locations/{location}/clusters/{cluster}/instances",
-            Self::base()
+            self.base_url
         );
         let mut all = Vec::new();
         let mut page_token: Option<String> = None;
@@ -113,7 +120,7 @@ impl AlloyDbClient for HttpAlloyDbClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]
@@ -121,7 +128,7 @@ mod tests {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/projects/proj/locations/-/clusters"))
+            .and(path("/projects/proj/locations/-/clusters"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "clusters": [
                     {
@@ -136,18 +143,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let url = format!("{}/v1/projects/proj/locations/-/clusters", server.uri());
-        let client = HttpAlloyDbClient::new("test-token".into());
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .query(&[("pageSize", "100")])
-            .send()
-            .await
-            .unwrap();
-        let body: ClustersListResponse = resp.json().await.unwrap();
-        let clusters = body.clusters.unwrap();
+        let client = HttpAlloyDbClient::with_base_url("test-token".into(), server.uri());
+        let clusters = client.list_clusters("proj", "-").await.unwrap();
 
         assert_eq!(clusters.len(), 1);
         assert_eq!(clusters[0].display_name.as_deref(), Some("Production"));
@@ -156,12 +153,44 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn list_clusters_paginates() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/projects/proj/locations/-/clusters"))
+            .and(query_param("pageSize", "100"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "clusters": [{"name": "projects/proj/locations/us-central1/clusters/c1", "state": "READY"}],
+                "nextPageToken": "page2"
+            })))
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/projects/proj/locations/-/clusters"))
+            .and(query_param("pageToken", "page2"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "clusters": [{"name": "projects/proj/locations/us-central1/clusters/c2", "state": "READY"}]
+            })))
+            .mount(&server)
+            .await;
+
+        let client = HttpAlloyDbClient::with_base_url("test-token".into(), server.uri());
+        let clusters = client.list_clusters("proj", "-").await.unwrap();
+
+        assert_eq!(clusters.len(), 2);
+        assert!(clusters[0].name.ends_with("/c1"));
+        assert!(clusters[1].name.ends_with("/c2"));
+    }
+
+    #[tokio::test]
     async fn list_instances_parses_response() {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
             .and(path(
-                "/v1/projects/proj/locations/us-central1/clusters/prod/instances",
+                "/projects/proj/locations/us-central1/clusters/prod/instances",
             ))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "instances": [
@@ -178,21 +207,11 @@ mod tests {
             .mount(&server)
             .await;
 
-        let url = format!(
-            "{}/v1/projects/proj/locations/us-central1/clusters/prod/instances",
-            server.uri()
-        );
-        let client = HttpAlloyDbClient::new("test-token".into());
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .query(&[("pageSize", "100")])
-            .send()
+        let client = HttpAlloyDbClient::with_base_url("test-token".into(), server.uri());
+        let instances = client
+            .list_instances("proj", "us-central1", "prod")
             .await
             .unwrap();
-        let body: InstancesListResponse = resp.json().await.unwrap();
-        let instances = body.instances.unwrap();
 
         assert_eq!(instances.len(), 1);
         assert_eq!(instances[0].instance_type.as_deref(), Some("PRIMARY"));
@@ -208,20 +227,16 @@ mod tests {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/projects/bad/locations/-/clusters"))
+            .and(path("/projects/bad/locations/-/clusters"))
             .respond_with(ResponseTemplate::new(403).set_body_string("Forbidden"))
             .mount(&server)
             .await;
 
-        let url = format!("{}/v1/projects/bad/locations/-/clusters", server.uri());
-        let client = HttpAlloyDbClient::new("bad-token".into());
-        let resp = client
-            .http
-            .get(&url)
-            .bearer_auth(&client.token)
-            .send()
-            .await
-            .unwrap();
-        assert_eq!(resp.status().as_u16(), 403);
+        let client = HttpAlloyDbClient::with_base_url("bad-token".into(), server.uri());
+        let result = client.list_clusters("bad", "-").await;
+
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("403"), "Should contain status code: {msg}");
     }
 }

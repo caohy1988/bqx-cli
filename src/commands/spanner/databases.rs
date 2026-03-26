@@ -3,6 +3,7 @@ use anyhow::Result;
 use crate::auth::{self, AuthOptions};
 use crate::cli::OutputFormat;
 use crate::commands::common::{maybe_sanitize_and_render, resource_id};
+use crate::config::validate_identifier;
 use crate::sources::spanner::client::{HttpSpannerClient, SpannerClient};
 use crate::sources::spanner::models::SpannerDatabasesCliResponse;
 
@@ -13,6 +14,8 @@ pub async fn run_list(
     format: &OutputFormat,
     sanitize_template: Option<&str>,
 ) -> Result<()> {
+    validate_identifier(project, "project-id")?;
+    validate_identifier(instance, "instance")?;
     let resolved = auth::resolve(auth_opts).await?;
     let token = resolved.token().await?;
     let client = HttpSpannerClient::new(token);
