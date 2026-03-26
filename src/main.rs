@@ -5,8 +5,10 @@ use dcx::auth;
 use dcx::bigquery::discovery::{self, DiscoverySource};
 use dcx::bigquery::dynamic::{clap_tree, executor, model};
 use dcx::cli::{
-    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, LookerCommand,
-    LookerDashboardsCommand, LookerExploresCommand, OutputFormat, ProfilesCommand, ShellType,
+    AlloyDbClustersCommand, AlloyDbCommand, AlloyDbInstancesCommand, AnalyticsCommand, AuthCommand,
+    CaCommand, Cli, CloudSqlCommand, CloudSqlDatabasesCommand, CloudSqlInstancesCommand, Command,
+    JobsCommand, LookerCommand, LookerDashboardsCommand, LookerExploresCommand, OutputFormat,
+    ProfilesCommand, ShellType, SpannerCommand, SpannerDatabasesCommand, SpannerInstancesCommand,
     ViewsCommand,
 };
 use dcx::commands;
@@ -23,6 +25,9 @@ const STATIC_COMMANDS: &[&str] = &[
     "completions",
     "profiles",
     "looker",
+    "spanner",
+    "alloydb",
+    "cloudsql",
 ];
 
 #[tokio::main]
@@ -312,6 +317,164 @@ async fn run_static(cli: Cli) {
         return;
     }
 
+    // Spanner, AlloyDB, Cloud SQL commands require --project-id but not dataset/table config.
+    if let Command::Spanner { ref command } = cli.command {
+        let project = match cli.project_id.as_deref() {
+            Some(p) => p,
+            None => {
+                eprintln!(
+                    "{}",
+                    json!({"error": "--project-id or DCX_PROJECT is required"})
+                );
+                std::process::exit(1);
+            }
+        };
+        let auth_opts = auth::AuthOptions {
+            token: cli.token.clone(),
+            credentials_file: cli.credentials_file.clone(),
+        };
+        let sanitize = cli.sanitize.as_deref();
+        let result = match command {
+            SpannerCommand::Instances { command } => match command {
+                SpannerInstancesCommand::List => {
+                    commands::spanner::instances::run_list(
+                        project,
+                        &auth_opts,
+                        &cli.format,
+                        sanitize,
+                    )
+                    .await
+                }
+            },
+            SpannerCommand::Databases { command } => match command {
+                SpannerDatabasesCommand::List { instance } => {
+                    commands::spanner::databases::run_list(
+                        project,
+                        instance,
+                        &auth_opts,
+                        &cli.format,
+                        sanitize,
+                    )
+                    .await
+                }
+            },
+        };
+        if let Err(e) = result {
+            eprintln!("{}", json!({"error": e.to_string()}));
+            std::process::exit(1);
+        }
+        return;
+    }
+
+    if let Command::Alloydb { ref command } = cli.command {
+        let project = match cli.project_id.as_deref() {
+            Some(p) => p,
+            None => {
+                eprintln!(
+                    "{}",
+                    json!({"error": "--project-id or DCX_PROJECT is required"})
+                );
+                std::process::exit(1);
+            }
+        };
+        let auth_opts = auth::AuthOptions {
+            token: cli.token.clone(),
+            credentials_file: cli.credentials_file.clone(),
+        };
+        let sanitize = cli.sanitize.as_deref();
+        let location = cli.location.as_str();
+        let result = match command {
+            AlloyDbCommand::Clusters { command } => match command {
+                AlloyDbClustersCommand::List => {
+                    commands::alloydb::clusters::run_list(
+                        project,
+                        location,
+                        &auth_opts,
+                        &cli.format,
+                        sanitize,
+                    )
+                    .await
+                }
+            },
+            AlloyDbCommand::Instances { command } => match command {
+                AlloyDbInstancesCommand::List { cluster } => {
+                    commands::alloydb::instances::run_list(
+                        project,
+                        location,
+                        cluster,
+                        &auth_opts,
+                        &cli.format,
+                        sanitize,
+                    )
+                    .await
+                }
+            },
+        };
+        if let Err(e) = result {
+            eprintln!("{}", json!({"error": e.to_string()}));
+            std::process::exit(1);
+        }
+        return;
+    }
+
+    if let Command::Cloudsql { ref command } = cli.command {
+        let project = match cli.project_id.as_deref() {
+            Some(p) => p,
+            None => {
+                eprintln!(
+                    "{}",
+                    json!({"error": "--project-id or DCX_PROJECT is required"})
+                );
+                std::process::exit(1);
+            }
+        };
+        let auth_opts = auth::AuthOptions {
+            token: cli.token.clone(),
+            credentials_file: cli.credentials_file.clone(),
+        };
+        let sanitize = cli.sanitize.as_deref();
+        let result = match command {
+            CloudSqlCommand::Instances { command } => match command {
+                CloudSqlInstancesCommand::List => {
+                    commands::cloudsql::instances::run_list(
+                        project,
+                        &auth_opts,
+                        &cli.format,
+                        sanitize,
+                    )
+                    .await
+                }
+                CloudSqlInstancesCommand::Get { instance } => {
+                    commands::cloudsql::instances::run_get(
+                        project,
+                        instance,
+                        &auth_opts,
+                        &cli.format,
+                        sanitize,
+                    )
+                    .await
+                }
+            },
+            CloudSqlCommand::Databases { command } => match command {
+                CloudSqlDatabasesCommand::List { instance } => {
+                    commands::cloudsql::databases::run_list(
+                        project,
+                        instance,
+                        &auth_opts,
+                        &cli.format,
+                        sanitize,
+                    )
+                    .await
+                }
+            },
+        };
+        if let Err(e) = result {
+            eprintln!("{}", json!({"error": e.to_string()}));
+            std::process::exit(1);
+        }
+        return;
+    }
+
     // ca ask --profile bypasses Config::from_cli() because the profile
     // supplies its own project/location — no --project-id required.
     if let Command::Ca {
@@ -474,7 +637,10 @@ async fn run_static(cli: Cli) {
         | Command::GenerateSkills { .. }
         | Command::Completions { .. }
         | Command::Profiles { .. }
-        | Command::Looker { .. } => {
+        | Command::Looker { .. }
+        | Command::Spanner { .. }
+        | Command::Alloydb { .. }
+        | Command::Cloudsql { .. } => {
             unreachable!()
         }
     };
