@@ -99,97 +99,75 @@ Recommended implementation rule:
 
 ## Architecture Direction
 
-Keep the current split:
+**Updated (M3):** The original plan called for hand-written static commands
+for Spanner, AlloyDB, and Cloud SQL. During M3 implementation, we discovered
+that Google publishes Discovery documents for all three services
+(`spanner/v1`, `alloydb/v1`, `sqladmin/v1`), making it possible to reuse the
+same dynamic generation pipeline as BigQuery. This replaced ~1,300 lines of
+hand-coded command/source modules with a single `ServiceConfig` abstraction.
 
-- BigQuery dynamic resource commands stay in the Phase 2 system
-- CA stays source-aware and profile-based from Phase 4
-- new non-BigQuery product commands are hand-written static commands, at least
-  for the first phase
+The current split:
 
-That is the right tradeoff for now:
+- **BigQuery, Spanner, AlloyDB, Cloud SQL**: Discovery-driven dynamic
+  commands via `src/bigquery/dynamic/service.rs`. Each service has a
+  `ServiceConfig` holding its namespace, allowlist, global param mapping,
+  bundled JSON, and flatPath preference. BigQuery is top-level; others are
+  namespaced (`dcx spanner ...`, `dcx alloydb ...`, `dcx cloudsql ...`).
+- **Looker**: Hand-written static commands (the Looker API is not a Google
+  Discovery document)
+- **CA**: Stays source-aware and profile-based from Phase 4
+- **Analytics, Jobs, Profiles**: Hand-written static commands
 
-- it preserves the already-working BigQuery discovery path
-- it avoids pretending the non-BigQuery APIs all share one clean discovery
-  model
-- it lets `dcx` expose workflow-oriented commands instead of thin API mirrors
+Key architectural decisions from M3:
 
-Coexistence note:
+- **flatPath vs path**: Spanner and AlloyDB use composite `parent` params in
+  `path` (e.g., `v1/{+parent}/instances`); their `flatPath` decomposes them
+  into individual params (e.g., `v1/projects/{projectsId}/instances`). The
+  `use_flat_path` toggle in `ServiceConfig` controls this. BigQuery and
+  Cloud SQL use standard `path`.
+- **Recursive resource walking**: BigQuery resources are flat (one level),
+  but Spanner/AlloyDB have deeply nested resources. `extract_methods` uses
+  recursive traversal.
+- **Global param normalization**: `projectsId` → `project_id` (strips
+  plural `s` before `Id`). AlloyDB's `locationsId` maps to the global
+  `--location` flag with "US" → "-" normalization.
+- **Identifier validation**: All path parameters are validated via
+  `validate_identifier()` before any network call.
 
-- the current repo already uses `src/commands/` for `analytics` and `ca`
-- Phase 5 should extend that existing pattern rather than reorganizing the
-  shipped command tree
-- `src/sources/` is additive support code for non-BigQuery source adapters and
-  shared profile logic
-- existing modules such as `src/ca/`, `src/commands/analytics/`, and
-  `src/commands/ca/` should remain in place unless a later refactor proves they
-  are the right extraction target
-
-Target modules:
+Target modules (updated):
 
 ```text
 src/
+├── bigquery/dynamic/
+│   ├── service.rs          # ServiceConfig for all 4 Discovery services
+│   ├── model.rs            # Method extraction, flatPath parsing, kebab-case
+│   ├── clap_tree.rs        # Dynamic clap::Command tree builder
+│   ├── request_builder.rs  # URL template substitution
+│   └── executor.rs         # Shared HTTP executor + response rendering
 ├── sources/
 │   ├── mod.rs
-│   ├── common.rs
-│   ├── profiles.rs
-│   ├── looker/
-│   │   ├── mod.rs
-│   │   ├── client.rs
-│   │   └── models.rs
-│   ├── spanner/
-│   │   ├── mod.rs
-│   │   ├── client.rs
-│   │   └── models.rs
-│   ├── alloydb/
-│   │   ├── mod.rs
-│   │   ├── client.rs
-│   │   └── models.rs
-│   └── cloudsql/
+│   └── looker/             # Hand-written Looker API client
 │       ├── mod.rs
 │       ├── client.rs
 │       └── models.rs
 ├── commands/
-│   ├── profiles/
-│   │   ├── mod.rs
-│   │   ├── list.rs
-│   │   ├── show.rs
-│   │   └── validate.rs
-│   ├── looker/
-│   │   ├── mod.rs
-│   │   ├── explores.rs
-│   │   └── dashboards.rs
-│   ├── spanner/
-│   │   ├── mod.rs
-│   │   ├── instances.rs
-│   │   ├── databases.rs
-│   │   └── schema.rs
-│   ├── alloydb/
-│   │   ├── mod.rs
-│   │   ├── clusters.rs
-│   │   ├── instances.rs
-│   │   └── databases.rs
-│   └── cloudsql/
-│       ├── mod.rs
-│       ├── instances.rs
-│       ├── databases.rs
-│       └── schema.rs
+│   ├── profiles/           # dcx profiles list|show|validate
+│   ├── looker/             # dcx looker explores|dashboards
+│   └── ...                 # analytics, ca, jobs, etc. (unchanged)
 ├── cli.rs
 ├── output.rs
 └── main.rs
-tests/
-├── source_command_tests.rs
-├── profile_command_tests.rs
-└── snapshots/
+assets/
+├── bigquery_v2_discovery.json
+├── spanner_v1_discovery.json
+├── alloydb_v1_discovery.json
+└── sqladmin_v1_discovery.json
 ```
 
-Directory note:
-
-- [src/ca/profiles.rs](src/ca/profiles.rs) is the current source-profile
-  implementation for CA
-- Phase 5 can either extract the shared profile logic into `src/sources/` or
-  keep the implementation in `src/ca/` and build profile commands on top of it
-- the important part is a single source of truth for profile loading and
-  validation
+Note: The `src/commands/spanner/`, `src/commands/alloydb/`,
+`src/commands/cloudsql/`, `src/sources/spanner/`, `src/sources/alloydb/`,
+and `src/sources/cloudsql/` directories were deleted when the static
+implementations were replaced by the Discovery-driven dynamic path.
 
 ## Proposed Command Surface
 
@@ -429,77 +407,53 @@ These should not repeat product docs. They should encode:
 
 ## Milestones
 
-### Milestone 1: Profile Utilities and Source Adapter Foundation
+### Milestone 1: Profile Utilities and Source Adapter Foundation — Complete
 
 Deliverables:
 
-- top-level `dcx profiles` command domain
-- shared profile loader/resolver abstraction
-- common source adapter traits and result models
-- tests for profile listing, rendering, redaction, and validation
+- [x] top-level `dcx profiles` command domain
+- [x] shared profile loader/resolver abstraction
+- [x] common source adapter traits and result models
+- [x] tests for profile listing, rendering, redaction, and validation
 
-Detailed tasks:
+Implemented in PR #38.
 
-- add `Profiles` command family in
-  [src/cli.rs](src/cli.rs)
-- implement `profiles list|show|validate`
-- centralize profile discovery paths:
-  - explicit file path passed to `--profile`
-  - user-local config under `$XDG_CONFIG_HOME/dcx/profiles/` or
-    `~/.config/dcx/profiles/`
-  - repo fixtures under `deploy/ca/profiles/` as the fallback
-- add redaction rules for secret fields in profile display
-- add snapshot coverage for profile output across source types
-
-Done when:
-
-- a user can list and inspect all configured source profiles without touching
-  `ca ask`
-
-### Milestone 2: Looker Native Commands
+### Milestone 2: Looker Native Commands — Complete
 
 Deliverables:
 
-- `dcx looker explores list|get`
-- `dcx looker dashboards list|get`
-- source-specific output models and renderers
+- [x] `dcx looker explores list|get`
+- [x] `dcx looker dashboards list|get`
+- [x] source-specific output models and renderers
 
-Detailed tasks:
+Implemented in PR #39. Hand-written commands using the Looker API
+(not Discovery-driven, as Looker is not a Google Discovery API).
 
-- add `Looker` command family in
-  [src/cli.rs](src/cli.rs)
-- reuse existing Looker profile fields from Phase 4
-- implement explore reference parsing consistently with CA profile validation
-- support profile-driven instance URL and optional API credentials
-- normalize Looker responses into stable CLI result types
-- add wire tests for explore and dashboard fetch paths
-
-Done when:
-
-- a user can inspect Looker explores and dashboards directly from `dcx` without
-  falling back to custom scripts
-
-### Milestone 3: Spanner, AlloyDB, and Cloud SQL Inventory Commands
+### Milestone 3: Spanner, AlloyDB, and Cloud SQL Inventory Commands — Complete
 
 Deliverables:
 
-- `dcx spanner instances|databases`
-- `dcx alloydb clusters|instances|databases`
-- `dcx cloudsql instances|databases`
+- [x] `dcx spanner instances list|get`, `databases list|get|get-ddl`
+- [x] `dcx alloydb clusters list|get`, `instances list|get`
+- [x] `dcx cloudsql instances list|get`, `databases list|get`
 
-Detailed tasks:
+Implemented in PR #40. **Architecture change from original plan:**
+replaced hand-written static commands with Discovery-driven dynamic
+generation. All three services use bundled Discovery documents
+(`spanner/v1`, `alloydb/v1`, `sqladmin/v1`) processed through the same
+pipeline as BigQuery. Key additions:
 
-- add new top-level command families in
-  [src/cli.rs](src/cli.rs)
-- build source-specific clients for each product
-- normalize inventory objects into compact CLI result models
-- keep the first pass read-only and paginated where needed
-- add command tests and fixture-based response tests
+- `ServiceConfig` abstraction (`src/bigquery/dynamic/service.rs`)
+- Recursive resource walking for nested Spanner/AlloyDB resources
+- flatPath parameter extraction and normalization
+- Multi-service namespace routing in `main.rs`
+- Identifier validation for all path parameters before network calls
+- AlloyDB `--location` global flag with "US" → "-" normalization
 
-Done when:
+This eliminated ~1,300 lines of hand-coded command/source modules and
+gives automatic coverage of all allowlisted API methods.
 
-- `dcx` has direct non-BigQuery inventory coverage across the main database
-  products in the Data Cloud story
+Validated against live GCP data (`test-project-0728-467323`) on 2026-03-27.
 
 ### Milestone 4: Schema and Query Helpers
 
@@ -615,10 +569,11 @@ source commands.
 
 ### 3. Should non-BigQuery commands be generated or hand-written?
 
-Recommendation:
-hand-written first. The BigQuery discovery path exists and works, but the
-non-BigQuery products do not currently justify a generic generation system in
-the same phase as the first direct command rollout.
+**Decided (M3): Discovery-driven dynamic generation** for Spanner, AlloyDB,
+and Cloud SQL. Google publishes Discovery docs for all three, and the
+`ServiceConfig` abstraction made it straightforward to reuse the BigQuery
+pipeline. This eliminated ~1,300 lines of hand-written code. Looker remains
+hand-written because the Looker API is not a Google Discovery document.
 
 ### 4. Should Looker queries be part of Phase 5?
 

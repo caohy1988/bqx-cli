@@ -2,7 +2,8 @@
 
 Reproducible commands to verify the dcx command surface against a live
 GCP project. Covers Phase 2 (dynamic commands), Phase 3 (analytics + CA),
-and Phase 4 (multi-source CA via profiles).
+Phase 4 (multi-source CA via profiles), and Phase 5 (native Data Cloud
+commands via Discovery-driven dynamic generation).
 
 ## Prerequisites
 
@@ -352,11 +353,118 @@ dcx ca ask --profile /tmp/spanner-e2e.yaml --agent my-agent "test" 2>&1 | grep -
 | All database sources | No data agent creation (use profiles directly), no visualization |
 | Looker | Max 5 explores per profile, requires instance URL; API credentials optional (paired when provided) |
 
+## 12. Phase 5: Native Data Cloud Commands (Discovery-driven)
+
+Phase 5 M1-M3 added direct command surfaces for Looker, Spanner, AlloyDB,
+and Cloud SQL. Spanner, AlloyDB, and Cloud SQL commands are generated from
+bundled Discovery documents using the same pipeline as BigQuery.
+
+### Spanner
+
+```bash
+# List instances
+dcx spanner instances list --project-id=$DCX_PROJECT --format json
+
+# Get instance detail
+dcx spanner instances get --project-id=$DCX_PROJECT --instance-id=bqx-test --format json
+
+# List databases in an instance
+dcx spanner databases list --project-id=$DCX_PROJECT --instance-id=bqx-test --format json
+
+# Get DDL for a database
+dcx spanner databases get-ddl --project-id=$DCX_PROJECT --instance-id=bqx-test --database-id=testdb --format json
+
+# Table format
+dcx spanner instances list --project-id=$DCX_PROJECT --format table
+```
+
+### AlloyDB
+
+```bash
+# List clusters (--location defaults to "US" → "-" = all regions)
+dcx alloydb clusters list --project-id=$DCX_PROJECT --format json
+
+# List clusters in a specific region
+dcx alloydb clusters list --project-id=$DCX_PROJECT --location=us-central1 --format json
+
+# List instances in a cluster
+dcx alloydb instances list --project-id=$DCX_PROJECT \
+  --cluster-id=my-cluster --location=us-central1 --format json
+```
+
+### Cloud SQL
+
+```bash
+# List instances
+dcx cloudsql instances list --project-id=$DCX_PROJECT --format json
+
+# Get instance detail
+dcx cloudsql instances get --project-id=$DCX_PROJECT --instance=bqx-test --format json
+
+# List databases
+dcx cloudsql databases list --project-id=$DCX_PROJECT --instance=bqx-test --format json
+
+# Table format
+dcx cloudsql databases list --project-id=$DCX_PROJECT --instance=bqx-test --format table
+```
+
+### Looker (hand-written, profile-driven)
+
+```bash
+# List explores
+dcx looker explores list --profile=sales-looker --format json
+
+# Get explore detail
+dcx looker explores get --profile=sales-looker --explore=model/explore --format json
+
+# List dashboards
+dcx looker dashboards list --profile=sales-looker --format json
+
+# Get dashboard detail
+dcx looker dashboards get --profile=sales-looker --dashboard-id=42 --format json
+```
+
+### Profile Utilities
+
+```bash
+# List all discoverable profiles
+dcx profiles list --format json
+dcx profiles list --format table
+
+# Show a profile (secrets redacted)
+dcx profiles show --profile=spanner-finance --format json
+
+# Validate profile structure
+dcx profiles validate --profile=spanner-finance --format json
+```
+
+### Identifier Validation
+
+All dynamic commands validate path parameters before network calls:
+
+```bash
+# Bad project-id — rejected locally
+dcx spanner instances list --project-id='bad proj' --token test
+# → {"error":"Invalid project-id: 'bad proj'. Must be alphanumeric with underscores/hyphens."}
+
+# Bad instance — rejected locally
+dcx cloudsql instances get --project-id=good-proj --instance='my/inst' --token test
+# → {"error":"Invalid instance: 'my/inst'. Must be alphanumeric with underscores/hyphens."}
+```
+
+### Dry-run
+
+```bash
+# Verify URL construction without auth
+dcx spanner databases get-ddl --project-id=my-proj --instance-id=my-inst --database-id=mydb --dry-run
+# → {"dry_run":true,"method":"GET","url":"https://spanner.googleapis.com/v1/projects/my-proj/instances/my-inst/databases/mydb/ddl"}
+```
+
 ## Expected Results
 
 All commands above were verified against `test-project-0728-467323` on
-2026-03-14 (Phase 2-3) and 2026-03-19 (Phase 4) with gcloud ADC
-authentication. Key observations:
+2026-03-14 (Phase 2-3), 2026-03-19 (Phase 4), and 2026-03-27 (Phase 5 M1-M3)
+with gcloud ADC authentication. Key observations:
 
 - All dynamic commands (datasets, tables, routines, models) return valid JSON
 - All static commands (jobs query, analytics) return valid JSON
@@ -380,3 +488,16 @@ Phase 4 observations:
 - `--profile` and `--agent` flags are mutually exclusive (validated by conflict guard)
 - All 3 database sources return structured JSON with `sql` and results fields
 - 14 E2E tests across all database sources pass (math, schema, business queries, output formats, conflict guards)
+
+Phase 5 M1-M3 observations:
+
+- `dcx profiles list|show|validate` work correctly across all source types
+- `dcx looker explores|dashboards list|get` work against live Looker instances via profiles
+- Spanner, AlloyDB, Cloud SQL commands are Discovery-driven (same pipeline as BigQuery)
+- Spanner instances/databases list/get and get-ddl all return valid JSON
+- AlloyDB clusters list uses global `--location` with "US" → "-" normalization
+- Cloud SQL instances/databases list/get return valid JSON with table format support
+- All path parameters validated via `validate_identifier()` before network calls
+- Identifier validation rejects `'bad proj'`, `'my/inst'`, `'my/cluster'` etc. locally
+- Dry-run mode produces correct URLs for all services
+- 321 tests pass across all targets

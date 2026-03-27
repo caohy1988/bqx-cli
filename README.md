@@ -84,43 +84,49 @@ agent-first treatment.
 
 A new agent-native CLI for Google Cloud's Data Cloud that combines:
 
-1. **Dynamic command generation** from BigQuery APIs (like `gws`)
+1. **Dynamic command generation** from Google Cloud Discovery APIs (like `gws`)
+   — BigQuery, Spanner, AlloyDB, and Cloud SQL
 2. **Agent Skills** for discoverability (SKILL.md format)
 3. **Conversational Analytics** integration across 6 data sources —
    BigQuery, Looker, Looker Studio, AlloyDB, Spanner, and Cloud SQL
 4. **BigQuery Agent Analytics SDK** capabilities (evaluation, traces, drift)
 
 ```
-┌───────────────────────────────────────────────────────────────────┐
-│                            dcx CLI                                │
-│                                                                   │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────────────┐  │
-│  │ BigQuery API   │  │ Agent         │  │ Conversational        │  │
-│  │ (dynamic)      │  │ Analytics SDK │  │ Analytics API         │  │
-│  │                │  │               │  │                       │  │
-│  │ query, mk,    │  │ evaluate,     │  │ ask (6 sources),      │  │
-│  │ ls, load,     │  │ get-trace,    │  │ create-agent,         │  │
-│  │ show, rm      │  │ drift,        │  │ list-agents           │  │
-│  │                │  │ insights      │  │                       │  │
-│  └───────┬───────┘  └───────┬───────┘  └──────────┬────────────┘  │
-│          │                  │                      │               │
-│  ┌───────┴──────────────────┴──────────────────────┴────────────┐  │
-│  │                      Shared Core                              │  │
-│  │  Auth · JSON output · Model Armor · Pagination · Profiles     │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│                                                                   │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                     Skills (SKILL.md)                          │  │
-│  │  32 skills (4 generated + 28 curated; see §4.1)                │  │
-│  │  1 shared · 7 service · 6 helper · 7 CA · 3 persona · 8 recipe │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│                                                                   │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │               CA Source Matrix                                 │  │
-│  │  Chat/DataAgent: BigQuery · Looker · Looker Studio             │  │
-│  │  QueryData:      AlloyDB  · Spanner · Cloud SQL                │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                              dcx CLI                                   │
+│                                                                        │
+│  ┌──────────────────────┐  ┌───────────────┐  ┌────────────────────┐  │
+│  │ Data Cloud APIs       │  │ Agent         │  │ Conversational     │  │
+│  │ (Discovery-driven)    │  │ Analytics SDK │  │ Analytics API      │  │
+│  │                       │  │               │  │                    │  │
+│  │ BigQuery  (top-level) │  │ evaluate,     │  │ ask (6 sources),   │  │
+│  │ Spanner   (namespaced)│  │ get-trace,    │  │ create-agent,      │  │
+│  │ AlloyDB   (namespaced)│  │ drift,        │  │ list-agents        │  │
+│  │ Cloud SQL (namespaced)│  │ insights      │  │                    │  │
+│  └──────────┬────────────┘  └───────┬───────┘  └─────────┬──────────┘ │
+│             │                       │                     │            │
+│  ┌──────────┴───────────────────────┴─────────────────────┴─────────┐  │
+│  │                      Shared Core                                  │  │
+│  │  Auth · JSON output · Model Armor · Pagination · Profiles         │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                     Skills (SKILL.md)                              │  │
+│  │  32 skills (4 generated + 28 curated; see §4.1)                    │  │
+│  │  1 shared · 7 service · 6 helper · 7 CA · 3 persona · 8 recipe    │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │               Looker Native (hand-written)                        │  │
+│  │  explores list|get · dashboards list|get                          │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │               CA Source Matrix                                    │  │
+│  │  Chat/DataAgent: BigQuery · Looker · Looker Studio                │  │
+│  │  QueryData:      AlloyDB  · Spanner · Cloud SQL                   │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Why `dcx`, not extending `bq`
@@ -133,7 +139,7 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 | Agent consumption | Not designed for agents | Progressive disclosure, SKILL.md |
 | Release cycle | Coupled to gcloud SDK | Independent releases |
 | AI integration | None | Conversational Analytics, AI functions, Agent Analytics |
-| Discovery | Static commands | Dynamic from BigQuery REST API |
+| Discovery | Static commands | Dynamic from Google Cloud Discovery APIs |
 
 ---
 
@@ -143,37 +149,55 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 
 Like `gws`, `dcx` uses two-phase argument parsing:
 
-1. `argv[1]` identifies the service module (`analytics`, `ca`, or falls
-   through to BigQuery API resource names)
-2. For BigQuery API commands, fetch the
-   [BigQuery Discovery Document](https://www.googleapis.com/discovery/v1/apis/bigquery/v2/rest),
-   cache it (24h TTL), and build a `clap::Command` tree dynamically
+1. `argv[1]` identifies the service module (`analytics`, `ca`, `looker`, or
+   falls through to dynamic resource names)
+2. For API commands, the binary loads bundled
+   [Discovery Documents](https://www.googleapis.com/discovery/v1/apis/)
+   for each service, builds a `clap::Command` tree dynamically, and routes
+   to a shared HTTP executor
 
-**Offline / CI resilience:** The binary ships with a pinned copy of the
-Discovery Document (committed at build time via `include_str!`). The
-bundled document is the sole source in Phase 2 — no runtime fetch. This
-ensures deterministic builds, reproducible CI, and no network dependency.
-The bundled document is updated intentionally and reviewed like vendored
-API input.
+**Multi-service dynamic generation:** The same Discovery-driven pipeline
+serves four Google Cloud services:
 
-**Phase 2 allowlist:** Dynamic commands are restricted to a read-only
-allowlist of 8 methods across 4 resource families:
+| Service | Namespace | Discovery Doc | Methods |
+|---------|-----------|---------------|---------|
+| BigQuery | _(top-level)_ | `bigquery/v2` | 8 (datasets, tables, routines, models) |
+| Spanner | `spanner` | `spanner/v1` | 5 (instances, databases, getDdl) |
+| AlloyDB | `alloydb` | `alloydb/v1` | 4 (clusters, instances) |
+| Cloud SQL | `cloudsql` | `sqladmin/v1` | 4 (instances, databases) |
 
-| Resource | Methods |
-|----------|---------|
-| datasets | `list`, `get` |
-| tables | `list`, `get` |
-| routines | `list`, `get` |
-| models | `list`, `get` |
+The `ServiceConfig` abstraction in `src/bigquery/dynamic/service.rs` holds
+per-service configuration: namespace, allowlist, global param mapping,
+bundled JSON, and flatPath preference. BigQuery commands are top-level
+(`dcx datasets list`); other services are namespaced (`dcx spanner
+instances list`).
 
-Write/mutation methods are excluded from Phase 2. The allowlist is defined
-in `src/bigquery/dynamic/model.rs`.
+**Offline / CI resilience:** The binary ships with pinned copies of all
+four Discovery Documents (committed at build time via `include_str!`).
+No runtime fetch. This ensures deterministic builds, reproducible CI,
+and no network dependency. The bundled documents are updated intentionally
+and reviewed like vendored API input.
+
+**Read-only allowlists:** Dynamic commands are restricted to read-only
+allowlists per service. Write/mutation methods are excluded. The
+allowlists are defined in `src/bigquery/dynamic/service.rs`.
 
 ```bash
-# Dynamic commands (generated from BigQuery REST API Discovery Document)
+# Dynamic commands — BigQuery (top-level, generated from Discovery)
 dcx datasets list --project-id=myproject
 dcx tables get --project-id=myproject --dataset-id=analytics --table-id=agent_events
-dcx jobs query --query="SELECT 1" --use-legacy-sql=false
+
+# Dynamic commands — Spanner (namespaced, generated from Discovery)
+dcx spanner instances list --project-id=myproject
+dcx spanner databases get-ddl --project-id=myproject --instance-id=my-inst --database-id=mydb
+
+# Dynamic commands — AlloyDB (namespaced, generated from Discovery)
+dcx alloydb clusters list --project-id=myproject
+dcx alloydb instances list --project-id=myproject --cluster-id=my-cluster --location=us-central1
+
+# Dynamic commands — Cloud SQL (namespaced, generated from Discovery)
+dcx cloudsql instances list --project-id=myproject
+dcx cloudsql databases list --project-id=myproject --instance=my-inst
 
 # Static commands (Agent Analytics SDK — compiled in)
 dcx analytics evaluate --evaluator=latency --threshold=5000 --last=1h
@@ -183,32 +207,47 @@ dcx analytics drift --golden-dataset=golden_qs
 # Static commands (Conversational Analytics API)
 dcx ca ask "What were the top errors yesterday?" --agent=my-data-agent
 dcx ca create-agent --name=agent-analytics --tables=agent_events
+
+# Static commands (Looker — hand-written, not Discovery)
+dcx looker explores list --profile=sales-looker
+dcx looker dashboards get --profile=sales-looker --dashboard-id=42
 ```
 
-### 3.2 Three Command Domains
+### 3.2 Five Command Domains
 
 #### Domain 1: `dcx <resource> <method>` — BigQuery API (dynamic)
 
 Generated from the BigQuery v2 Discovery Document, covering datasets,
-tables, jobs, routines, connections, models, and row-access policies.
+tables, routines, and models.
 
 ```bash
 # List datasets
 dcx datasets list --project-id=myproject
 
-# Run a query (structured output)
-dcx jobs query \
-  --query="SELECT session_id, agent FROM analytics.agent_events LIMIT 5" \
-  --use-legacy-sql=false
-
-# Create a view
-dcx tables insert \
-  --project-id=myproject \
-  --dataset-id=analytics \
-  --json='{"tableReference":{"tableId":"v_errors"},"view":{"query":"SELECT ..."}}'
-
 # Show table schema
 dcx tables get --project-id=myproject --dataset-id=analytics --table-id=agent_events
+```
+
+#### Domain 1b: `dcx <service> <resource> <method>` — Data Cloud APIs (dynamic)
+
+Generated from bundled Discovery Documents for Spanner (`spanner/v1`),
+AlloyDB (`alloydb/v1`), and Cloud SQL (`sqladmin/v1`). Same pipeline as
+BigQuery — one `ServiceConfig` per service, shared executor.
+
+```bash
+# Spanner
+dcx spanner instances list --project-id=myproject
+dcx spanner databases list --project-id=myproject --instance-id=my-inst
+dcx spanner databases get-ddl --project-id=myproject --instance-id=my-inst --database-id=mydb
+
+# AlloyDB (--location defaults to all regions)
+dcx alloydb clusters list --project-id=myproject
+dcx alloydb instances list --project-id=myproject --cluster-id=my-cluster --location=us-central1
+
+# Cloud SQL
+dcx cloudsql instances list --project-id=myproject
+dcx cloudsql instances get --project-id=myproject --instance=my-inst
+dcx cloudsql databases list --project-id=myproject --instance=my-inst
 ```
 
 #### Domain 2: `dcx analytics <command>` — Agent Analytics (static)
@@ -1042,21 +1081,29 @@ Data Cloud support; docs updated.
 
 See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 
-### Phase 5: Native Data Cloud Commands Beyond BigQuery (v0.5) — Proposed
+### Phase 5: Native Data Cloud Commands Beyond BigQuery (v0.5) — In Progress
 
-- [ ] Add top-level profile utilities: `dcx profiles list|show|validate`
-- [ ] Add direct non-BigQuery command domains:
-  - `dcx looker`
-  - `dcx spanner`
-  - `dcx alloydb`
-  - `dcx cloudsql`
-- [ ] Ship read-only `list|get` inventory commands for each non-BigQuery source
-  family
+- [x] Add top-level profile utilities: `dcx profiles list|show|validate`
+- [x] Add `dcx looker explores|dashboards list|get` (profile-driven, native
+  Looker API)
+- [x] Add `dcx spanner instances|databases list|get|get-ddl` (Discovery-driven)
+- [x] Add `dcx alloydb clusters|instances list|get` (Discovery-driven)
+- [x] Add `dcx cloudsql instances|databases list|get` (Discovery-driven)
 - [ ] Add schema and source-inspection helpers where profile context makes them
   safe and predictable
 - [ ] Expand skills and docs so agents can choose between `ca ask` and direct
   source commands
 - [ ] Release `0.5.0` with a validated cross-source command matrix
+
+**Architecture note (M3):** Spanner, AlloyDB, and Cloud SQL commands are
+generated from bundled Discovery documents (`spanner/v1`, `alloydb/v1`,
+`sqladmin/v1`) using the same dynamic pipeline as BigQuery. This replaced
+the original hand-written static approach, eliminating ~1,300 lines of
+per-service code and giving automatic coverage of all allowlisted API
+methods. The `ServiceConfig` abstraction in `src/bigquery/dynamic/service.rs`
+holds per-service configuration (namespace, allowlist, global param mapping,
+flatPath preference). Looker retains a hand-written command surface because
+the Looker API is not a Google Discovery document.
 
 **Exit criteria:** `dcx` supports direct, structured, non-CA commands for
 Looker, Spanner, AlloyDB, and Cloud SQL in addition to the existing BigQuery
