@@ -10,7 +10,7 @@ use dcx::cli::{
     ViewsCommand,
 };
 use dcx::commands;
-use dcx::config::Config;
+use dcx::config::{self, Config};
 use dcx::models::BqxError;
 
 /// Names of static (derive-based) top-level subcommands.
@@ -239,8 +239,15 @@ async fn run_dynamic(
             continue;
         }
         if let Some(value) = root_matches.get_one::<String>(cli_flag) {
+            let mut effective = value.clone();
+            // AlloyDB uses region-granularity locations; the global --location
+            // default "US" is a BigQuery convention — normalize to "-" (all
+            // locations) so the M3 contract is preserved.
+            if *cli_flag == "location" && svc.config.namespace == "alloydb" && effective == "US" {
+                effective = "-".to_string();
+            }
             args.entry(api_name.to_string())
-                .or_insert_with(|| value.clone());
+                .or_insert_with(|| effective);
         }
     }
 
@@ -258,6 +265,35 @@ async fn run_dynamic(
                 json!({"error": "--dataset-id or DCX_DATASET is required for this command"})
             );
             std::process::exit(1);
+        }
+    }
+
+    // Validate identifiers in all path parameters before any network call.
+    // The wildcard "-" is allowed (e.g., AlloyDB location = all regions).
+    if let Err(e) = config::validate_identifier(&project_id, "project-id") {
+        eprintln!("{}", json!({"error": e.to_string()}));
+        std::process::exit(1);
+    }
+    for gen_arg in &cmd.args {
+        let is_path = cmd
+            .method
+            .parameters
+            .iter()
+            .any(|p| p.name == gen_arg.api_name && p.location == model::ParamLocation::Path);
+        if !is_path {
+            continue;
+        }
+        let global_params = svc.config.global_param_names();
+        if global_params.contains(&gen_arg.api_name.as_str()) {
+            continue; // project_id already validated above; location may be "-"
+        }
+        if let Some(value) = args.get(&gen_arg.api_name) {
+            if value != "-" {
+                if let Err(e) = config::validate_identifier(value, &gen_arg.flag_name) {
+                    eprintln!("{}", json!({"error": e.to_string()}));
+                    std::process::exit(1);
+                }
+            }
         }
     }
 

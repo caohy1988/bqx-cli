@@ -90,7 +90,7 @@ pub fn alloydb() -> ServiceConfig {
             "alloydb.projects.locations.clusters.instances.list",
             "alloydb.projects.locations.clusters.instances.get",
         ],
-        global_params: &[("projectsId", "project_id")],
+        global_params: &[("projectsId", "project_id"), ("locationsId", "location")],
         use_flat_path: true,
     }
 }

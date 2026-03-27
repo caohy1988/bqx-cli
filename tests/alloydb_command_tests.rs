@@ -67,7 +67,8 @@ fn alloydb_instances_help_shows_list() {
 
 #[test]
 fn alloydb_clusters_list_requires_project_id() {
-    let output = run_dcx(&["alloydb", "clusters", "list", "--location-id", "-"]);
+    // --location is now handled by the global flag (defaults to "US" → "-")
+    let output = run_dcx(&["alloydb", "clusters", "list"]);
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -84,7 +85,7 @@ fn alloydb_instances_list_requires_project_id() {
         "list",
         "--cluster-id",
         "my-cluster",
-        "--location-id",
+        "--location",
         "us-central1",
     ]);
     assert!(!output.status.success());
