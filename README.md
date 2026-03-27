@@ -135,7 +135,7 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 |--------|-----------------|-------------------|
 | Language | Python | Rust (fast startup, single binary) |
 | Extensibility | None | Skills + dynamic command generation |
-| Output format | Mixed text/JSON | JSON-first (+ table, yaml, csv) |
+| Output format | Mixed text/JSON | JSON-first (+ table, text) |
 | Agent consumption | Not designed for agents | Progressive disclosure, SKILL.md |
 | Release cycle | Coupled to gcloud SDK | Independent releases |
 | AI integration | None | Conversational Analytics, AI functions, Agent Analytics |

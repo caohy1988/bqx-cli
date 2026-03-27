@@ -52,12 +52,12 @@ disagree on three things:
 |---|---|---|
 | **Output** | Readable ASCII tables | Structured JSON with a predictable schema |
 | **Discovery** | `--help` text and man pages | Machine-readable skill files (SKILL.md) that declare when to use each command, what flags to pass, and what the output shape is |
-| **Errors** | A descriptive message they can read | A JSON object with an error code they can branch on |
+| **Errors** | A descriptive message they can read | A JSON envelope (`{"error":"..."}`) they can parse without regex |
 
 You could add `--format json` and skill files to `bq` — the interface
 requirements are not tied to a binary name. What matters is that
 **someone ships the agent-native interface layer**: JSON-first output,
-skill files for discovery, structured errors. dcx is a working proof
+skill files for discovery, JSON error envelopes. dcx is a working proof
 of what that layer looks like. Whether it ships standalone or as an
 agent mode on top of `bq` is an implementation decision that comes after
 validating the design.
@@ -81,7 +81,7 @@ to call it correctly.
 | | `bq` CLI | `dcx` CLI |
 |---|---|---|
 | **Discovery** | No skill files. The agent must be pre-programmed with `bq` syntax, or parse `--help` text and guess. | Ships 32 skills in the open SKILL.md format covering BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL. An agent reads the skill file and knows exactly what parameters to pass. |
-| **Integration** | Every agent platform (OpenClaw, Gemini CLI, Claude Code) writes its own `bq` wrapper with hardcoded knowledge of which flags to use. | One stable skill surface. All agent platforms integrate BigQuery the same way — no per-platform wrapper code. |
+| **Integration** | Every agent platform (OpenClaw, Gemini CLI, Claude Code) writes its own `bq` wrapper with hardcoded knowledge of which flags to use. | Two integration surfaces today: SKILL.md files for CLI agents, and a Gemini extension manifest for Gemini-native agents. Not yet a single surface — but both are checked in and versioned, unlike ad-hoc wrappers. |
 | **Example** | Agent has no way to discover that `bq query` exists or what flags it needs. Team writes a custom tool definition for each agent framework. | Agent loads `skills/dcx-query/SKILL.md`, sees the command template, parameters, and output schema. Runs it directly. |
 
 **What a skill file looks like** — `skills/dcx-query/SKILL.md` (abridged):
@@ -176,7 +176,7 @@ of the product.
 
 This is not a proposal. I have already built and shipped a working prototype.
 
-The prototype is at v0.4.0 with 321+ tests, 32 agent skills, and release
+The prototype is at v0.4.0 with 444 tests, 32 agent skills, and release
 binaries for 6 platforms (macOS, Linux, Windows — x64 and ARM64). It covers
 five command domains:
 
