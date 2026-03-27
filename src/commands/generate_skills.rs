@@ -4,7 +4,7 @@ use anyhow::Result;
 use serde_json::json;
 
 use crate::bigquery::discovery::{self, DiscoverySource};
-use crate::bigquery::dynamic::model;
+use crate::bigquery::dynamic::{model, service};
 use crate::cli::OutputFormat;
 use crate::skills::generator;
 
@@ -13,9 +13,10 @@ use crate::skills::generator;
 /// Generates SKILL.md and agents/openai.yaml for each resource group
 /// from the BigQuery v2 Discovery Document.
 pub fn run(output_dir: &str, filter: &[String], format: &OutputFormat) -> Result<()> {
+    let cfg = service::bigquery();
     let doc = discovery::load(&DiscoverySource::Bundled)?;
-    let methods = model::extract_methods(&doc);
-    let allowed = model::filter_allowed(&methods);
+    let methods = model::extract_methods(&doc, cfg.use_flat_path);
+    let allowed = model::filter_allowed(&methods, cfg.allowed_methods);
     let commands: Vec<model::GeneratedCommand> =
         allowed.iter().map(model::to_generated_command).collect();
 

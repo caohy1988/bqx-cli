@@ -78,7 +78,7 @@ fn spanner_instances_list_requires_project_id() {
 
 #[test]
 fn spanner_databases_list_requires_project_id() {
-    let output = run_dcx(&["spanner", "databases", "list", "--instance", "my-inst"]);
+    let output = run_dcx(&["spanner", "databases", "list", "--instance-id", "my-inst"]);
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -87,57 +87,19 @@ fn spanner_databases_list_requires_project_id() {
     );
 }
 
-// ── identifier validation ──
+// ── databases list requires --instance-id ──
 
 #[test]
-fn spanner_rejects_invalid_project_id() {
-    let output = run_dcx(&[
-        "spanner",
-        "instances",
-        "list",
-        "--project-id",
-        "bad proj",
-        "--token",
-        "test-token",
-    ]);
-    assert!(!output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("Invalid project-id"),
-        "Should reject invalid project-id locally, got: {stderr}"
-    );
-}
-
-#[test]
-fn spanner_rejects_invalid_instance_id() {
-    let output = run_dcx(&[
-        "spanner",
-        "databases",
-        "list",
-        "--project-id",
-        "good-proj",
-        "--instance",
-        "my/inst",
-        "--token",
-        "test-token",
-    ]);
-    assert!(!output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("Invalid instance"),
-        "Should reject invalid instance locally, got: {stderr}"
-    );
-}
-
-// ── databases list requires --instance ──
-
-#[test]
-fn spanner_databases_list_requires_instance() {
+fn spanner_databases_list_requires_instance_id() {
     let output = run_dcx(&["spanner", "databases", "list"]);
     assert!(!output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(
-        stderr.contains("--instance"),
-        "Should require --instance flag, got: {stderr}"
+        combined.contains("--instance-id"),
+        "Should require --instance-id flag, got: {combined}"
     );
 }

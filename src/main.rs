@@ -3,12 +3,10 @@ use serde_json::json;
 
 use dcx::auth;
 use dcx::bigquery::discovery::{self, DiscoverySource};
-use dcx::bigquery::dynamic::{clap_tree, executor, model};
+use dcx::bigquery::dynamic::{clap_tree, executor, model, service};
 use dcx::cli::{
-    AlloyDbClustersCommand, AlloyDbCommand, AlloyDbInstancesCommand, AnalyticsCommand, AuthCommand,
-    CaCommand, Cli, CloudSqlCommand, CloudSqlDatabasesCommand, CloudSqlInstancesCommand, Command,
-    JobsCommand, LookerCommand, LookerDashboardsCommand, LookerExploresCommand, OutputFormat,
-    ProfilesCommand, ShellType, SpannerCommand, SpannerDatabasesCommand, SpannerInstancesCommand,
+    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, LookerCommand,
+    LookerDashboardsCommand, LookerExploresCommand, OutputFormat, ProfilesCommand, ShellType,
     ViewsCommand,
 };
 use dcx::commands;
@@ -25,53 +23,102 @@ const STATIC_COMMANDS: &[&str] = &[
     "completions",
     "profiles",
     "looker",
-    "spanner",
-    "alloydb",
-    "cloudsql",
 ];
+
+/// A loaded service with its generated commands and base URL.
+struct LoadedService {
+    config: service::ServiceConfig,
+    commands: Vec<model::GeneratedCommand>,
+    base_url: String,
+}
 
 #[tokio::main]
 async fn main() {
-    // 1. Build a hybrid clap::Command: static derive tree + dynamic subcommands.
-    //    Discovery loading is cheap (bundled include_str!) but isolated so that
-    //    a bad bundled asset cannot brick static commands like auth/analytics.
-    let (generated_commands, base_url) = match load_generated_commands() {
-        Ok((cmds, url)) => (cmds, url),
-        Err(e) => {
-            eprintln!("Warning: could not load dynamic commands: {e}");
-            (Vec::new(), String::new())
-        }
-    };
+    // 1. Load all services (BigQuery, Spanner, AlloyDB, Cloud SQL).
+    let services = load_all_services();
 
+    // 2. Build a hybrid clap::Command: static derive tree + dynamic subcommands.
     let mut app = Cli::command();
-    let dynamic_clap = clap_tree::build_dynamic_commands(&generated_commands);
-    for sub in dynamic_clap {
-        // Only add if it doesn't collide with a static command name.
-        if !STATIC_COMMANDS.contains(&sub.get_name()) {
-            app = app.subcommand(sub);
+    let mut namespace_names: Vec<String> = Vec::new();
+
+    for svc in &services {
+        let global_params = svc.config.global_param_names();
+        let dynamic_clap = clap_tree::build_dynamic_commands(
+            &svc.commands,
+            &global_params,
+            svc.config.service_label,
+        );
+
+        if svc.config.namespace.is_empty() {
+            // Top-level dynamic commands (BigQuery).
+            for sub in dynamic_clap {
+                if !STATIC_COMMANDS.contains(&sub.get_name()) {
+                    app = app.subcommand(sub);
+                }
+            }
+        } else {
+            // Namespaced service (Spanner, AlloyDB, Cloud SQL).
+            let ns_cmd = clap::Command::new(svc.config.namespace)
+                .about(format!(
+                    "{} operations (generated from API)",
+                    svc.config.service_label
+                ))
+                .subcommand_required(true)
+                .arg_required_else_help(true)
+                .subcommands(dynamic_clap);
+            namespace_names.push(svc.config.namespace.to_string());
+            app = app.subcommand(ns_cmd);
         }
     }
 
-    // 2. Parse args with the augmented command.
+    // 3. Parse args with the augmented command.
     let matches = app.get_matches();
 
-    // 3. Check if the matched subcommand is dynamic.
-    if let Some((group_name, group_matches)) = matches.subcommand() {
-        if !STATIC_COMMANDS.contains(&group_name) {
-            // This is a dynamic command.
-            run_dynamic(
-                group_name,
-                group_matches,
-                &generated_commands,
-                &base_url,
-                &matches,
-            )
-            .await;
-            return;
+    // 4. Check if the matched subcommand is dynamic (top-level or namespaced).
+    if let Some((sub_name, sub_matches)) = matches.subcommand() {
+        if !STATIC_COMMANDS.contains(&sub_name) {
+            // Find the service for this command.
+            if let Some(svc) = services
+                .iter()
+                .find(|s| !s.config.namespace.is_empty() && s.config.namespace == sub_name)
+            {
+                // Namespaced service: drill into group → action.
+                let (group_name, group_matches) = match sub_matches.subcommand() {
+                    Some(pair) => pair,
+                    None => {
+                        eprintln!("{}", json!({"error": "No subcommand provided"}));
+                        std::process::exit(1);
+                    }
+                };
+                let (action_name, action_matches) = match group_matches.subcommand() {
+                    Some(pair) => pair,
+                    None => {
+                        eprintln!("{}", json!({"error": "No subcommand provided"}));
+                        std::process::exit(1);
+                    }
+                };
+                run_dynamic(svc, group_name, action_name, action_matches, &matches).await;
+                return;
+            } else {
+                // Top-level dynamic (BigQuery).
+                let bq_svc = services
+                    .iter()
+                    .find(|s| s.config.namespace.is_empty())
+                    .expect("BigQuery service not loaded");
+                let (action_name, action_matches) = match sub_matches.subcommand() {
+                    Some(pair) => pair,
+                    None => {
+                        eprintln!("{}", json!({"error": "No subcommand provided"}));
+                        std::process::exit(1);
+                    }
+                };
+                run_dynamic(bq_svc, sub_name, action_name, action_matches, &matches).await;
+                return;
+            }
         }
     }
 
-    // 4. Static path: reconstruct Cli from the already-parsed matches.
+    // 5. Static path: reconstruct Cli from the already-parsed matches.
     let cli = match Cli::from_arg_matches(&matches) {
         Ok(c) => c,
         Err(e) => {
@@ -80,37 +127,74 @@ async fn main() {
         }
     };
 
-    run_static(cli).await;
+    run_static(cli, &services).await;
 }
 
-/// Load Discovery and build the generated command metadata.
-/// Separated so that a failure here does not brick static commands.
-fn load_generated_commands() -> anyhow::Result<(Vec<model::GeneratedCommand>, String)> {
-    let doc = discovery::load(&DiscoverySource::Bundled)?;
+/// Load all service discovery docs and build generated commands.
+fn load_all_services() -> Vec<LoadedService> {
+    let mut services = Vec::new();
+    for config in service::all_services() {
+        match load_service(&config) {
+            Ok(svc) => services.push(svc),
+            Err(e) => {
+                eprintln!(
+                    "Warning: could not load {} commands: {e}",
+                    config.service_label
+                );
+                // Still push an empty service so namespace registration works.
+                services.push(LoadedService {
+                    config,
+                    commands: Vec::new(),
+                    base_url: String::new(),
+                });
+            }
+        }
+    }
+    services
+}
+
+fn load_service(config: &service::ServiceConfig) -> anyhow::Result<LoadedService> {
+    let doc = if config.discovery_name == "bigquery" {
+        // BigQuery uses the existing bundled loading path for cache/remote support.
+        discovery::load(&DiscoverySource::Bundled)?
+    } else {
+        config.load_bundled()?
+    };
     let base_url = doc.base_url.clone();
-    let methods = model::extract_methods(&doc);
-    let allowed = model::filter_allowed(&methods);
+    let methods = model::extract_methods(&doc, config.use_flat_path);
+    let allowed = model::filter_allowed(&methods, config.allowed_methods);
     let commands: Vec<model::GeneratedCommand> =
         allowed.iter().map(model::to_generated_command).collect();
-    Ok((commands, base_url))
+    // We need to clone the config since all_services() returns owned values.
+    // Recreate the config for storage.
+    Ok(LoadedService {
+        config: recreate_config(config),
+        commands,
+        base_url,
+    })
+}
+
+/// Recreate a ServiceConfig from an existing one (needed because we consume the iterator).
+fn recreate_config(c: &service::ServiceConfig) -> service::ServiceConfig {
+    service::ServiceConfig {
+        namespace: c.namespace,
+        service_label: c.service_label,
+        discovery_name: c.discovery_name,
+        bundled_json: c.bundled_json,
+        allowed_methods: c.allowed_methods,
+        global_params: c.global_params,
+        use_flat_path: c.use_flat_path,
+    }
 }
 
 async fn run_dynamic(
+    svc: &LoadedService,
     group_name: &str,
-    group_matches: &clap::ArgMatches,
-    generated_commands: &[model::GeneratedCommand],
-    base_url: &str,
+    action_name: &str,
+    action_matches: &clap::ArgMatches,
     root_matches: &clap::ArgMatches,
 ) {
-    let (action_name, action_matches) = match group_matches.subcommand() {
-        Some(pair) => pair,
-        None => {
-            eprintln!("{}", json!({"error": "No subcommand provided"}));
-            std::process::exit(1);
-        }
-    };
-
-    let cmd = match clap_tree::find_command(generated_commands, group_name, action_name) {
+    let cmd = match clap_tree::find_command(&svc.commands, group_name, action_name) {
         Some(c) => c,
         None => {
             eprintln!(
@@ -121,7 +205,6 @@ async fn run_dynamic(
         }
     };
 
-    // Extract global flags from root matches.
     // --project-id is required for all dynamic commands.
     let project_id = match root_matches.get_one::<String>("project_id") {
         Some(p) => p.clone(),
@@ -146,24 +229,36 @@ async fn run_dynamic(
         credentials_file: root_matches.get_one::<String>("credentials_file").cloned(),
     };
 
-    let mut args = clap_tree::extract_args(action_matches, cmd);
+    let global_params = svc.config.global_param_names();
+    let mut args = clap_tree::extract_args(action_matches, cmd, &global_params);
 
-    // Inject global flag values for params that are skipped in clap generation.
-    // Check if datasetId is a required path parameter for this command.
-    let needs_dataset_id =
-        cmd.method.parameters.iter().any(|p| {
+    // Inject global flag values for params mapped in the service config.
+    for (api_name, cli_flag) in svc.config.global_params {
+        if *cli_flag == "project_id" {
+            // Already handled via the dedicated project_id path in executor.
+            continue;
+        }
+        if let Some(value) = root_matches.get_one::<String>(cli_flag) {
+            args.entry(api_name.to_string())
+                .or_insert_with(|| value.clone());
+        }
+    }
+
+    // BigQuery-specific: inject datasetId from global flag if needed.
+    if svc.config.namespace.is_empty() {
+        let needs_dataset_id = cmd.method.parameters.iter().any(|p| {
             p.name == "datasetId" && p.location == model::ParamLocation::Path && p.required
         });
-
-    if let Some(dataset_id) = root_matches.get_one::<String>("dataset_id") {
-        args.entry("datasetId".to_string())
-            .or_insert_with(|| dataset_id.clone());
-    } else if needs_dataset_id && !args.contains_key("datasetId") {
-        eprintln!(
-            "{}",
-            json!({"error": "--dataset-id or DCX_DATASET is required for this command"})
-        );
-        std::process::exit(1);
+        if let Some(dataset_id) = root_matches.get_one::<String>("dataset_id") {
+            args.entry("datasetId".to_string())
+                .or_insert_with(|| dataset_id.clone());
+        } else if needs_dataset_id && !args.contains_key("datasetId") {
+            eprintln!(
+                "{}",
+                json!({"error": "--dataset-id or DCX_DATASET is required for this command"})
+            );
+            std::process::exit(1);
+        }
     }
 
     let sanitize_template = root_matches
@@ -174,11 +269,12 @@ async fn run_dynamic(
         cmd,
         &args,
         &project_id,
-        base_url,
+        &svc.base_url,
         &format,
         dry_run,
         &auth_opts,
         sanitize_template,
+        &svc.config,
     )
     .await;
 
@@ -188,7 +284,7 @@ async fn run_dynamic(
     }
 }
 
-async fn run_static(cli: Cli) {
+async fn run_static(cli: Cli, services: &[LoadedService]) {
     // Auth commands don't need project/dataset config
     if let Command::Auth { ref command } = cli.command {
         let auth_opts = auth::AuthOptions {
@@ -231,12 +327,29 @@ async fn run_static(cli: Cli) {
         // Build the augmented command tree (static + dynamic) so that
         // completions cover the full CLI surface including API commands.
         let mut app = Cli::command();
-        if let Ok((cmds, _)) = load_generated_commands() {
-            let dynamic_clap = clap_tree::build_dynamic_commands(&cmds);
-            for sub in dynamic_clap {
-                if !STATIC_COMMANDS.contains(&sub.get_name()) {
-                    app = app.subcommand(sub);
+        for svc in services {
+            let global_params = svc.config.global_param_names();
+            let dynamic_clap = clap_tree::build_dynamic_commands(
+                &svc.commands,
+                &global_params,
+                svc.config.service_label,
+            );
+            if svc.config.namespace.is_empty() {
+                for sub in dynamic_clap {
+                    if !STATIC_COMMANDS.contains(&sub.get_name()) {
+                        app = app.subcommand(sub);
+                    }
                 }
+            } else {
+                let ns_cmd = clap::Command::new(svc.config.namespace)
+                    .about(format!(
+                        "{} operations (generated from API)",
+                        svc.config.service_label
+                    ))
+                    .subcommand_required(true)
+                    .arg_required_else_help(true)
+                    .subcommands(dynamic_clap);
+                app = app.subcommand(ns_cmd);
             }
         }
         clap_complete::generate(shell, &mut app, "dcx", &mut std::io::stdout());
@@ -302,164 +415,6 @@ async fn run_static(cli: Cli) {
                     commands::looker::dashboards::run_get(
                         profile,
                         dashboard_id,
-                        &auth_opts,
-                        &cli.format,
-                        sanitize,
-                    )
-                    .await
-                }
-            },
-        };
-        if let Err(e) = result {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
-        }
-        return;
-    }
-
-    // Spanner, AlloyDB, Cloud SQL commands require --project-id but not dataset/table config.
-    if let Command::Spanner { ref command } = cli.command {
-        let project = match cli.project_id.as_deref() {
-            Some(p) => p,
-            None => {
-                eprintln!(
-                    "{}",
-                    json!({"error": "--project-id or DCX_PROJECT is required"})
-                );
-                std::process::exit(1);
-            }
-        };
-        let auth_opts = auth::AuthOptions {
-            token: cli.token.clone(),
-            credentials_file: cli.credentials_file.clone(),
-        };
-        let sanitize = cli.sanitize.as_deref();
-        let result = match command {
-            SpannerCommand::Instances { command } => match command {
-                SpannerInstancesCommand::List => {
-                    commands::spanner::instances::run_list(
-                        project,
-                        &auth_opts,
-                        &cli.format,
-                        sanitize,
-                    )
-                    .await
-                }
-            },
-            SpannerCommand::Databases { command } => match command {
-                SpannerDatabasesCommand::List { instance } => {
-                    commands::spanner::databases::run_list(
-                        project,
-                        instance,
-                        &auth_opts,
-                        &cli.format,
-                        sanitize,
-                    )
-                    .await
-                }
-            },
-        };
-        if let Err(e) = result {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
-        }
-        return;
-    }
-
-    if let Command::Alloydb { ref command } = cli.command {
-        let project = match cli.project_id.as_deref() {
-            Some(p) => p,
-            None => {
-                eprintln!(
-                    "{}",
-                    json!({"error": "--project-id or DCX_PROJECT is required"})
-                );
-                std::process::exit(1);
-            }
-        };
-        let auth_opts = auth::AuthOptions {
-            token: cli.token.clone(),
-            credentials_file: cli.credentials_file.clone(),
-        };
-        let sanitize = cli.sanitize.as_deref();
-        let location = cli.location.as_str();
-        let result = match command {
-            AlloyDbCommand::Clusters { command } => match command {
-                AlloyDbClustersCommand::List => {
-                    commands::alloydb::clusters::run_list(
-                        project,
-                        location,
-                        &auth_opts,
-                        &cli.format,
-                        sanitize,
-                    )
-                    .await
-                }
-            },
-            AlloyDbCommand::Instances { command } => match command {
-                AlloyDbInstancesCommand::List { cluster } => {
-                    commands::alloydb::instances::run_list(
-                        project,
-                        location,
-                        cluster,
-                        &auth_opts,
-                        &cli.format,
-                        sanitize,
-                    )
-                    .await
-                }
-            },
-        };
-        if let Err(e) = result {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
-        }
-        return;
-    }
-
-    if let Command::Cloudsql { ref command } = cli.command {
-        let project = match cli.project_id.as_deref() {
-            Some(p) => p,
-            None => {
-                eprintln!(
-                    "{}",
-                    json!({"error": "--project-id or DCX_PROJECT is required"})
-                );
-                std::process::exit(1);
-            }
-        };
-        let auth_opts = auth::AuthOptions {
-            token: cli.token.clone(),
-            credentials_file: cli.credentials_file.clone(),
-        };
-        let sanitize = cli.sanitize.as_deref();
-        let result = match command {
-            CloudSqlCommand::Instances { command } => match command {
-                CloudSqlInstancesCommand::List => {
-                    commands::cloudsql::instances::run_list(
-                        project,
-                        &auth_opts,
-                        &cli.format,
-                        sanitize,
-                    )
-                    .await
-                }
-                CloudSqlInstancesCommand::Get { instance } => {
-                    commands::cloudsql::instances::run_get(
-                        project,
-                        instance,
-                        &auth_opts,
-                        &cli.format,
-                        sanitize,
-                    )
-                    .await
-                }
-            },
-            CloudSqlCommand::Databases { command } => match command {
-                CloudSqlDatabasesCommand::List { instance } => {
-                    commands::cloudsql::databases::run_list(
-                        project,
-                        instance,
                         &auth_opts,
                         &cli.format,
                         sanitize,
@@ -637,10 +592,7 @@ async fn run_static(cli: Cli) {
         | Command::GenerateSkills { .. }
         | Command::Completions { .. }
         | Command::Profiles { .. }
-        | Command::Looker { .. }
-        | Command::Spanner { .. }
-        | Command::Alloydb { .. }
-        | Command::Cloudsql { .. } => {
+        | Command::Looker { .. } => {
             unreachable!()
         }
     };

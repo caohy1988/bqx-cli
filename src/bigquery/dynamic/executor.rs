@@ -8,8 +8,9 @@ use crate::cli::OutputFormat;
 
 use super::model::GeneratedCommand;
 use super::request_builder::{self, DynamicRequest};
+use super::service::ServiceConfig;
 
-/// Execute a dynamic (generated) BigQuery API command end-to-end.
+/// Execute a dynamic (generated) API command end-to-end.
 ///
 /// 1. Validates required parameters
 /// 2. In dry-run mode, prints the request and returns
@@ -27,20 +28,36 @@ pub async fn execute(
     dry_run: bool,
     auth_opts: &AuthOptions,
     sanitize_template: Option<&str>,
+    config: &ServiceConfig,
 ) -> Result<()> {
+    let global_params = config.global_param_names();
+
     // Validate required params before any network/auth.
-    if let Err(msg) = super::clap_tree::validate_required_params(args, cmd) {
+    if let Err(msg) = super::clap_tree::validate_required_params(args, cmd, &global_params) {
         bail!("{msg}");
     }
 
-    let request = request_builder::build_request(base_url, &cmd.method, project_id, args)?;
+    let project_id_params: Vec<&str> = config
+        .global_params
+        .iter()
+        .filter(|(_, cli_flag)| *cli_flag == "project_id")
+        .map(|(api_name, _)| *api_name)
+        .collect();
+
+    let request = request_builder::build_request(
+        base_url,
+        &cmd.method,
+        project_id,
+        args,
+        &project_id_params,
+    )?;
 
     if dry_run {
         return render_dry_run(&request, format);
     }
 
     let resolved = auth::resolve(auth_opts).await?;
-    let body = send_request(&resolved, &request).await?;
+    let body = send_request(&resolved, &request, config.service_label).await?;
 
     let body = if let Some(template) = sanitize_template {
         let result =
@@ -82,7 +99,11 @@ fn render_dry_run(request: &DynamicRequest, format: &OutputFormat) -> Result<()>
     Ok(())
 }
 
-async fn send_request(auth: &ResolvedAuth, request: &DynamicRequest) -> Result<serde_json::Value> {
+async fn send_request(
+    auth: &ResolvedAuth,
+    request: &DynamicRequest,
+    service_label: &str,
+) -> Result<serde_json::Value> {
     let token = auth.token().await?;
     let client = reqwest::Client::new();
 
@@ -106,17 +127,17 @@ async fn send_request(auth: &ResolvedAuth, request: &DynamicRequest) -> Result<s
 
     if !status.is_success() {
         let body = resp.text().await.unwrap_or_default();
-        // Try to extract structured error message from BigQuery.
+        // Try to extract structured error message.
         if let Ok(err_json) = serde_json::from_str::<serde_json::Value>(&body) {
             if let Some(msg) = err_json
                 .get("error")
                 .and_then(|e| e.get("message"))
                 .and_then(|m| m.as_str())
             {
-                bail!("BigQuery API error {}: {}", status.as_u16(), msg);
+                bail!("{service_label} API error {}: {}", status.as_u16(), msg);
             }
         }
-        bail!("BigQuery API error {}: {}", status.as_u16(), body);
+        bail!("{service_label} API error {}: {}", status.as_u16(), body);
     }
 
     let body: serde_json::Value = resp.json().await?;
@@ -129,12 +150,9 @@ fn render_response(body: &serde_json::Value, format: &OutputFormat) -> Result<()
             println!("{}", serde_json::to_string_pretty(body)?);
         }
         OutputFormat::Table | OutputFormat::Text => {
-            // For table/text, flatten one level of common reference objects
-            // and render as a table if the response contains a list.
             if let Some(items) = find_list_items(body) {
                 render_items_as_table(items)?;
             } else {
-                // Single object — render as key-value pairs.
                 render_object_as_table(body)?;
             }
         }
@@ -143,14 +161,27 @@ fn render_response(body: &serde_json::Value, format: &OutputFormat) -> Result<()
 }
 
 /// Find a list-like array in the response for table rendering.
-/// BigQuery list responses typically have a top-level array field
-/// like "datasets", "tables", etc.
+///
+/// Dynamically scans top-level fields for the first array of objects,
+/// skipping known metadata fields.
 fn find_list_items(body: &serde_json::Value) -> Option<&Vec<serde_json::Value>> {
     let obj = body.as_object()?;
-    // Common list field names in BigQuery API responses.
-    for key in ["datasets", "tables", "jobs", "routines", "models"] {
-        if let Some(arr) = obj.get(key).and_then(|v| v.as_array()) {
-            return Some(arr);
+    const SKIP_FIELDS: &[&str] = &[
+        "kind",
+        "etag",
+        "nextPageToken",
+        "totalItems",
+        "selfLink",
+        "unreachable",
+    ];
+    for (key, value) in obj {
+        if SKIP_FIELDS.contains(&key.as_str()) {
+            continue;
+        }
+        if let Some(arr) = value.as_array() {
+            if arr.is_empty() || arr[0].is_object() {
+                return Some(arr);
+            }
         }
     }
     None
@@ -165,11 +196,10 @@ fn render_items_as_table(items: &[serde_json::Value]) -> Result<()> {
         return Ok(());
     }
 
-    // Flatten one level of *Reference objects and collect columns from first item.
+    // Flatten one level of *Reference objects and collect columns from all items.
     let flattened: Vec<serde_json::Map<String, serde_json::Value>> =
         items.iter().map(flatten_references).collect();
 
-    // Collect columns from all items to handle sparse data.
     let mut columns: Vec<String> = Vec::new();
     for item in &flattened {
         for key in item.keys() {
@@ -218,8 +248,6 @@ fn render_object_as_table(body: &serde_json::Value) -> Result<()> {
 }
 
 /// Flatten one level of `*Reference` objects (e.g. datasetReference, tableReference).
-/// { "datasetReference": { "datasetId": "foo", "projectId": "bar" }, "kind": "..." }
-/// becomes { "datasetId": "foo", "projectId": "bar", "kind": "..." }
 fn flatten_references(value: &serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
     let mut result = serde_json::Map::new();
     if let Some(obj) = value.as_object() {

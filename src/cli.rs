@@ -88,21 +88,6 @@ pub enum Command {
         #[command(subcommand)]
         command: LookerCommand,
     },
-    /// Cloud Spanner inventory commands
-    Spanner {
-        #[command(subcommand)]
-        command: SpannerCommand,
-    },
-    /// AlloyDB inventory commands
-    Alloydb {
-        #[command(subcommand)]
-        command: AlloyDbCommand,
-    },
-    /// Cloud SQL inventory commands
-    Cloudsql {
-        #[command(subcommand)]
-        command: CloudSqlCommand,
-    },
 }
 
 #[derive(Clone, ValueEnum)]
@@ -179,102 +164,6 @@ pub enum LookerDashboardsCommand {
         /// Dashboard ID
         #[arg(long)]
         dashboard_id: String,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum SpannerCommand {
-    /// Spanner instance operations
-    Instances {
-        #[command(subcommand)]
-        command: SpannerInstancesCommand,
-    },
-    /// Spanner database operations
-    Databases {
-        #[command(subcommand)]
-        command: SpannerDatabasesCommand,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum SpannerInstancesCommand {
-    /// List Spanner instances in a project
-    List,
-}
-
-#[derive(Subcommand)]
-pub enum SpannerDatabasesCommand {
-    /// List databases in a Spanner instance
-    List {
-        /// Spanner instance ID
-        #[arg(long)]
-        instance: String,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum AlloyDbCommand {
-    /// AlloyDB cluster operations
-    Clusters {
-        #[command(subcommand)]
-        command: AlloyDbClustersCommand,
-    },
-    /// AlloyDB instance operations
-    Instances {
-        #[command(subcommand)]
-        command: AlloyDbInstancesCommand,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum AlloyDbClustersCommand {
-    /// List AlloyDB clusters in a project
-    List,
-}
-
-#[derive(Subcommand)]
-pub enum AlloyDbInstancesCommand {
-    /// List instances in an AlloyDB cluster
-    List {
-        /// AlloyDB cluster ID
-        #[arg(long)]
-        cluster: String,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum CloudSqlCommand {
-    /// Cloud SQL instance operations
-    Instances {
-        #[command(subcommand)]
-        command: CloudSqlInstancesCommand,
-    },
-    /// Cloud SQL database operations
-    Databases {
-        #[command(subcommand)]
-        command: CloudSqlDatabasesCommand,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum CloudSqlInstancesCommand {
-    /// List Cloud SQL instances in a project
-    List,
-    /// Get details of a Cloud SQL instance
-    Get {
-        /// Cloud SQL instance name
-        #[arg(long)]
-        instance: String,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum CloudSqlDatabasesCommand {
-    /// List databases in a Cloud SQL instance
-    List {
-        /// Cloud SQL instance name
-        #[arg(long)]
-        instance: String,
     },
 }
 

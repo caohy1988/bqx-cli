@@ -67,7 +67,7 @@ fn alloydb_instances_help_shows_list() {
 
 #[test]
 fn alloydb_clusters_list_requires_project_id() {
-    let output = run_dcx(&["alloydb", "clusters", "list"]);
+    let output = run_dcx(&["alloydb", "clusters", "list", "--location-id", "-"]);
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -78,7 +78,15 @@ fn alloydb_clusters_list_requires_project_id() {
 
 #[test]
 fn alloydb_instances_list_requires_project_id() {
-    let output = run_dcx(&["alloydb", "instances", "list", "--cluster", "my-cluster"]);
+    let output = run_dcx(&[
+        "alloydb",
+        "instances",
+        "list",
+        "--cluster-id",
+        "my-cluster",
+        "--location-id",
+        "us-central1",
+    ]);
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -87,57 +95,19 @@ fn alloydb_instances_list_requires_project_id() {
     );
 }
 
-// ── identifier validation ──
+// ── instances list requires --cluster-id ──
 
 #[test]
-fn alloydb_rejects_invalid_project_id() {
-    let output = run_dcx(&[
-        "alloydb",
-        "clusters",
-        "list",
-        "--project-id",
-        "bad proj",
-        "--token",
-        "test-token",
-    ]);
-    assert!(!output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("Invalid project-id"),
-        "Should reject invalid project-id locally, got: {stderr}"
-    );
-}
-
-#[test]
-fn alloydb_rejects_invalid_cluster_id() {
-    let output = run_dcx(&[
-        "alloydb",
-        "instances",
-        "list",
-        "--project-id",
-        "good-proj",
-        "--cluster",
-        "my/cluster",
-        "--token",
-        "test-token",
-    ]);
-    assert!(!output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("Invalid cluster"),
-        "Should reject invalid cluster locally, got: {stderr}"
-    );
-}
-
-// ── instances list requires --cluster ──
-
-#[test]
-fn alloydb_instances_list_requires_cluster() {
+fn alloydb_instances_list_requires_cluster_id() {
     let output = run_dcx(&["alloydb", "instances", "list"]);
     assert!(!output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(
-        stderr.contains("--cluster"),
-        "Should require --cluster flag, got: {stderr}"
+        combined.contains("--cluster-id"),
+        "Should require --cluster-id flag, got: {combined}"
     );
 }

@@ -1,10 +1,7 @@
-pub mod alloydb;
 pub mod analytics;
 pub mod ca;
-pub mod cloudsql;
 pub mod common;
 pub mod generate_skills;
 pub mod jobs_query;
 pub mod looker;
 pub mod profiles;
-pub mod spanner;
