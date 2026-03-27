@@ -145,28 +145,29 @@ surface grows automatically, and Skills define how agents use them.
 
 **Example — adding `datasets.delete` to dcx:**
 
-dcx bundles Google's BigQuery Discovery document, which already describes
-every API method: URL path, HTTP verb, parameters, and types. At startup,
-dcx parses the document, builds clap subcommands for each allowlisted
-method, and wires them to a generic HTTP executor. Today's allowlist covers
-8 read-only methods. To add `datasets.delete`:
+dcx bundles Google Discovery documents for BigQuery, Spanner, AlloyDB, and
+Cloud SQL. At startup, it parses each document, builds clap subcommands for
+allowlisted methods, and wires them to a shared HTTP executor. Today's
+allowlists cover 21 read-only methods across 4 services. To add
+`datasets.delete`:
 
 ```rust
-// src/bigquery/dynamic/model.rs — one line added
-pub const ALLOWED_METHODS: &[&str] = &[
+// src/bigquery/dynamic/service.rs — one line added to the BigQuery config
+allowed_methods: &[
     "bigquery.datasets.list",
     "bigquery.datasets.get",
 +   "bigquery.datasets.delete",   // ← this is the entire change
     "bigquery.tables.list",
     ...
-];
+],
 ```
 
 No new handler, no new struct, no new tests for the command itself — the
 Discovery document already defines the parameters (`projectId`,
 `datasetId`, `deleteContents`) and dcx generates the CLI surface
 automatically. `dcx datasets delete --project-id=my-proj --dataset-id=foo`
-works immediately.
+works immediately. The same pattern extends Spanner, AlloyDB, and Cloud SQL
+— adding a new method to any service is a one-line allowlist change.
 
 With `bq`, the agent invents the workflow. With `dcx`, the workflow is part
 of the product.
@@ -175,18 +176,25 @@ of the product.
 
 This is not a proposal. I have already built and shipped a working prototype.
 
-The prototype is at v0.4.0 with 347+ tests, 32 agent skills, and release
+The prototype is at v0.4.0 with 321+ tests, 32 agent skills, and release
 binaries for 6 platforms (macOS, Linux, Windows — x64 and ARM64). It covers
-three command domains:
+five command domains:
 
-- **Dynamic BigQuery API** — datasets, tables, routines, models, generated
-  from the Discovery document
+- **Dynamic Data Cloud APIs** — generated from bundled Google Discovery
+  documents for BigQuery (`bigquery/v2`), Spanner (`spanner/v1`), AlloyDB
+  (`alloydb/v1`), and Cloud SQL (`sqladmin/v1`). One `ServiceConfig`
+  abstraction per service, shared HTTP executor. BigQuery commands are
+  top-level; Spanner/AlloyDB/Cloud SQL are namespaced.
+- **Looker Native** — hand-written `explores` and `dashboards` commands
+  (the Looker API is not a Google Discovery document)
 - **Agent Analytics** — doctor, evaluate, drift, insights, distribution,
   traces, HITL metrics, views. These prototype the workflow patterns that
   will migrate to Skills over agent ops APIs as those APIs land.
 - **Conversational Analytics** — `ca ask` across 6 data sources (BigQuery,
   Looker, Looker Studio, AlloyDB, Spanner, Cloud SQL), plus
   `ca create-agent`, `ca add-verified-query`, `ca list-agents`
+- **Profile Utilities** — `profiles list|show|validate` for cross-source
+  configuration management
 
 The CA integration supports all official Conversational Analytics API data
 sources through a unified `ca ask` command. Source profiles determine which
