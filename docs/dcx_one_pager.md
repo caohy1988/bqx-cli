@@ -52,12 +52,12 @@ disagree on three things:
 |---|---|---|
 | **Output** | Readable ASCII tables | Structured JSON with a predictable schema |
 | **Discovery** | `--help` text and man pages | Machine-readable skill files (SKILL.md) that declare when to use each command, what flags to pass, and what the output shape is |
-| **Errors** | A descriptive message they can read | A JSON object with an error code they can branch on |
+| **Errors** | A descriptive message they can read | A JSON envelope (`{"error":"..."}`) they can parse without regex |
 
 You could add `--format json` and skill files to `bq` — the interface
 requirements are not tied to a binary name. What matters is that
 **someone ships the agent-native interface layer**: JSON-first output,
-skill files for discovery, structured errors. dcx is a working proof
+skill files for discovery, JSON error envelopes. dcx is a working proof
 of what that layer looks like. Whether it ships standalone or as an
 agent mode on top of `bq` is an implementation decision that comes after
 validating the design.
@@ -81,7 +81,7 @@ to call it correctly.
 | | `bq` CLI | `dcx` CLI |
 |---|---|---|
 | **Discovery** | No skill files. The agent must be pre-programmed with `bq` syntax, or parse `--help` text and guess. | Ships 32 skills in the open SKILL.md format covering BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL. An agent reads the skill file and knows exactly what parameters to pass. |
-| **Integration** | Every agent platform (OpenClaw, Gemini CLI, Claude Code) writes its own `bq` wrapper with hardcoded knowledge of which flags to use. | One stable skill surface. All agent platforms integrate BigQuery the same way — no per-platform wrapper code. |
+| **Integration** | Every agent platform (OpenClaw, Gemini CLI, Claude Code) writes its own `bq` wrapper with hardcoded knowledge of which flags to use. | Two integration surfaces today: SKILL.md files for CLI agents, and a Gemini extension manifest for Gemini-native agents. Not yet a single surface — but both are checked in and versioned, unlike ad-hoc wrappers. |
 | **Example** | Agent has no way to discover that `bq query` exists or what flags it needs. Team writes a custom tool definition for each agent framework. | Agent loads `skills/dcx-query/SKILL.md`, sees the command template, parameters, and output schema. Runs it directly. |
 
 **What a skill file looks like** — `skills/dcx-query/SKILL.md` (abridged):
@@ -145,28 +145,29 @@ surface grows automatically, and Skills define how agents use them.
 
 **Example — adding `datasets.delete` to dcx:**
 
-dcx bundles Google's BigQuery Discovery document, which already describes
-every API method: URL path, HTTP verb, parameters, and types. At startup,
-dcx parses the document, builds clap subcommands for each allowlisted
-method, and wires them to a generic HTTP executor. Today's allowlist covers
-8 read-only methods. To add `datasets.delete`:
+dcx bundles Google Discovery documents for BigQuery, Spanner, AlloyDB, and
+Cloud SQL. At startup, it parses each document, builds clap subcommands for
+allowlisted methods, and wires them to a shared HTTP executor. Today's
+allowlists cover 21 read-only methods across 4 services. To add
+`datasets.delete`:
 
 ```rust
-// src/bigquery/dynamic/model.rs — one line added
-pub const ALLOWED_METHODS: &[&str] = &[
+// src/bigquery/dynamic/service.rs — one line added to the BigQuery config
+allowed_methods: &[
     "bigquery.datasets.list",
     "bigquery.datasets.get",
 +   "bigquery.datasets.delete",   // ← this is the entire change
     "bigquery.tables.list",
     ...
-];
+],
 ```
 
 No new handler, no new struct, no new tests for the command itself — the
 Discovery document already defines the parameters (`projectId`,
 `datasetId`, `deleteContents`) and dcx generates the CLI surface
 automatically. `dcx datasets delete --project-id=my-proj --dataset-id=foo`
-works immediately.
+works immediately. The same pattern extends Spanner, AlloyDB, and Cloud SQL
+— adding a new method to any service is a one-line allowlist change.
 
 With `bq`, the agent invents the workflow. With `dcx`, the workflow is part
 of the product.
@@ -175,18 +176,25 @@ of the product.
 
 This is not a proposal. I have already built and shipped a working prototype.
 
-The prototype is at v0.4.0 with 347+ tests, 32 agent skills, and release
+The prototype is at v0.4.0 with 444 tests, 32 agent skills, and release
 binaries for 6 platforms (macOS, Linux, Windows — x64 and ARM64). It covers
-three command domains:
+five command domains:
 
-- **Dynamic BigQuery API** — datasets, tables, routines, models, generated
-  from the Discovery document
+- **Dynamic Data Cloud APIs** — generated from bundled Google Discovery
+  documents for BigQuery (`bigquery/v2`), Spanner (`spanner/v1`), AlloyDB
+  (`alloydb/v1`), and Cloud SQL (`sqladmin/v1`). One `ServiceConfig`
+  abstraction per service, shared HTTP executor. BigQuery commands are
+  top-level; Spanner/AlloyDB/Cloud SQL are namespaced.
+- **Looker Native** — hand-written `explores` and `dashboards` commands
+  (the Looker API is not a Google Discovery document)
 - **Agent Analytics** — doctor, evaluate, drift, insights, distribution,
   traces, HITL metrics, views. These prototype the workflow patterns that
   will migrate to Skills over agent ops APIs as those APIs land.
 - **Conversational Analytics** — `ca ask` across 6 data sources (BigQuery,
   Looker, Looker Studio, AlloyDB, Spanner, Cloud SQL), plus
   `ca create-agent`, `ca add-verified-query`, `ca list-agents`
+- **Profile Utilities** — `profiles list|show|validate` for cross-source
+  configuration management
 
 The CA integration supports all official Conversational Analytics API data
 sources through a unified `ca ask` command. Source profiles determine which
