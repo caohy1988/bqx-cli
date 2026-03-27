@@ -66,6 +66,8 @@ async fn main() {
                 .subcommand_required(true)
                 .arg_required_else_help(true)
                 .subcommands(dynamic_clap);
+            let ns_cmd =
+                commands::database_helpers::augment_namespace_command(svc.config.namespace, ns_cmd);
             namespace_names.push(svc.config.namespace.to_string());
             app = app.subcommand(ns_cmd);
         }
@@ -97,6 +99,21 @@ async fn main() {
                         std::process::exit(1);
                     }
                 };
+                if let Some(result) = commands::database_helpers::try_run_namespace_helper(
+                    svc.config.namespace,
+                    group_name,
+                    action_name,
+                    action_matches,
+                    &matches,
+                )
+                .await
+                {
+                    if let Err(e) = result {
+                        eprintln!("{}", json!({"error": e.to_string()}));
+                        std::process::exit(1);
+                    }
+                    return;
+                }
                 run_dynamic(svc, group_name, action_name, action_matches, &matches).await;
                 return;
             } else {

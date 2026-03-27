@@ -250,6 +250,33 @@ dcx cloudsql instances get --project-id=myproject --instance=my-inst
 dcx cloudsql databases list --project-id=myproject --instance=my-inst
 ```
 
+**Profile-aware helpers (M4):** Schema and database helpers use CA
+QueryData under the hood, routed by source profile. They validate
+profile/source compatibility before auth or network.
+
+```bash
+# Spanner: describe schema columns via profile
+dcx spanner schema describe --profile=spanner-finance
+
+# Cloud SQL: describe schema columns via profile
+dcx cloudsql schema describe --profile=cloudsql-app
+
+# AlloyDB: list databases via profile
+dcx alloydb databases list --profile=alloydb-ops
+```
+
+#### Domain 1c: `dcx looker <resource> <method>` — Looker API (hand-written)
+
+Hand-written commands using the Looker API (not Discovery-driven, as
+Looker is not a Google Discovery document). Profile-driven.
+
+```bash
+dcx looker explores list --profile=sales-looker
+dcx looker explores get --profile=sales-looker --explore=model/explore
+dcx looker dashboards list --profile=sales-looker
+dcx looker dashboards get --profile=sales-looker --dashboard-id=42
+```
+
 #### Domain 2: `dcx analytics <command>` — Agent Analytics (static)
 
 Wraps the BigQuery Agent Analytics SDK. Commands are compiled into the
@@ -1089,8 +1116,8 @@ See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 - [x] Add `dcx spanner instances|databases list|get|get-ddl` (Discovery-driven)
 - [x] Add `dcx alloydb clusters|instances list|get` (Discovery-driven)
 - [x] Add `dcx cloudsql instances|databases list|get` (Discovery-driven)
-- [ ] Add schema and source-inspection helpers where profile context makes them
-  safe and predictable
+- [x] Add profile-aware schema and database helpers: `dcx spanner schema
+  describe`, `dcx cloudsql schema describe`, `dcx alloydb databases list`
 - [ ] Expand skills and docs so agents can choose between `ca ask` and direct
   source commands
 - [ ] Release `0.5.0` with a validated cross-source command matrix
@@ -1104,6 +1131,12 @@ methods. The `ServiceConfig` abstraction in `src/bigquery/dynamic/service.rs`
 holds per-service configuration (namespace, allowlist, global param mapping,
 flatPath preference). Looker retains a hand-written command surface because
 the Looker API is not a Google Discovery document.
+
+**M4 note:** Profile-aware helpers (`spanner schema describe`,
+`cloudsql schema describe`, `alloydb databases list`) use CA QueryData
+to inspect source schemas and databases. They validate profile/source
+type compatibility before auth, and support `json`, `table`, and `text`
+output formats. Implementation: `src/commands/database_helpers.rs`.
 
 **Exit criteria:** `dcx` supports direct, structured, non-CA commands for
 Looker, Spanner, AlloyDB, and Cloud SQL in addition to the existing BigQuery
