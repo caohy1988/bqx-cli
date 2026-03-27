@@ -3,7 +3,6 @@ use anyhow::{bail, Result};
 use crate::auth::{self, AuthOptions};
 use crate::ca::profiles::{self, SourceType};
 use crate::cli::OutputFormat;
-use crate::output;
 use crate::sources::looker::client::HttpLookerClient;
 use crate::sources::looker::client::LookerClient;
 use crate::sources::looker::models::{ExploreGetResponse, ExploresListResponse};
@@ -132,26 +131,8 @@ pub(crate) async fn resolve_looker_token(
     resolved.token().await
 }
 
-/// Apply Model Armor sanitization if configured, then render.
-pub(crate) async fn maybe_sanitize_and_render<T: serde::Serialize>(
-    response: &T,
-    auth_opts: &AuthOptions,
-    format: &OutputFormat,
-    sanitize_template: Option<&str>,
-) -> Result<()> {
-    if let Some(template) = sanitize_template {
-        let resolved = auth::resolve(auth_opts).await?;
-        let json_val = serde_json::to_value(response)?;
-        let sanitize_result =
-            crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
-        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
-        if sanitize_result.sanitized {
-            return crate::output::render(&sanitize_result.content, format);
-        }
-    }
-
-    output::render(response, format)
-}
+// Re-export for backward compatibility with dashboards module.
+pub(crate) use crate::commands::common::maybe_sanitize_and_render;
 
 fn render_explores_text(response: &ExploresListResponse) {
     println!("Looker Instance: {}", response.instance_url);

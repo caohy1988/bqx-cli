@@ -1,12 +1,16 @@
 use dcx::bigquery::discovery::{self, DiscoverySource};
 use dcx::bigquery::dynamic::model::{
     extract_methods, filter_allowed, to_generated_command, ArgValueType, ParamLocation,
-    ALLOWED_METHODS,
 };
+use dcx::bigquery::dynamic::service;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+fn bq_config() -> service::ServiceConfig {
+    service::bigquery()
+}
 
 fn load_mini_fixture() -> discovery::DiscoveryDocument {
     let raw = include_str!("fixtures/discovery/bigquery_v2_mini.json");
@@ -51,7 +55,7 @@ fn bundled_discovery_base_url() {
 #[test]
 fn extract_methods_from_mini_fixture() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc);
+    let methods = extract_methods(&doc, false);
     assert_eq!(methods.len(), 3);
 
     let ids: Vec<&str> = methods.iter().map(|m| m.id.as_str()).collect();
@@ -63,7 +67,7 @@ fn extract_methods_from_mini_fixture() {
 #[test]
 fn mini_datasets_list_has_correct_params() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc);
+    let methods = extract_methods(&doc, false);
     let ds_list = methods
         .iter()
         .find(|m| m.id == "bigquery.datasets.list")
@@ -107,7 +111,7 @@ fn mini_datasets_list_has_correct_params() {
 #[test]
 fn mini_tables_get_has_three_path_params() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc);
+    let methods = extract_methods(&doc, false);
     let tbl_get = methods
         .iter()
         .find(|m| m.id == "bigquery.tables.get")
@@ -135,7 +139,7 @@ fn mini_tables_get_has_three_path_params() {
 #[test]
 fn extract_methods_from_bundled_returns_nonempty() {
     let doc = load_bundled();
-    let methods = extract_methods(&doc);
+    let methods = extract_methods(&doc, false);
     assert!(
         methods.len() > 30,
         "expected >30 methods from full discovery, got {}",
@@ -145,11 +149,12 @@ fn extract_methods_from_bundled_returns_nonempty() {
 
 #[test]
 fn bundled_contains_all_allowed_methods() {
+    let cfg = bq_config();
     let doc = load_bundled();
-    let methods = extract_methods(&doc);
+    let methods = extract_methods(&doc, cfg.use_flat_path);
     let ids: Vec<&str> = methods.iter().map(|m| m.id.as_str()).collect();
 
-    for allowed in ALLOWED_METHODS {
+    for allowed in cfg.allowed_methods {
         assert!(
             ids.contains(allowed),
             "bundled discovery missing allowlisted method: {allowed}"
@@ -163,26 +168,29 @@ fn bundled_contains_all_allowed_methods() {
 
 #[test]
 fn filter_allowed_returns_expected_count() {
+    let cfg = bq_config();
     let doc = load_bundled();
-    let methods = extract_methods(&doc);
-    let filtered = filter_allowed(&methods);
+    let methods = extract_methods(&doc, cfg.use_flat_path);
+    let filtered = filter_allowed(&methods, cfg.allowed_methods);
     assert_eq!(filtered.len(), 8);
 }
 
 #[test]
 fn filter_allowed_preserves_allowlist_order() {
+    let cfg = bq_config();
     let doc = load_bundled();
-    let methods = extract_methods(&doc);
-    let filtered = filter_allowed(&methods);
+    let methods = extract_methods(&doc, cfg.use_flat_path);
+    let filtered = filter_allowed(&methods, cfg.allowed_methods);
     let ids: Vec<&str> = filtered.iter().map(|m| m.id.as_str()).collect();
-    assert_eq!(ids, ALLOWED_METHODS);
+    assert_eq!(ids, cfg.allowed_methods);
 }
 
 #[test]
-fn filter_allowed_on_mini_returns_two() {
+fn filter_allowed_on_mini_returns_three() {
+    let cfg = bq_config();
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc);
-    let filtered = filter_allowed(&methods);
+    let methods = extract_methods(&doc, false);
+    let filtered = filter_allowed(&methods, cfg.allowed_methods);
     // Mini has datasets.list, datasets.get, tables.get — all three are in allowlist
     assert_eq!(filtered.len(), 3);
     let ids: Vec<&str> = filtered.iter().map(|m| m.id.as_str()).collect();
@@ -203,7 +211,7 @@ fn filter_allowed_on_mini_returns_two() {
 #[test]
 fn generated_command_shape() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc);
+    let methods = extract_methods(&doc, false);
     let ds_list = methods
         .iter()
         .find(|m| m.id == "bigquery.datasets.list")
@@ -238,7 +246,7 @@ fn generated_command_shape() {
 #[test]
 fn generated_command_snapshot_datasets_list() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc);
+    let methods = extract_methods(&doc, false);
     let ds_list = methods
         .iter()
         .find(|m| m.id == "bigquery.datasets.list")
@@ -250,7 +258,7 @@ fn generated_command_snapshot_datasets_list() {
 #[test]
 fn generated_command_snapshot_tables_get() {
     let doc = load_mini_fixture();
-    let methods = extract_methods(&doc);
+    let methods = extract_methods(&doc, false);
     let tbl_get = methods
         .iter()
         .find(|m| m.id == "bigquery.tables.get")
@@ -265,9 +273,10 @@ fn generated_command_snapshot_tables_get() {
 
 #[test]
 fn allowed_methods_snapshot() {
+    let cfg = bq_config();
     let doc = load_bundled();
-    let methods = extract_methods(&doc);
-    let filtered = filter_allowed(&methods);
+    let methods = extract_methods(&doc, cfg.use_flat_path);
+    let filtered = filter_allowed(&methods, cfg.allowed_methods);
     let summary: Vec<serde_json::Value> = filtered
         .iter()
         .map(|m| {

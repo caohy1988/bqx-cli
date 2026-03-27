@@ -1,30 +1,19 @@
 use anyhow::{bail, Result};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use super::super::discovery::DiscoveryDocument;
 
-/// Allowlisted BigQuery methods for Phase 2.
-pub const ALLOWED_METHODS: &[&str] = &[
-    "bigquery.datasets.list",
-    "bigquery.datasets.get",
-    "bigquery.tables.list",
-    "bigquery.tables.get",
-    "bigquery.routines.list",
-    "bigquery.routines.get",
-    "bigquery.models.list",
-    "bigquery.models.get",
-];
-
-/// A parsed BigQuery API method, extracted from Discovery.
+/// A parsed API method, extracted from a Discovery document.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiMethod {
     /// Discovery method ID, e.g. "bigquery.datasets.list"
     pub id: String,
-    /// Resource family, e.g. "datasets"
+    /// Leaf resource family, e.g. "datasets"
     pub resource: String,
     /// Action verb, e.g. "list"
     pub action: String,
-    /// URL path template, e.g. "projects/{+projectId}/datasets"
+    /// URL path template (may be `path` or `flatPath`).
     pub path: String,
     /// HTTP method, e.g. "GET"
     pub http_method: String,
@@ -104,17 +93,27 @@ pub enum ArgValueType {
 // Parsing
 // ---------------------------------------------------------------------------
 
-/// Extract all ApiMethods from a DiscoveryDocument by walking its resources.
-/// Methods that cannot be parsed (unexpected shape, missing fields, etc.)
-/// are skipped rather than aborting the entire document, so that unrelated
-/// upstream Discovery changes do not break the allowlisted command set.
-pub fn extract_methods(doc: &DiscoveryDocument) -> Vec<ApiMethod> {
+/// Extract all ApiMethods from a DiscoveryDocument by recursively walking its
+/// resources. Methods that cannot be parsed are skipped.
+///
+/// `use_flat_path`: when true, prefer `flatPath` over `path` and extract
+/// path parameters from the template (needed for Spanner/AlloyDB).
+pub fn extract_methods(doc: &DiscoveryDocument, use_flat_path: bool) -> Vec<ApiMethod> {
     let mut methods = Vec::new();
-    for (resource_name, resource_value) in &doc.resources {
-        let resource_methods = resource_value.get("methods").and_then(|m| m.as_object());
-        if let Some(method_map) = resource_methods {
+    extract_methods_recursive(&doc.resources, use_flat_path, &mut methods);
+    methods.sort_by(|a, b| a.id.cmp(&b.id));
+    methods
+}
+
+fn extract_methods_recursive(
+    resources: &serde_json::Map<String, serde_json::Value>,
+    use_flat_path: bool,
+    methods: &mut Vec<ApiMethod>,
+) {
+    for (resource_name, resource_value) in resources {
+        if let Some(method_map) = resource_value.get("methods").and_then(|m| m.as_object()) {
             for (_action_name, method_value) in method_map {
-                match parse_method(resource_name, method_value) {
+                match parse_method(resource_name, method_value, use_flat_path) {
                     Ok(method) => methods.push(method),
                     Err(e) => {
                         let id = method_value
@@ -126,21 +125,23 @@ pub fn extract_methods(doc: &DiscoveryDocument) -> Vec<ApiMethod> {
                 }
             }
         }
+        // Recurse into nested resources.
+        if let Some(sub_resources) = resource_value.get("resources").and_then(|r| r.as_object()) {
+            extract_methods_recursive(sub_resources, use_flat_path, methods);
+        }
     }
-    methods.sort_by(|a, b| a.id.cmp(&b.id));
-    methods
 }
 
-/// Filter methods to only those in the allowlist.
-pub fn filter_allowed(methods: &[ApiMethod]) -> Vec<ApiMethod> {
+/// Filter methods to only those in the given allowlist.
+pub fn filter_allowed(methods: &[ApiMethod], allowed: &[&str]) -> Vec<ApiMethod> {
     let mut result: Vec<ApiMethod> = methods
         .iter()
-        .filter(|m| ALLOWED_METHODS.contains(&m.id.as_str()))
+        .filter(|m| allowed.contains(&m.id.as_str()))
         .cloned()
         .collect();
     // Return in allowlist order for determinism.
     result.sort_by_key(|m| {
-        ALLOWED_METHODS
+        allowed
             .iter()
             .position(|&a| a == m.id)
             .unwrap_or(usize::MAX)
@@ -148,7 +149,11 @@ pub fn filter_allowed(methods: &[ApiMethod]) -> Vec<ApiMethod> {
     result
 }
 
-fn parse_method(resource_name: &str, value: &serde_json::Value) -> Result<ApiMethod> {
+fn parse_method(
+    resource_name: &str,
+    value: &serde_json::Value,
+    use_flat_path: bool,
+) -> Result<ApiMethod> {
     let id = value
         .get("id")
         .and_then(|v| v.as_str())
@@ -160,18 +165,26 @@ fn parse_method(resource_name: &str, value: &serde_json::Value) -> Result<ApiMet
         None => bail!("Cannot normalize method ID: {id}"),
     };
 
-    // Sanity check that resource matches the parent key.
+    // Sanity check: the parsed resource should match the parent resource key.
     if resource != resource_name {
-        bail!(
-            "Method {id}: parsed resource '{resource}' does not match parent resource '{resource_name}'"
-        );
+        bail!("Method {id}: parsed resource '{resource}' does not match parent '{resource_name}'");
     }
 
-    let path = value
-        .get("path")
-        .and_then(|v| v.as_str())
-        .unwrap_or_default()
-        .to_string();
+    // Choose path template: prefer flatPath when configured.
+    let path = if use_flat_path {
+        value
+            .get("flatPath")
+            .or_else(|| value.get("path"))
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string()
+    } else {
+        value
+            .get("path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string()
+    };
 
     let http_method = value
         .get("httpMethod")
@@ -185,7 +198,18 @@ fn parse_method(resource_name: &str, value: &serde_json::Value) -> Result<ApiMet
         .unwrap_or_default()
         .to_string();
 
-    let parameters = parse_params(value.get("parameters"))?;
+    // Parse parameters: from flatPath template if using flat_path, otherwise from Discovery params.
+    let parameters = if use_flat_path && value.get("flatPath").is_some() {
+        parse_flat_path_params(
+            value
+                .get("flatPath")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default(),
+            value.get("parameters"),
+        )?
+    } else {
+        parse_params(value.get("parameters"))?
+    };
 
     let request_ref = value
         .get("request")
@@ -210,6 +234,80 @@ fn parse_method(resource_name: &str, value: &serde_json::Value) -> Result<ApiMet
         request_ref,
         response_ref,
     })
+}
+
+/// Parse parameters from a flatPath template + Discovery parameter definitions.
+///
+/// Path parameters are extracted from the `{paramName}` placeholders in the
+/// flatPath template. Query parameters come from the Discovery `parameters` object.
+fn parse_flat_path_params(
+    flat_path: &str,
+    params_value: Option<&serde_json::Value>,
+) -> Result<Vec<ApiParam>> {
+    let mut params = Vec::new();
+
+    // Extract path params from flatPath template (e.g., {projectsId}, {instancesId}).
+    let re = Regex::new(r"\{(\w+)\}").unwrap();
+    for cap in re.captures_iter(flat_path) {
+        let name = cap[1].to_string();
+        params.push(ApiParam {
+            name,
+            location: ParamLocation::Path,
+            param_type: "string".to_string(),
+            format: None,
+            required: true,
+            description: String::new(),
+        });
+    }
+
+    // Add query parameters from Discovery parameters object.
+    if let Some(obj) = params_value.and_then(|v| v.as_object()) {
+        for (name, val) in obj {
+            let location_str = val
+                .get("location")
+                .and_then(|v| v.as_str())
+                .unwrap_or("query");
+            if location_str == "path" {
+                // Path params already extracted from flatPath.
+                continue;
+            }
+            params.push(ApiParam {
+                name: name.clone(),
+                location: ParamLocation::Query,
+                param_type: val
+                    .get("type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("string")
+                    .to_string(),
+                format: val
+                    .get("format")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                required: val
+                    .get("required")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
+                description: val
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+            });
+        }
+    }
+
+    // Sort: path params first (alphabetically), then query params (alphabetically).
+    params.sort_by(|a, b| {
+        let loc_ord = |p: &ApiParam| match p.location {
+            ParamLocation::Path => 0,
+            ParamLocation::Query => 1,
+        };
+        loc_ord(a)
+            .cmp(&loc_ord(b))
+            .then_with(|| a.name.cmp(&b.name))
+    });
+
+    Ok(params)
 }
 
 fn parse_params(params_value: Option<&serde_json::Value>) -> Result<Vec<ApiParam>> {
@@ -281,17 +379,34 @@ fn parse_params(params_value: Option<&serde_json::Value>) -> Result<Vec<ApiParam
 // Normalization
 // ---------------------------------------------------------------------------
 
-/// Normalize BigQuery method ID to (resource, action).
-/// "bigquery.datasets.list" → ("datasets", "list")
+/// Normalize a Discovery method ID to (resource, action).
+///
+/// Works for any service with any number of dot-separated parts:
+///   "bigquery.datasets.list"                      → ("datasets", "list")
+///   "spanner.projects.instances.list"              → ("instances", "list")
+///   "spanner.projects.instances.databases.list"    → ("databases", "list")
+///   "sql.instances.list"                           → ("instances", "list")
 pub fn normalize_method_id(id: &str) -> Option<(String, String)> {
     let parts: Vec<&str> = id.split('.').collect();
-    if parts.len() != 3 {
+    if parts.len() < 3 {
         return None;
     }
-    if parts[0] != "bigquery" {
-        return None;
+    let resource = parts[parts.len() - 2].to_string();
+    let action = parts[parts.len() - 1].to_string();
+    Some((resource, action))
+}
+
+/// Normalize a flatPath parameter name for friendlier CLI flag names.
+///
+/// Strips the plural-form suffix: "projectsId" → "projectId",
+/// "instancesId" → "instanceId". This produces nicer kebab-case flags
+/// like `--instance-id` instead of `--instances-id`.
+fn normalize_flat_param_name(name: &str) -> String {
+    if name.ends_with("sId") && name.len() > 3 {
+        format!("{}Id", &name[..name.len() - 3])
+    } else {
+        name.to_string()
     }
-    Some((parts[1].to_string(), parts[2].to_string()))
 }
 
 /// Convert camelCase API param name to kebab-case CLI flag.
@@ -330,18 +445,21 @@ pub fn to_generated_command(method: &ApiMethod) -> GeneratedCommand {
     let args: Vec<GeneratedArgument> = method
         .parameters
         .iter()
-        .map(|p| GeneratedArgument {
-            flag_name: to_kebab_case(&p.name),
-            api_name: p.name.clone(),
-            required: p.required,
-            help: p.description.clone(),
-            value_type: discovery_type_to_arg_type(&p.param_type),
+        .map(|p| {
+            let cli_name = normalize_flat_param_name(&p.name);
+            GeneratedArgument {
+                flag_name: to_kebab_case(&cli_name),
+                api_name: p.name.clone(),
+                required: p.required,
+                help: p.description.clone(),
+                value_type: discovery_type_to_arg_type(&p.param_type),
+            }
         })
         .collect();
 
     GeneratedCommand {
         group: method.resource.clone(),
-        action: method.action.clone(),
+        action: to_kebab_case(&method.action),
         about: method.description.clone(),
         args,
         method: method.clone(),
@@ -362,9 +480,25 @@ mod tests {
             normalize_method_id("bigquery.tables.get"),
             Some(("tables".into(), "get".into()))
         );
+    }
+
+    #[test]
+    fn normalize_method_id_multi_part() {
         assert_eq!(
-            normalize_method_id("bigquery.jobs.get"),
-            Some(("jobs".into(), "get".into()))
+            normalize_method_id("spanner.projects.instances.list"),
+            Some(("instances".into(), "list".into()))
+        );
+        assert_eq!(
+            normalize_method_id("spanner.projects.instances.databases.list"),
+            Some(("databases".into(), "list".into()))
+        );
+        assert_eq!(
+            normalize_method_id("alloydb.projects.locations.clusters.list"),
+            Some(("clusters".into(), "list".into()))
+        );
+        assert_eq!(
+            normalize_method_id("sql.instances.list"),
+            Some(("instances".into(), "list".into()))
         );
     }
 
@@ -373,12 +507,21 @@ mod tests {
         assert_eq!(normalize_method_id("datasets.list"), None);
         assert_eq!(normalize_method_id(""), None);
         assert_eq!(normalize_method_id("bigquery.datasets"), None);
-        assert_eq!(normalize_method_id("bigquery.datasets.list.extra"), None);
     }
 
     #[test]
-    fn normalize_method_id_rejects_wrong_service() {
-        assert_eq!(normalize_method_id("storage.buckets.list"), None);
+    fn normalize_flat_param_name_strips_plural() {
+        assert_eq!(normalize_flat_param_name("projectsId"), "projectId");
+        assert_eq!(normalize_flat_param_name("instancesId"), "instanceId");
+        assert_eq!(normalize_flat_param_name("clustersId"), "clusterId");
+        assert_eq!(normalize_flat_param_name("locationsId"), "locationId");
+    }
+
+    #[test]
+    fn normalize_flat_param_name_passthrough() {
+        assert_eq!(normalize_flat_param_name("projectId"), "projectId");
+        assert_eq!(normalize_flat_param_name("project"), "project");
+        assert_eq!(normalize_flat_param_name("instance"), "instance");
     }
 
     #[test]
@@ -413,5 +556,73 @@ mod tests {
         assert_eq!(json, "\"query\"");
         let back: ParamLocation = serde_json::from_str(&json).unwrap();
         assert_eq!(back, ParamLocation::Query);
+    }
+
+    #[test]
+    fn extract_methods_bigquery_bundled() {
+        use super::super::super::discovery::{self, DiscoverySource};
+        let doc = discovery::load(&DiscoverySource::Bundled).unwrap();
+        let methods = extract_methods(&doc, false);
+        // BigQuery has many methods; ensure datasets.list is present.
+        assert!(methods.iter().any(|m| m.id == "bigquery.datasets.list"));
+        assert!(methods.iter().any(|m| m.id == "bigquery.tables.list"));
+    }
+
+    #[test]
+    fn extract_methods_spanner_bundled() {
+        use crate::bigquery::dynamic::service;
+        let cfg = service::spanner();
+        let doc = cfg.load_bundled().unwrap();
+        let methods = extract_methods(&doc, true);
+        assert!(methods
+            .iter()
+            .any(|m| m.id == "spanner.projects.instances.list"));
+        assert!(methods
+            .iter()
+            .any(|m| m.id == "spanner.projects.instances.databases.list"));
+    }
+
+    #[test]
+    fn filter_allowed_preserves_order() {
+        use super::super::super::discovery::{self, DiscoverySource};
+        let doc = discovery::load(&DiscoverySource::Bundled).unwrap();
+        let methods = extract_methods(&doc, false);
+        let allowed = &["bigquery.tables.list", "bigquery.datasets.list"];
+        let filtered = filter_allowed(&methods, allowed);
+        assert_eq!(filtered.len(), 2);
+        assert_eq!(filtered[0].id, "bigquery.tables.list");
+        assert_eq!(filtered[1].id, "bigquery.datasets.list");
+    }
+
+    #[test]
+    fn spanner_method_uses_flat_path() {
+        use crate::bigquery::dynamic::service;
+        let cfg = service::spanner();
+        let doc = cfg.load_bundled().unwrap();
+        let methods = extract_methods(&doc, true);
+        let inst_list = methods
+            .iter()
+            .find(|m| m.id == "spanner.projects.instances.list")
+            .unwrap();
+        // flatPath decomposes the `parent` param into `projectsId`.
+        assert!(
+            inst_list.path.contains("{projectsId}"),
+            "Should use flatPath: {}",
+            inst_list.path
+        );
+        assert!(inst_list.parameters.iter().any(|p| p.name == "projectsId"));
+    }
+
+    #[test]
+    fn cloudsql_method_uses_path() {
+        use crate::bigquery::dynamic::service;
+        let cfg = service::cloudsql();
+        let doc = cfg.load_bundled().unwrap();
+        let methods = extract_methods(&doc, false);
+        let inst_list = methods
+            .iter()
+            .find(|m| m.id == "sql.instances.list")
+            .unwrap();
+        assert!(inst_list.parameters.iter().any(|p| p.name == "project"));
     }
 }

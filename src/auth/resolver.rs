@@ -5,7 +5,7 @@ use gcp_auth::TokenProvider;
 
 use super::store::AuthStore;
 
-const BQ_SCOPE: &str = "https://www.googleapis.com/auth/bigquery";
+const CLOUD_PLATFORM_SCOPE: &str = "https://www.googleapis.com/auth/cloud-platform";
 const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 
 /// The credential source that was used to obtain a token.
@@ -86,7 +86,7 @@ impl ResolvedAuth {
             }
             AuthInner::GcpProvider(p) => {
                 let tok = p
-                    .token(&[BQ_SCOPE])
+                    .token(&[CLOUD_PLATFORM_SCOPE])
                     .await
                     .map_err(|e| anyhow::anyhow!("Failed to get access token: {e}"))?;
                 Ok(tok.as_str().to_string())

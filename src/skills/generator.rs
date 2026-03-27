@@ -77,11 +77,13 @@ mod tests {
     use super::*;
     use crate::bigquery::discovery::{self, DiscoverySource};
     use crate::bigquery::dynamic::model::{extract_methods, filter_allowed, to_generated_command};
+    use crate::bigquery::dynamic::service;
 
     fn load_generated_commands() -> Vec<GeneratedCommand> {
+        let cfg = service::bigquery();
         let doc = discovery::load(&DiscoverySource::Bundled).unwrap();
-        let methods = extract_methods(&doc);
-        let allowed = filter_allowed(&methods);
+        let methods = extract_methods(&doc, cfg.use_flat_path);
+        let allowed = filter_allowed(&methods, cfg.allowed_methods);
         allowed.iter().map(to_generated_command).collect()
     }
 

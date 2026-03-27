@@ -1,11 +1,13 @@
 use dcx::bigquery::discovery::{self, DiscoverySource};
 use dcx::bigquery::dynamic::model::{extract_methods, filter_allowed, to_generated_command};
+use dcx::bigquery::dynamic::service;
 use dcx::skills::generator;
 
 fn load_generated_commands() -> Vec<dcx::bigquery::dynamic::model::GeneratedCommand> {
+    let cfg = service::bigquery();
     let doc = discovery::load(&DiscoverySource::Bundled).unwrap();
-    let methods = extract_methods(&doc);
-    let allowed = filter_allowed(&methods);
+    let methods = extract_methods(&doc, cfg.use_flat_path);
+    let allowed = filter_allowed(&methods, cfg.allowed_methods);
     allowed.iter().map(to_generated_command).collect()
 }
 
