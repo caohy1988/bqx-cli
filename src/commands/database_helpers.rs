@@ -74,7 +74,9 @@ impl QueryDataExecutor for CaClient {
 pub fn augment_namespace_command(namespace: &str, ns_cmd: Command) -> Command {
     match namespace {
         "spanner" | "cloudsql" => ns_cmd.subcommand(schema_command()),
-        "alloydb" => ns_cmd.subcommand(alloydb_databases_command()),
+        "alloydb" => ns_cmd
+            .subcommand(schema_command())
+            .subcommand(alloydb_databases_command()),
         _ => ns_cmd,
     }
 }
@@ -116,6 +118,14 @@ pub async fn try_run_namespace_helper(
         ("cloudsql", "schema", "describe") => Some(run_schema_describe(
             profile_ref,
             SourceType::CloudSql,
+            &auth_opts,
+            &format,
+            sanitize_template,
+        )
+        .await),
+        ("alloydb", "schema", "describe") => Some(run_schema_describe(
+            profile_ref,
+            SourceType::AlloyDb,
             &auth_opts,
             &format,
             sanitize_template,
@@ -212,9 +222,9 @@ pub async fn run_schema_describe_with_executor(
     profile: &CaProfile,
 ) -> Result<SchemaDescribeResult> {
     match profile.source_type {
-        SourceType::Spanner | SourceType::CloudSql => {}
+        SourceType::Spanner | SourceType::CloudSql | SourceType::AlloyDb => {}
         _ => bail!(
-            "Profile '{}' is source_type '{}', expected 'spanner' or 'cloud_sql'",
+            "Profile '{}' is source_type '{}', expected 'spanner', 'cloud_sql', or 'alloydb'",
             profile.name,
             profile.source_type
         ),
@@ -286,6 +296,7 @@ fn resolve_profile_for_source(profile_ref: &str, expected_sources: &[SourceType]
 fn schema_prompt(profile: &CaProfile) -> String {
     match profile.source_type {
         SourceType::Spanner => "Describe the schema of this Spanner database. Return exactly these columns: table_name, column_name, data_type, is_nullable. Return one row per column, exclude internal tables, and order by table_name then column_name. Do not summarize.".to_string(),
+        SourceType::AlloyDb => "Describe the schema of this AlloyDB PostgreSQL database. Return exactly these columns: table_schema, table_name, column_name, data_type, is_nullable. Return one row per column, exclude system schemas (pg_catalog, information_schema, pg_toast), and order by table_schema, table_name, then column_name. Do not summarize.".to_string(),
         SourceType::CloudSql => {
             let engine_hint = match profile.db_type.as_deref() {
                 Some("mysql") => "MySQL",
@@ -531,6 +542,14 @@ mod tests {
     }
 
     #[test]
+    fn schema_prompt_mentions_alloydb_postgresql() {
+        let prompt = schema_prompt(&alloydb_profile());
+        assert!(prompt.contains("AlloyDB PostgreSQL"));
+        assert!(prompt.contains("table_schema"));
+        assert!(prompt.contains("pg_catalog"));
+    }
+
+    #[test]
     fn extract_schema_rows_accepts_aliases() {
         let rows = vec![serde_json::json!({
             "schema_name": "public",
@@ -612,5 +631,36 @@ mod tests {
             .unwrap();
         assert_eq!(result.rows.len(), 1);
         assert_eq!(result.rows[0].database_name, "opsdb");
+    }
+
+    #[tokio::test]
+    async fn run_schema_describe_with_executor_works_for_alloydb() {
+        let executor = MockQueryDataExecutor {
+            response: CaQuestionResponse {
+                question: "schema".into(),
+                agent: None,
+                sql: Some("SELECT table_schema, table_name, column_name, data_type, is_nullable FROM information_schema.columns".into()),
+                results: vec![serde_json::json!({
+                    "table_schema": "public",
+                    "table_name": "orders",
+                    "column_name": "id",
+                    "data_type": "integer",
+                    "is_nullable": "NO"
+                })
+                .as_object()
+                .unwrap()
+                .clone()],
+                explanation: Some("AlloyDB schema".into()),
+            },
+        };
+
+        let result = run_schema_describe_with_executor(&executor, &alloydb_profile())
+            .await
+            .unwrap();
+        assert_eq!(result.rows.len(), 1);
+        assert_eq!(result.source_type, SourceType::AlloyDb.to_string());
+        assert_eq!(result.database_id, "opsdb");
+        assert_eq!(result.rows[0].table_schema.as_deref(), Some("public"));
+        assert_eq!(result.rows[0].table_name, "orders");
     }
 }

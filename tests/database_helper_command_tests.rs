@@ -87,6 +87,33 @@ fn cloudsql_schema_describe_rejects_wrong_profile_type_before_network() {
 }
 
 #[test]
+fn alloydb_schema_describe_help_shows_profile() {
+    let output = run_dcx(&["alloydb", "schema", "describe", "--help"]);
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--profile"));
+    assert!(stdout.contains("Describe database schema from a source profile"));
+}
+
+#[test]
+fn alloydb_schema_describe_rejects_wrong_profile_type_before_network() {
+    let output = run_dcx(&[
+        "alloydb",
+        "schema",
+        "describe",
+        "--profile",
+        "deploy/ca/profiles/spanner-finance.yaml",
+        "--token",
+        "test-token",
+    ]);
+    assert!(!output.status.success());
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("expected 'alloydb'"));
+}
+
+#[test]
 fn alloydb_databases_list_rejects_wrong_profile_type_before_network() {
     let output = run_dcx(&[
         "alloydb",

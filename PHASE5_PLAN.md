@@ -461,6 +461,7 @@ Deliverables:
 
 - [x] `dcx spanner schema describe --profile`
 - [x] `dcx cloudsql schema describe --profile`
+- [x] `dcx alloydb schema describe --profile`
 - [x] `dcx alloydb databases list --profile`
 
 Implementation notes:

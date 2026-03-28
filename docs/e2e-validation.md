@@ -499,6 +499,16 @@ dcx cloudsql schema describe --profile /tmp/cloudsql-e2e.yaml --format json
 dcx cloudsql schema describe --profile /tmp/cloudsql-e2e.yaml --format table
 ```
 
+### AlloyDB Schema Describe
+
+```bash
+# Describe all columns in an AlloyDB PostgreSQL database
+dcx alloydb schema describe --profile /tmp/alloydb-e2e.yaml --format json
+
+# Text format
+dcx alloydb schema describe --profile /tmp/alloydb-e2e.yaml --format text
+```
+
 ### AlloyDB Databases List
 
 ```bash

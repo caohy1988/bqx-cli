@@ -261,7 +261,10 @@ dcx spanner schema describe --profile=spanner-finance
 # Cloud SQL: describe schema columns via profile
 dcx cloudsql schema describe --profile=cloudsql-app
 
-# AlloyDB: list databases via profile
+# AlloyDB: describe schema columns via profile
+dcx alloydb schema describe --profile=alloydb-ops
+
+# AlloyDB: list databases via profile (no Discovery equivalent)
 dcx alloydb databases list --profile=alloydb-ops
 ```
 
@@ -1117,7 +1120,8 @@ See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 - [x] Add `dcx alloydb clusters|instances list|get` (Discovery-driven)
 - [x] Add `dcx cloudsql instances|databases list|get` (Discovery-driven)
 - [x] Add profile-aware schema and database helpers: `dcx spanner schema
-  describe`, `dcx cloudsql schema describe`, `dcx alloydb databases list`
+  describe`, `dcx cloudsql schema describe`, `dcx alloydb schema describe`,
+  `dcx alloydb databases list`
 - [ ] Expand skills and docs so agents can choose between `ca ask` and direct
   source commands
 - [ ] Release `0.5.0` with a validated cross-source command matrix
@@ -1133,10 +1137,11 @@ flatPath preference). Looker retains a hand-written command surface because
 the Looker API is not a Google Discovery document.
 
 **M4 note:** Profile-aware helpers (`spanner schema describe`,
-`cloudsql schema describe`, `alloydb databases list`) use CA QueryData
-to inspect source schemas and databases. They validate profile/source
-type compatibility before auth, and support `json`, `table`, and `text`
-output formats. Implementation: `src/commands/database_helpers.rs`.
+`cloudsql schema describe`, `alloydb schema describe`,
+`alloydb databases list`) use CA QueryData to inspect source schemas
+and databases. They validate profile/source type compatibility before
+auth, and support `json`, `table`, and `text` output formats.
+Implementation: `src/commands/database_helpers.rs`.
 
 **Exit criteria:** `dcx` supports direct, structured, non-CA commands for
 Looker, Spanner, AlloyDB, and Cloud SQL in addition to the existing BigQuery
