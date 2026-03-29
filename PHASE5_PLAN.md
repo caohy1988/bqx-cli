@@ -466,7 +466,7 @@ Deliverables:
 
 Implementation notes:
 
-- All three helpers use the CA QueryData API under the hood, routed by
+- All four helpers use the CA QueryData API under the hood, routed by
   source profile. The `QueryDataExecutor` trait abstracts the network
   call for testability.
 - Profile/source type compatibility is validated before auth or network

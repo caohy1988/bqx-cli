@@ -523,7 +523,7 @@ Expected JSON shape:
 ```json
 {
   "profile_name": "alloydb-e2e",
-  "source_type": "alloy_db",
+  "source_type": "alloydb",
   "project": "test-project-0728-467323",
   "cluster_id": "dcx-test",
   "instance_id": "dcx-test-primary",
@@ -537,12 +537,12 @@ Expected JSON shape:
 ### Profile Source Type Validation
 
 ```bash
-# Wrong source type — rejected before network
+# Wrong source type — rejected before network (JSON error envelope)
 dcx spanner schema describe --profile deploy/ca/profiles/alloydb-ops.yaml --token test
-# → error: Profile 'alloydb-ops' is source_type 'alloy_db', expected 'spanner'
+# → {"error":"Profile 'alloydb-ops' is source_type 'alloydb', expected 'spanner'"}
 
 dcx alloydb databases list --profile deploy/ca/profiles/spanner-finance.yaml --token test
-# → error: Profile 'spanner-finance' is source_type 'spanner', expected 'alloydb'
+# → {"error":"Profile 'spanner-finance' is source_type 'spanner', expected 'alloydb'"}
 ```
 
 ## Expected Results
