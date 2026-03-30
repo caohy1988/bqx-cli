@@ -103,6 +103,7 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 │  │ Spanner   (namespaced)│  │ get-trace,    │  │ create-agent,      │  │
 │  │ AlloyDB   (namespaced)│  │ drift,        │  │ list-agents        │  │
 │  │ Cloud SQL (namespaced)│  │ insights      │  │                    │  │
+│  │ Looker    (namespaced)│  │               │  │                    │  │
 │  └──────────┬────────────┘  └───────┬───────┘  └─────────┬──────────┘ │
 │             │                       │                     │            │
 │  ┌──────────┴───────────────────────┴─────────────────────┴─────────┐  │
@@ -117,7 +118,7 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 │  └──────────────────────────────────────────────────────────────────┘  │
 │                                                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │               Looker Native (hand-written)                        │  │
+│  │               Looker Content (per-instance API)                        │  │
 │  │  explores list|get · dashboards list|get                          │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
 │                                                                        │
@@ -157,7 +158,7 @@ Like `gws`, `dcx` uses two-phase argument parsing:
    to a shared HTTP executor
 
 **Multi-service dynamic generation:** The same Discovery-driven pipeline
-serves four Google Cloud services:
+serves five Google Cloud services:
 
 | Service | Namespace | Discovery Doc | Methods |
 |---------|-----------|---------------|---------|
@@ -165,6 +166,7 @@ serves four Google Cloud services:
 | Spanner | `spanner` | `spanner/v1` | 5 (instances, databases, getDdl) |
 | AlloyDB | `alloydb` | `alloydb/v1` | 4 (clusters, instances) |
 | Cloud SQL | `cloudsql` | `sqladmin/v1` | 4 (instances, databases) |
+| Looker | `looker` | `looker/v1` | 4 (instances, backups) |
 
 The `ServiceConfig` abstraction in `src/bigquery/dynamic/service.rs` holds
 per-service configuration: namespace, allowlist, global param mapping,
@@ -173,7 +175,7 @@ bundled JSON, and flatPath preference. BigQuery commands are top-level
 instances list`).
 
 **Offline / CI resilience:** The binary ships with pinned copies of all
-four Discovery Documents (committed at build time via `include_str!`).
+five Discovery Documents (committed at build time via `include_str!`).
 No runtime fetch. This ensures deterministic builds, reproducible CI,
 and no network dependency. The bundled documents are updated intentionally
 and reviewed like vendored API input.
@@ -248,6 +250,45 @@ dcx alloydb instances list --project-id=myproject --cluster-id=my-cluster --loca
 dcx cloudsql instances list --project-id=myproject
 dcx cloudsql instances get --project-id=myproject --instance=my-inst
 dcx cloudsql databases list --project-id=myproject --instance=my-inst
+```
+
+**Profile-aware helpers (M4):** Schema and database helpers use CA
+QueryData under the hood, routed by source profile. They validate
+profile/source compatibility before auth or network.
+
+```bash
+# Spanner: describe schema columns via profile
+dcx spanner schema describe --profile=spanner-finance
+
+# Cloud SQL: describe schema columns via profile
+dcx cloudsql schema describe --profile=cloudsql-app
+
+# AlloyDB: describe schema columns via profile
+dcx alloydb schema describe --profile=alloydb-ops
+
+# AlloyDB: list databases via profile (no Discovery equivalent)
+dcx alloydb databases list --profile=alloydb-ops
+```
+
+#### Domain 1c: `dcx looker <resource> <method>` — Looker API (hybrid)
+
+Looker has two APIs: (1) the GCP admin API (`looker.googleapis.com`) for
+managing Looker *instances* — this has a Discovery document and is
+handled by the dynamic pipeline; (2) the per-instance Looker API
+(`https://<instance>.cloud.looker.com/api/4.0/`) for *content* like
+explores and dashboards — this is hand-written and profile-driven.
+
+```bash
+# Discovery-driven: Looker instance management (GCP admin API)
+dcx looker instances list --project-id=myproject --location=us-central1
+dcx looker instances get --project-id=myproject --location=us-central1 --instance-id=my-looker
+dcx looker backups list --project-id=myproject --location=us-central1 --instance-id=my-looker
+
+# Hand-written: Looker content (per-instance API, profile-driven)
+dcx looker explores list --profile=sales-looker
+dcx looker explores get --profile=sales-looker --explore=model/explore
+dcx looker dashboards list --profile=sales-looker
+dcx looker dashboards get --profile=sales-looker --dashboard-id=42
 ```
 
 #### Domain 2: `dcx analytics <command>` — Agent Analytics (static)
@@ -1084,13 +1125,15 @@ See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 ### Phase 5: Native Data Cloud Commands Beyond BigQuery (v0.5) — In Progress
 
 - [x] Add top-level profile utilities: `dcx profiles list|show|validate`
-- [x] Add `dcx looker explores|dashboards list|get` (profile-driven, native
-  Looker API)
+- [x] Add `dcx looker instances|backups list|get` (Discovery-driven)
+- [x] Add `dcx looker explores|dashboards list|get` (hand-written,
+  per-instance Looker API)
 - [x] Add `dcx spanner instances|databases list|get|get-ddl` (Discovery-driven)
 - [x] Add `dcx alloydb clusters|instances list|get` (Discovery-driven)
 - [x] Add `dcx cloudsql instances|databases list|get` (Discovery-driven)
-- [ ] Add schema and source-inspection helpers where profile context makes them
-  safe and predictable
+- [x] Add profile-aware schema and database helpers: `dcx spanner schema
+  describe`, `dcx cloudsql schema describe`, `dcx alloydb schema describe`,
+  `dcx alloydb databases list`
 - [ ] Expand skills and docs so agents can choose between `ca ask` and direct
   source commands
 - [ ] Release `0.5.0` with a validated cross-source command matrix
@@ -1102,8 +1145,16 @@ the original hand-written static approach, eliminating ~1,300 lines of
 per-service code and giving automatic coverage of all allowlisted API
 methods. The `ServiceConfig` abstraction in `src/bigquery/dynamic/service.rs`
 holds per-service configuration (namespace, allowlist, global param mapping,
-flatPath preference). Looker retains a hand-written command surface because
-the Looker API is not a Google Discovery document.
+flatPath preference). Looker is a hybrid: instance management uses the
+Discovery-driven pipeline (`looker/v1`), while content commands (explores,
+dashboards) use a hand-written client against the per-instance Looker API.
+
+**M4 note:** Profile-aware helpers (`spanner schema describe`,
+`cloudsql schema describe`, `alloydb schema describe`,
+`alloydb databases list`) use CA QueryData to inspect source schemas
+and databases. They validate profile/source type compatibility before
+auth, and support `json`, `table`, and `text` output formats.
+Implementation: `src/commands/database_helpers.rs`.
 
 **Exit criteria:** `dcx` supports direct, structured, non-CA commands for
 Looker, Spanner, AlloyDB, and Cloud SQL in addition to the existing BigQuery

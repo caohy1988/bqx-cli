@@ -18,6 +18,7 @@ fn run_dcx(args: &[&str]) -> std::process::Output {
         .env_remove("DCX_TOKEN")
         .env_remove("DCX_CREDENTIALS_FILE")
         .env_remove("GOOGLE_APPLICATION_CREDENTIALS")
+        .env_remove("DCX_PROJECT")
         .output()
         .expect("Failed to run dcx")
 }
@@ -45,6 +46,14 @@ fn looker_help_shows_subcommands() {
     assert!(
         stdout.contains("dashboards"),
         "Should show dashboards subcommand"
+    );
+    assert!(
+        stdout.contains("instances"),
+        "Should show instances subcommand (Discovery-generated)"
+    );
+    assert!(
+        stdout.contains("backups"),
+        "Should show backups subcommand (Discovery-generated)"
     );
 }
 
@@ -167,5 +176,124 @@ fn looker_dashboards_get_requires_dashboard_id() {
     assert!(
         stderr.contains("--dashboard-id"),
         "Should require --dashboard-id flag, got: {stderr}"
+    );
+}
+
+// ── Discovery-generated admin commands (instances, backups) ──
+
+#[test]
+fn looker_instances_help_shows_list_and_get() {
+    let output = run_dcx(&["looker", "instances", "--help"]);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("list"), "Should show list subcommand");
+    assert!(stdout.contains("get"), "Should show get subcommand");
+}
+
+#[test]
+fn looker_backups_help_shows_list_and_get() {
+    let output = run_dcx(&["looker", "backups", "--help"]);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("list"), "Should show list subcommand");
+    assert!(stdout.contains("get"), "Should show get subcommand");
+}
+
+#[test]
+fn looker_instances_list_requires_project_id() {
+    let output = run_dcx(&["looker", "instances", "list"]);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--project-id") || stderr.contains("DCX_PROJECT"),
+        "Should require --project-id, got: {stderr}"
+    );
+}
+
+#[test]
+fn looker_instances_get_requires_instance_id() {
+    let output = run_dcx(&[
+        "looker",
+        "instances",
+        "get",
+        "--project-id",
+        "test-proj",
+        "--location",
+        "us-central1",
+    ]);
+    assert!(!output.status.success());
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        combined.contains("--instance"),
+        "Should require --instance-id flag, got: {combined}"
+    );
+}
+
+#[test]
+fn looker_instances_list_dry_run_normalizes_default_location() {
+    // When --location is omitted, the global default "US" should be
+    // normalized to "-" (all locations) for Looker, not produce an
+    // invalid ".../locations/US/..." path.
+    let output = run_dcx(&[
+        "looker",
+        "instances",
+        "list",
+        "--project-id",
+        "test-proj",
+        "--dry-run",
+    ]);
+    assert!(
+        output.status.success(),
+        "dry-run should succeed without auth"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("locations/-/"),
+        "Default location should be normalized to '-', got: {stdout}"
+    );
+    assert!(
+        !stdout.contains("locations/US/"),
+        "Should NOT contain literal 'locations/US/', got: {stdout}"
+    );
+}
+
+#[test]
+fn looker_instances_list_dry_run_preserves_explicit_location() {
+    let output = run_dcx(&[
+        "looker",
+        "instances",
+        "list",
+        "--project-id",
+        "test-proj",
+        "--location",
+        "us-central1",
+        "--dry-run",
+    ]);
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("locations/us-central1/"),
+        "Explicit location should be preserved, got: {stdout}"
+    );
+}
+
+#[test]
+fn looker_backups_list_requires_project_id() {
+    let output = run_dcx(&[
+        "looker",
+        "backups",
+        "list",
+        "--instance-id",
+        "my-instance",
+        "--location",
+        "us-central1",
+    ]);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--project-id") || stderr.contains("DCX_PROJECT"),
+        "Should require --project-id, got: {stderr}"
     );
 }

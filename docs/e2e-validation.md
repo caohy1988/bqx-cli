@@ -3,7 +3,7 @@
 Reproducible commands to verify the dcx command surface against a live
 GCP project. Covers Phase 2 (dynamic commands), Phase 3 (analytics + CA),
 Phase 4 (multi-source CA via profiles), and Phase 5 (native Data Cloud
-commands via Discovery-driven dynamic generation).
+commands via Discovery-driven dynamic generation + profile-aware helpers).
 
 ## Prerequisites
 
@@ -408,7 +408,25 @@ dcx cloudsql databases list --project-id=$DCX_PROJECT --instance=bqx-test --form
 dcx cloudsql databases list --project-id=$DCX_PROJECT --instance=bqx-test --format table
 ```
 
-### Looker (hand-written, profile-driven)
+### Looker Instance Management (Discovery-driven)
+
+```bash
+# List Looker instances in a project/location
+dcx looker instances list --project-id=$DCX_PROJECT --location=us-central1 --format json
+
+# Get a specific Looker instance
+dcx looker instances get --project-id=$DCX_PROJECT --location=us-central1 \
+  --instance-id=my-looker --format json
+
+# List backups for a Looker instance
+dcx looker backups list --project-id=$DCX_PROJECT --location=us-central1 \
+  --instance-id=my-looker --format json
+
+# Dry-run to verify URL
+dcx looker instances list --project-id=my-proj --location=us-central1 --dry-run
+```
+
+### Looker Content (hand-written, profile-driven)
 
 ```bash
 # List explores
@@ -460,10 +478,95 @@ dcx spanner databases get-ddl --project-id=my-proj --instance-id=my-inst --datab
 # → {"dry_run":true,"method":"GET","url":"https://spanner.googleapis.com/v1/projects/my-proj/instances/my-inst/databases/mydb/ddl"}
 ```
 
+## 13. Phase 5 M4: Profile-Aware Schema and Database Helpers
+
+M4 adds helpers that use CA QueryData to inspect source schemas and
+databases via profile context. They validate source type before auth.
+
+### Spanner Schema Describe
+
+```bash
+# Describe all columns in a Spanner database
+dcx spanner schema describe --profile /tmp/spanner-e2e.yaml --format json
+
+# Text format
+dcx spanner schema describe --profile /tmp/spanner-e2e.yaml --format text
+```
+
+Expected JSON shape:
+```json
+{
+  "profile_name": "spanner-e2e",
+  "source_type": "spanner",
+  "project": "test-project-0728-467323",
+  "database_id": "dcx-testdb",
+  "rows": [
+    {"table_name": "users", "column_name": "id", "data_type": "STRING", "is_nullable": "NO"},
+    ...
+  ]
+}
+```
+
+### Cloud SQL Schema Describe
+
+```bash
+# Describe all columns in a Cloud SQL database
+dcx cloudsql schema describe --profile /tmp/cloudsql-e2e.yaml --format json
+
+# Table format
+dcx cloudsql schema describe --profile /tmp/cloudsql-e2e.yaml --format table
+```
+
+### AlloyDB Schema Describe
+
+```bash
+# Describe all columns in an AlloyDB PostgreSQL database
+dcx alloydb schema describe --profile /tmp/alloydb-e2e.yaml --format json
+
+# Text format
+dcx alloydb schema describe --profile /tmp/alloydb-e2e.yaml --format text
+```
+
+### AlloyDB Databases List
+
+```bash
+# List non-template databases in an AlloyDB instance
+dcx alloydb databases list --profile /tmp/alloydb-e2e.yaml --format json
+
+# Text format
+dcx alloydb databases list --profile /tmp/alloydb-e2e.yaml --format text
+```
+
+Expected JSON shape:
+```json
+{
+  "profile_name": "alloydb-e2e",
+  "source_type": "alloydb",
+  "project": "test-project-0728-467323",
+  "cluster_id": "dcx-test",
+  "instance_id": "dcx-test-primary",
+  "rows": [
+    {"database_name": "postgres"},
+    {"database_name": "opsdb"}
+  ]
+}
+```
+
+### Profile Source Type Validation
+
+```bash
+# Wrong source type — rejected before network (JSON error envelope)
+dcx spanner schema describe --profile deploy/ca/profiles/alloydb-ops.yaml --token test
+# → {"error":"Profile 'alloydb-ops' is source_type 'alloydb', expected 'spanner'"}
+
+dcx alloydb databases list --profile deploy/ca/profiles/spanner-finance.yaml --token test
+# → {"error":"Profile 'spanner-finance' is source_type 'spanner', expected 'alloydb'"}
+```
+
 ## Expected Results
 
 All commands above were verified against `test-project-0728-467323` on
-2026-03-14 (Phase 2-3), 2026-03-19 (Phase 4), and 2026-03-27 (Phase 5 M1-M3)
+2026-03-14 (Phase 2-3), 2026-03-19 (Phase 4), and 2026-03-27 (Phase 5)
 with gcloud ADC authentication. Key observations:
 
 - All dynamic commands (datasets, tables, routines, models) return valid JSON
@@ -493,11 +596,20 @@ Phase 5 M1-M3 observations:
 
 - `dcx profiles list|show|validate` work correctly across all source types
 - `dcx looker explores|dashboards list|get` work against live Looker instances via profiles
-- Spanner, AlloyDB, Cloud SQL commands are Discovery-driven (same pipeline as BigQuery)
+- Spanner, AlloyDB, Cloud SQL, Looker instance commands are Discovery-driven (same pipeline as BigQuery)
+- Looker is hybrid: instance/backup management via Discovery, explores/dashboards via hand-written per-instance API
 - Spanner instances/databases list/get and get-ddl all return valid JSON
 - AlloyDB clusters list uses global `--location` with "US" → "-" normalization
 - Cloud SQL instances/databases list/get return valid JSON with table format support
 - All path parameters validated via `validate_identifier()` before network calls
 - Identifier validation rejects `'bad proj'`, `'my/inst'`, `'my/cluster'` etc. locally
 - Dry-run mode produces correct URLs for all services
-- 321 tests pass across all targets
+
+Phase 5 M4 observations:
+
+- Schema and database helpers use CA QueryData under the hood
+- Profile source type validated before auth — wrong types rejected locally
+- `SchemaDescribeResult` and `DatabaseListResult` render correctly in json, table, text
+- Fuzzy key matching handles LLM response variation (e.g., `table_name` vs `table`)
+- `--sanitize` support works through the shared rendering path
+- 455 tests pass across all targets

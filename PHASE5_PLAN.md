@@ -455,27 +455,39 @@ gives automatic coverage of all allowlisted API methods.
 
 Validated against live GCP data (`test-project-0728-467323`) on 2026-03-27.
 
-### Milestone 4: Schema and Query Helpers
+### Milestone 4: Schema and Query Helpers — Complete
 
 Deliverables:
 
-- `dcx spanner schema describe --profile`
-- `dcx cloudsql schema describe --profile`
-- `dcx alloydb databases list --profile`
-- optional `query` helpers only if they can be kept read-only and predictable
+- [x] `dcx spanner schema describe --profile`
+- [x] `dcx cloudsql schema describe --profile`
+- [x] `dcx alloydb schema describe --profile`
+- [x] `dcx alloydb databases list --profile`
 
-Detailed tasks:
+Implementation notes:
 
-- define a common schema description output shape
-- add lightweight query helpers only where response shape and auth story are
-  stable
-- ensure every helper validates profile/source compatibility before auth
-- document when to use a direct helper versus `dcx ca ask --profile`
-
-Done when:
-
-- the CLI supports direct source inspection beyond simple inventory, but still
-  avoids broad admin scope creep
+- All four helpers use the CA QueryData API under the hood, routed by
+  source profile. The `QueryDataExecutor` trait abstracts the network
+  call for testability.
+- Profile/source type compatibility is validated before auth or network
+  via `resolve_profile_for_source()`.
+- Output models: `SchemaDescribeResult` (with `SchemaRow` per column)
+  and `DatabaseListResult` (with `DatabaseRow` per database). Both
+  support `json`, `table`, and `text` formats.
+- Schema prompts are source-specific: Spanner returns
+  `table_name/column_name/data_type/is_nullable`; Cloud SQL adds
+  `table_schema` and detects MySQL vs PostgreSQL from `db_type`.
+- AlloyDB database listing uses a PostgreSQL-specific prompt to list
+  non-template databases.
+- Row extraction uses fuzzy key matching (e.g., `table_name` or `table`,
+  `database_name` or `datname`) to handle LLM response variation.
+- Helpers are wired into namespaced dynamic services via
+  `augment_namespace_command()` and `try_run_namespace_helper()` in
+  `main.rs`. Non-helper subcommands fall through to Discovery path.
+- Model Armor `--sanitize` support included via
+  `render_with_optional_sanitization()`.
+- Code: `src/commands/database_helpers.rs`
+- Tests: `tests/database_helper_command_tests.rs` + unit tests in module
 
 ### Milestone 5: Skills, Integrations, and Docs
 
