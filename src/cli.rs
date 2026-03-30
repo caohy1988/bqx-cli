@@ -83,11 +83,6 @@ pub enum Command {
         #[command(subcommand)]
         command: ProfilesCommand,
     },
-    /// Looker native commands (explores, dashboards)
-    Looker {
-        #[command(subcommand)]
-        command: LookerCommand,
-    },
 }
 
 #[derive(Clone, ValueEnum)]

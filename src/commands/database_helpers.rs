@@ -8,6 +8,7 @@ use crate::ca::client::CaClient;
 use crate::ca::models::CaQuestionResponse;
 use crate::ca::profiles::{self, CaProfile, SourceType};
 use crate::cli::OutputFormat;
+use crate::commands;
 use crate::output;
 
 #[derive(Debug, Clone, Serialize)]
@@ -77,8 +78,77 @@ pub fn augment_namespace_command(namespace: &str, ns_cmd: Command) -> Command {
         "alloydb" => ns_cmd
             .subcommand(schema_command())
             .subcommand(alloydb_databases_command()),
+        "looker" => ns_cmd
+            .subcommand(looker_explores_command())
+            .subcommand(looker_dashboards_command()),
         _ => ns_cmd,
     }
+}
+
+fn looker_explores_command() -> Command {
+    Command::new("explores")
+        .about("Looker explore operations")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        .subcommand(
+            Command::new("list")
+                .about("List all explores from the Looker instance")
+                .arg(
+                    Arg::new("profile")
+                        .long("profile")
+                        .required(true)
+                        .help("Looker profile name or path"),
+                ),
+        )
+        .subcommand(
+            Command::new("get")
+                .about("Get detailed metadata for a single explore")
+                .arg(
+                    Arg::new("profile")
+                        .long("profile")
+                        .required(true)
+                        .help("Looker profile name or path"),
+                )
+                .arg(
+                    Arg::new("explore")
+                        .long("explore")
+                        .required(true)
+                        .help("Explore reference (model/explore, e.g. sales_model/orders)"),
+                ),
+        )
+}
+
+fn looker_dashboards_command() -> Command {
+    Command::new("dashboards")
+        .about("Looker dashboard operations")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        .subcommand(
+            Command::new("list")
+                .about("List all dashboards from the Looker instance")
+                .arg(
+                    Arg::new("profile")
+                        .long("profile")
+                        .required(true)
+                        .help("Looker profile name or path"),
+                ),
+        )
+        .subcommand(
+            Command::new("get")
+                .about("Get detailed metadata for a single dashboard")
+                .arg(
+                    Arg::new("profile")
+                        .long("profile")
+                        .required(true)
+                        .help("Looker profile name or path"),
+                )
+                .arg(
+                    Arg::new("dashboard-id")
+                        .long("dashboard-id")
+                        .required(true)
+                        .help("Dashboard ID"),
+                ),
+        )
 }
 
 pub async fn try_run_namespace_helper(
@@ -138,6 +208,51 @@ pub async fn try_run_namespace_helper(
             sanitize_template,
         )
         .await),
+        ("looker", "explores", "list") => Some(
+            commands::looker::explores::run_list(profile_ref, &auth_opts, &format, sanitize_template)
+                .await,
+        ),
+        ("looker", "explores", "get") => {
+            let explore = action_matches
+                .get_one::<String>("explore")
+                .map(|s| s.as_str())
+                .unwrap_or("");
+            Some(
+                commands::looker::explores::run_get(
+                    profile_ref,
+                    explore,
+                    &auth_opts,
+                    &format,
+                    sanitize_template,
+                )
+                .await,
+            )
+        }
+        ("looker", "dashboards", "list") => Some(
+            commands::looker::dashboards::run_list(
+                profile_ref,
+                &auth_opts,
+                &format,
+                sanitize_template,
+            )
+            .await,
+        ),
+        ("looker", "dashboards", "get") => {
+            let dashboard_id = action_matches
+                .get_one::<String>("dashboard-id")
+                .map(|s| s.as_str())
+                .unwrap_or("");
+            Some(
+                commands::looker::dashboards::run_get(
+                    profile_ref,
+                    dashboard_id,
+                    &auth_opts,
+                    &format,
+                    sanitize_template,
+                )
+                .await,
+            )
+        }
         _ => None,
     }
 }

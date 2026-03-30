@@ -408,7 +408,25 @@ dcx cloudsql databases list --project-id=$DCX_PROJECT --instance=bqx-test --form
 dcx cloudsql databases list --project-id=$DCX_PROJECT --instance=bqx-test --format table
 ```
 
-### Looker (hand-written, profile-driven)
+### Looker Instance Management (Discovery-driven)
+
+```bash
+# List Looker instances in a project/location
+dcx looker instances list --project-id=$DCX_PROJECT --location=us-central1 --format json
+
+# Get a specific Looker instance
+dcx looker instances get --project-id=$DCX_PROJECT --location=us-central1 \
+  --instance-id=my-looker --format json
+
+# List backups for a Looker instance
+dcx looker backups list --project-id=$DCX_PROJECT --location=us-central1 \
+  --instance-id=my-looker --format json
+
+# Dry-run to verify URL
+dcx looker instances list --project-id=my-proj --location=us-central1 --dry-run
+```
+
+### Looker Content (hand-written, profile-driven)
 
 ```bash
 # List explores
@@ -578,7 +596,8 @@ Phase 5 M1-M3 observations:
 
 - `dcx profiles list|show|validate` work correctly across all source types
 - `dcx looker explores|dashboards list|get` work against live Looker instances via profiles
-- Spanner, AlloyDB, Cloud SQL commands are Discovery-driven (same pipeline as BigQuery)
+- Spanner, AlloyDB, Cloud SQL, Looker instance commands are Discovery-driven (same pipeline as BigQuery)
+- Looker is hybrid: instance/backup management via Discovery, explores/dashboards via hand-written per-instance API
 - Spanner instances/databases list/get and get-ddl all return valid JSON
 - AlloyDB clusters list uses global `--location` with "US" → "-" normalization
 - Cloud SQL instances/databases list/get return valid JSON with table format support

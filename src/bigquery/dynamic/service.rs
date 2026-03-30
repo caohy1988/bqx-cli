@@ -112,7 +112,24 @@ pub fn cloudsql() -> ServiceConfig {
     }
 }
 
+pub fn looker() -> ServiceConfig {
+    ServiceConfig {
+        namespace: "looker",
+        service_label: "Looker",
+        discovery_name: "looker",
+        bundled_json: include_str!("../../../assets/looker_v1_discovery.json"),
+        allowed_methods: &[
+            "looker.projects.locations.instances.list",
+            "looker.projects.locations.instances.get",
+            "looker.projects.locations.instances.backups.list",
+            "looker.projects.locations.instances.backups.get",
+        ],
+        global_params: &[("projectsId", "project_id"), ("locationsId", "location")],
+        use_flat_path: true,
+    }
+}
+
 /// Return configs for all supported services.
 pub fn all_services() -> Vec<ServiceConfig> {
-    vec![bigquery(), spanner(), alloydb(), cloudsql()]
+    vec![bigquery(), spanner(), alloydb(), cloudsql(), looker()]
 }
