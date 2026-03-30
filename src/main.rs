@@ -255,10 +255,13 @@ async fn run_dynamic(
         }
         if let Some(value) = root_matches.get_one::<String>(cli_flag) {
             let mut effective = value.clone();
-            // AlloyDB uses region-granularity locations; the global --location
-            // default "US" is a BigQuery convention — normalize to "-" (all
-            // locations) so the M3 contract is preserved.
-            if *cli_flag == "location" && svc.config.namespace == "alloydb" && effective == "US" {
+            // AlloyDB and Looker use region-granularity locations; the global
+            // --location default "US" is a BigQuery convention — normalize to
+            // "-" (all locations) so the contract is preserved.
+            if *cli_flag == "location"
+                && (svc.config.namespace == "alloydb" || svc.config.namespace == "looker")
+                && effective == "US"
+            {
                 effective = "-".to_string();
             }
             args.entry(api_name.to_string())
