@@ -489,30 +489,33 @@ Implementation notes:
 - Code: `src/commands/database_helpers.rs`
 - Tests: `tests/database_helper_command_tests.rs` + unit tests in module
 
-### Milestone 5: Skills, Integrations, and Docs
+### Milestone 5: Skills, Integrations, and Docs — Complete
 
 Deliverables:
 
-- new direct-command skills for non-BigQuery sources
-- Gemini manifest updates for selected Phase 5 tools
-- README and e2e docs updated for direct source commands
-- one-pager adjusted to reflect the broader Data Cloud operations surface
+- [x] New direct-command skills for non-BigQuery sources
+- [x] Gemini manifest updates for selected Phase 5 tools
+- [x] README and e2e docs updated for direct source commands
+- [x] One-pager adjusted to reflect the broader Data Cloud operations surface
 
-Detailed tasks:
+Implementation notes:
 
-- add curated skills for Looker, Spanner, AlloyDB, and Cloud SQL direct usage
-- update existing CA skills to route between CA and direct commands
-- refresh Gemini manifest with a conservative subset of the most stable Phase 5
-  tools
-- update docs with before/after examples that show:
-  - CA question
-  - direct resource inspection
-  - profile validation
-
-Done when:
-
-- agents have a clear skill surface for both conversational and direct command
-  workflows across Data Cloud products
+- Added 7 new curated skills (32 → 39 total):
+  - `dcx-spanner`: Direct Spanner inventory, DDL, and schema commands
+  - `dcx-alloydb`: Direct AlloyDB inventory, schema, and database commands
+  - `dcx-cloudsql`: Direct Cloud SQL inventory and schema commands
+  - `dcx-looker`: Hybrid Looker content + admin commands
+  - `dcx-profiles`: Profile management (list, show, validate)
+  - `recipe-source-profile-validation`: Step-by-step profile debugging
+  - `recipe-cross-source-debugging`: Cross-source connectivity verification
+- Gemini manifest expanded from 17 → 28 tools, adding:
+  - Spanner instances list, databases list, schema describe
+  - AlloyDB clusters list, schema describe
+  - Cloud SQL instances list, schema describe
+  - Looker instances list, explores list
+  - Profiles list, profiles validate
+- Each new skill documents when to use direct commands vs CA
+- Skills encode profile requirements, decision rules, and constraints
 
 ### Milestone 6: Release Closure and v0.5.0
 

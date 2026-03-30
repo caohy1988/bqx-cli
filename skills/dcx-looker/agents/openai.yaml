@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Looker"
+  short_description: "Looker explore/dashboard inspection and instance management commands"
+  default_prompt: "Use $dcx-looker for direct Looker explore/dashboard listing and GCP instance management."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Cloud SQL"
+  short_description: "Cloud SQL inventory and schema commands via Discovery API"
+  default_prompt: "Use $dcx-cloudsql for direct Cloud SQL instance/database listing and schema inspection."
+
+policy:
+  allow_implicit_invocation: true
