@@ -177,40 +177,47 @@ pub async fn try_run_namespace_helper(
     };
 
     match (namespace, group_name, action_name) {
-        ("spanner", "schema", "describe") => Some(run_schema_describe(
-            profile_ref,
-            SourceType::Spanner,
-            &auth_opts,
-            &format,
-            sanitize_template,
-        )
-        .await),
-        ("cloudsql", "schema", "describe") => Some(run_schema_describe(
-            profile_ref,
-            SourceType::CloudSql,
-            &auth_opts,
-            &format,
-            sanitize_template,
-        )
-        .await),
-        ("alloydb", "schema", "describe") => Some(run_schema_describe(
-            profile_ref,
-            SourceType::AlloyDb,
-            &auth_opts,
-            &format,
-            sanitize_template,
-        )
-        .await),
-        ("alloydb", "databases", "list") => Some(run_alloydb_databases_list(
-            profile_ref,
-            &auth_opts,
-            &format,
-            sanitize_template,
-        )
-        .await),
+        ("spanner", "schema", "describe") => Some(
+            run_schema_describe(
+                profile_ref,
+                SourceType::Spanner,
+                &auth_opts,
+                &format,
+                sanitize_template,
+            )
+            .await,
+        ),
+        ("cloudsql", "schema", "describe") => Some(
+            run_schema_describe(
+                profile_ref,
+                SourceType::CloudSql,
+                &auth_opts,
+                &format,
+                sanitize_template,
+            )
+            .await,
+        ),
+        ("alloydb", "schema", "describe") => Some(
+            run_schema_describe(
+                profile_ref,
+                SourceType::AlloyDb,
+                &auth_opts,
+                &format,
+                sanitize_template,
+            )
+            .await,
+        ),
+        ("alloydb", "databases", "list") => Some(
+            run_alloydb_databases_list(profile_ref, &auth_opts, &format, sanitize_template).await,
+        ),
         ("looker", "explores", "list") => Some(
-            commands::looker::explores::run_list(profile_ref, &auth_opts, &format, sanitize_template)
-                .await,
+            commands::looker::explores::run_list(
+                profile_ref,
+                &auth_opts,
+                &format,
+                sanitize_template,
+            )
+            .await,
         ),
         ("looker", "explores", "get") => {
             let explore = action_matches
@@ -298,7 +305,7 @@ pub async fn run_schema_describe(
     format: &OutputFormat,
     sanitize_template: Option<&str>,
 ) -> Result<()> {
-    let profile = resolve_profile_for_source(profile_ref, &[expected_source.clone()])?;
+    let profile = resolve_profile_for_source(profile_ref, std::slice::from_ref(&expected_source))?;
     let resolved = auth::resolve(auth_opts).await?;
     let client = CaClient::new(resolved.clone());
     let result = run_schema_describe_with_executor(&client, &profile).await?;
@@ -389,9 +396,12 @@ pub async fn run_alloydb_databases_list_with_executor(
     })
 }
 
-fn resolve_profile_for_source(profile_ref: &str, expected_sources: &[SourceType]) -> Result<CaProfile> {
+fn resolve_profile_for_source(
+    profile_ref: &str,
+    expected_sources: &[SourceType],
+) -> Result<CaProfile> {
     let profile = profiles::resolve_profile(profile_ref)?;
-    if expected_sources.iter().any(|s| *s == profile.source_type) {
+    if expected_sources.contains(&profile.source_type) {
         return Ok(profile);
     }
 
@@ -429,7 +439,9 @@ fn alloydb_database_list_prompt() -> &'static str {
     "List all non-template databases in this AlloyDB PostgreSQL instance. Return exactly one column named database_name. Order by database_name. Do not summarize."
 }
 
-fn extract_schema_rows(rows: &[serde_json::Map<String, serde_json::Value>]) -> Result<Vec<SchemaRow>> {
+fn extract_schema_rows(
+    rows: &[serde_json::Map<String, serde_json::Value>],
+) -> Result<Vec<SchemaRow>> {
     rows.iter()
         .map(|row| {
             let table_name = required_string(row, &["table_name", "table"])?;
@@ -446,10 +458,14 @@ fn extract_schema_rows(rows: &[serde_json::Map<String, serde_json::Value>]) -> R
         .collect()
 }
 
-fn extract_database_rows(rows: &[serde_json::Map<String, serde_json::Value>]) -> Result<Vec<DatabaseRow>> {
+fn extract_database_rows(
+    rows: &[serde_json::Map<String, serde_json::Value>],
+) -> Result<Vec<DatabaseRow>> {
     rows.iter()
         .map(|row| {
-            if let Some(name) = optional_string(row, &["database_name", "database", "datname", "name"]) {
+            if let Some(name) =
+                optional_string(row, &["database_name", "database", "datname", "name"])
+            {
                 return Ok(DatabaseRow {
                     database_name: name,
                 });
