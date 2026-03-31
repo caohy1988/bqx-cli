@@ -386,18 +386,15 @@ For nested non-BigQuery responses:
 
 Phase 4 added CA-centric multi-source skills.
 
-Phase 5 should add direct command skills such as:
+Phase 5 added direct command skills and then consolidated the entire
+skill layer from 39 down to 14 per agent-skills best-practice guidance:
 
-- `dcx-looker-explores`
-- `dcx-looker-dashboards`
-- `dcx-spanner`
-- `dcx-alloydb`
-- `dcx-cloudsql`
-- `recipe-source-profile-validation`
-- `recipe-cross-source-debugging`
-
-That would take the skill count from 32 total in Phase 4 to roughly 39 total in
-Phase 5, assuming all seven ship and no Phase 4 skills are removed.
+- 6 router skills: `dcx-bigquery`, `dcx-analytics`, `dcx-ca`,
+  `dcx-databases`, `dcx-looker`, `dcx-profiles`
+- 5 API skills: `dcx-bigquery-api`, `dcx-spanner-api`, `dcx-alloydb-api`,
+  `dcx-cloudsql-api`, `dcx-looker-admin-api`
+- 3 recipes: `recipe-source-onboarding`, `recipe-debugging`,
+  `recipe-quality-ops`
 
 These should not repeat product docs. They should encode:
 
@@ -500,14 +497,13 @@ Deliverables:
 
 Implementation notes:
 
-- Added 7 new curated skills (32 → 39 total):
-  - `dcx-spanner`: Direct Spanner inventory, DDL, and schema commands
-  - `dcx-alloydb`: Direct AlloyDB inventory, schema, and database commands
-  - `dcx-cloudsql`: Direct Cloud SQL inventory and schema commands
-  - `dcx-looker`: Hybrid Looker content + admin commands
-  - `dcx-profiles`: Profile management (list, show, validate)
-  - `recipe-source-profile-validation`: Step-by-step profile debugging
-  - `recipe-cross-source-debugging`: Cross-source connectivity verification
+- Added direct source skills, then consolidated entire skill layer
+  (39 → 14) per agent-skills best-practice guidance:
+  - 6 router skills (one per domain, routing-focused SKILL.md + references/)
+  - 5 API skills (one per Discovery service, generated-style)
+  - 3 consolidated recipes (onboarding, debugging, quality-ops)
+  - Removed 3 personas, 4 analytics leaves, 6 CA leaves, 6 BQ resource
+    leaves, 10 overlapping recipes, and folded dcx-shared into dcx-bigquery
 - Gemini manifest expanded from 17 → 28 tools, adding:
   - Spanner instances list, databases list, schema describe
   - AlloyDB clusters list, schema describe

@@ -912,8 +912,8 @@ dcx ca ask --profile finance-spanner.yaml "failed transactions last hour"
 - [x] Auth: ADC + service account + `dcx auth login`
 - [x] npm distribution (`npx dcx`) — platform-specific binaries via
   optional dependencies (same approach as `esbuild`, `turbo`)
-- [x] 5 core skills: `dcx-shared`, `dcx-analytics`, `dcx-analytics-evaluate`,
-  `dcx-analytics-trace`, `dcx-query`
+- [x] 5 core skills (later consolidated into `dcx-bigquery` and
+  `dcx-analytics` router skills)
 
 **Exit criteria:** `npx dcx analytics evaluate --last=1h --exit-code` works
 in GitHub Actions; 5 skills installable via `npx skills add`.
@@ -947,10 +947,8 @@ reproducible validation script.
 - [x] `dcx ca create-agent` — create data agents
 - [x] `dcx ca add-verified-query` — add verified queries
 - [x] Ship `deploy/ca/verified_queries.yaml` with SDK
-- [x] Remaining CA-dependent skills (7 of 26): `dcx-ca`, `dcx-ca-ask`,
-  `dcx-ca-create-agent`, `persona-sre` (requires `dcx-ca`),
-  `recipe-ca-data-agent-setup`, `recipe-error-alerting`,
-  `recipe-self-diagnostic-agent`
+- [x] CA-dependent skills (later consolidated into `dcx-ca` router
+  skill and `recipe-source-onboarding`, `recipe-quality-ops` recipes)
 - [x] Remaining analytics commands: `insights`, `drift`, `distribution`,
   `views`, `hitl-metrics`, `list-traces`
 - [x] Completion scripts (bash, zsh, fish)
@@ -971,10 +969,9 @@ integration tests.
 - [x] Looker explore profiles with instance URL and model/explore references
 - [x] AlloyDB, Spanner, Cloud SQL profiles with database connection details
 - [x] QueryData API integration with optional `context_set_id`
-- [x] 6 new Data Cloud skills: `dcx-ca-looker`, `dcx-ca-database`,
-  `dcx-ca-alloydb`, `dcx-ca-spanner`, `recipe-ca-looker-exploration`,
-  `recipe-ca-database-ops`
-- [x] Updated routing skills (`dcx-ca`, `dcx-ca-ask`, `persona-sre`)
+- [x] Multi-source CA skills (later consolidated into `dcx-ca` router
+  skill with `references/` and `dcx-databases` router skill)
+- [x] Updated routing and profile skills
 - [x] E2E validation against live AlloyDB, Spanner, and Cloud SQL instances
 - [x] Docs and positioning update
 - [x] Version bump to 0.4.0 and release closure

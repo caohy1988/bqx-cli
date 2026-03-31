@@ -82,35 +82,36 @@ to call it correctly.
 |---|---|---|
 | **Discovery** | No skill files. The agent must be pre-programmed with `bq` syntax, or parse `--help` text and guess. | Ships 14 skills in the open SKILL.md format covering BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL. An agent reads the skill file and knows exactly what parameters to pass. |
 | **Integration** | Every agent platform (OpenClaw, Gemini CLI, Claude Code) writes its own `bq` wrapper with hardcoded knowledge of which flags to use. | Two integration surfaces today: SKILL.md files for CLI agents, and a Gemini extension manifest for Gemini-native agents. Not yet a single surface — but both are checked in and versioned, unlike ad-hoc wrappers. |
-| **Example** | Agent has no way to discover that `bq query` exists or what flags it needs. Team writes a custom tool definition for each agent framework. | Agent loads `skills/dcx-query/SKILL.md`, sees the command template, parameters, and output schema. Runs it directly. |
+| **Example** | Agent has no way to discover that `bq query` exists or what flags it needs. Team writes a custom tool definition for each agent framework. | Agent loads `skills/dcx-bigquery/SKILL.md`, sees the command routing, flags, and output formats. Runs it directly. |
 
-**What a skill file looks like** — `skills/dcx-query/SKILL.md` (abridged):
+**What a skill file looks like** — `skills/dcx-bigquery/SKILL.md` (abridged):
 
 ```markdown
 ---
-name: dcx-query
-description: Run raw BigQuery SQL queries via dcx CLI.
+name: dcx-bigquery
+description: BigQuery router skill — authentication, global flags,
+  SQL queries, schema inspection, and connections.
 ---
 ## When to use this skill
-- "run this SQL through dcx"
-- "dry-run this BigQuery query"
+- Set up dcx authentication or understand global flags
+- Run SQL queries against BigQuery
+- Inspect table or view schemas
 
-## Core workflow
+## SQL queries
   dcx jobs query --query "<SQL>" [--dry-run] [--format json|table|text]
 
-## Flags
-| Flag         | Description                    |
-|--------------|--------------------------------|
-| --query      | SQL query string (required)    |
-| --dry-run    | Show request without executing |
-| --format     | json (default), table, or text |
+## Decision rules
+- Use `dcx jobs query` for direct SQL execution
+- Use `dcx tables get` for single-table schema inspection
+- Use `--dry-run` to verify without executing
 
-## Output
-JSON: {"total_rows": N, "rows": [...]}  — each row as key-value object.
+## References
+- See **dcx-bigquery-api** for dataset/table/routine/model commands
+- See **dcx-analytics** for agent analytics workflows
 ```
 
 An agent reads this file and immediately knows: what the command does,
-which flags to pass, what JSON shape to expect back. Compare this to `bq`,
+which flags to pass, where to find detail. Compare this to `bq`,
 where every team reverse-engineers the same information from `--help` text
 and builds a bespoke wrapper. Skills like `dcx-analytics` go further —
 they include **routing tables** that tell the agent which subcommand to
