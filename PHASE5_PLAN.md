@@ -17,15 +17,12 @@ focused read-only and workflow-oriented command layer that makes `dcx` useful
 for real Data Cloud work outside BigQuery.
 
 Authority note:
-this plan extends the current roadmap in
-[README.md](README.md). The README remains
-authoritative for the top-level roadmap, and this document is the detailed
-implementation proposal for a new proposed Phase 5.
+this plan was the implementation proposal for Phase 5. All six milestones
+are now complete and the repo has shipped `0.5.0`. The README remains
+authoritative for the top-level roadmap.
 
 Versioning note:
-the repo is currently at `0.4.0` in
-[Cargo.toml](Cargo.toml). This plan treats Phase 5 as
-the path to `0.5.0`.
+Phase 5 took the repo from `0.4.0` to `0.5.0`.
 
 ## Baseline (post-Phase 4)
 

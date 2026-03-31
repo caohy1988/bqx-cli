@@ -4,28 +4,28 @@ Cross-source command matrix for dcx v0.5.0.
 
 ## Command Coverage
 
-| Command | BigQuery | Spanner | AlloyDB | Cloud SQL | Looker |
-|---------|----------|---------|---------|-----------|--------|
-| `datasets list\|get` | Yes | — | — | — | — |
-| `tables list\|get` | Yes | — | — | — | — |
-| `routines list\|get` | Yes | — | — | — | — |
-| `models list\|get` | Yes | — | — | — | — |
-| `jobs query` | Yes | — | — | — | — |
-| `instances list\|get` | — | Yes | Yes | Yes | Yes |
-| `clusters list\|get` | — | — | Yes | — | — |
-| `databases list\|get` | — | Yes | — | Yes | — |
-| `databases get-ddl` | — | Yes | — | — | — |
-| `backups list\|get` | — | — | — | — | Yes |
-| `explores list\|get` | — | — | — | — | Yes |
-| `dashboards list\|get` | — | — | — | — | Yes |
-| `schema describe` | — | Yes | Yes | Yes | — |
-| `databases list` (profile) | — | — | Yes | — | — |
-| `profiles list\|show\|validate` | All | All | All | All | All |
-| `ca ask` | Yes | Yes | Yes | Yes | Yes |
-| `ca create-agent` | Yes | — | — | — | — |
-| `ca list-agents` | Yes | — | — | — | — |
-| `ca add-verified-query` | Yes | — | — | — | — |
-| `analytics doctor\|evaluate\|...` | Yes | — | — | — | — |
+| Command | BigQuery | Spanner | AlloyDB | Cloud SQL | Looker | Looker Studio |
+|---------|----------|---------|---------|-----------|--------|---------------|
+| `datasets list\|get` | Yes | — | — | — | — | — |
+| `tables list\|get` | Yes | — | — | — | — | — |
+| `routines list\|get` | Yes | — | — | — | — | — |
+| `models list\|get` | Yes | — | — | — | — | — |
+| `jobs query` | Yes | — | — | — | — | — |
+| `instances list\|get` | — | Yes | Yes | Yes | Yes | — |
+| `clusters list\|get` | — | — | Yes | — | — | — |
+| `databases list\|get` | — | Yes | — | Yes | — | — |
+| `databases get-ddl` | — | Yes | — | — | — | — |
+| `backups list\|get` | — | — | — | — | Yes | — |
+| `explores list\|get` | — | — | — | — | Yes | — |
+| `dashboards list\|get` | — | — | — | — | Yes | — |
+| `schema describe` | — | Yes | Yes | Yes | — | — |
+| `databases list` (profile) | — | — | Yes | — | — | — |
+| `profiles list\|show\|validate` | All | All | All | All | All | All |
+| `ca ask` | Yes | Yes | Yes | Yes | Yes | Yes |
+| `ca create-agent` | Yes | — | — | — | — | — |
+| `ca list-agents` | Yes | — | — | — | — | — |
+| `ca add-verified-query` | Yes | — | — | — | — | — |
+| `analytics doctor\|evaluate\|...` | Yes | — | — | — | — | — |
 
 ## Profile Requirements
 
