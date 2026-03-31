@@ -221,17 +221,24 @@ pub async fn run_with_executor(
 
 // ── Single-view create ──
 
-/// Validate that the given event type is one of the 18 standard types.
-pub fn validate_event_type(event_type: &str) -> Result<()> {
+/// Check whether the given event type is one of the 18 standard types.
+/// Returns true if known, false if custom. Does not reject custom types —
+/// the SDK passes event_type through directly and lets BigQuery handle it.
+pub fn is_known_event_type(event_type: &str) -> bool {
     let upper = event_type.to_uppercase();
-    if !EVENT_TYPES.contains(&upper.as_str()) {
-        anyhow::bail!(
-            "Unknown event type: '{}'. Expected one of: {}",
+    EVENT_TYPES.contains(&upper.as_str())
+}
+
+/// Warn on stderr if the event type is not one of the 18 standard types.
+/// Does not error — custom event types are passed through to BigQuery.
+fn warn_if_custom_event_type(event_type: &str) {
+    if !is_known_event_type(event_type) {
+        eprintln!(
+            "Warning: '{}' is not a standard ADK event type. Standard types: {}",
             event_type,
             EVENT_TYPES.join(", ")
         );
     }
-    Ok(())
 }
 
 #[derive(Serialize)]
@@ -327,7 +334,7 @@ pub async fn run_create(
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
-    validate_event_type(&event_type)?;
+    warn_if_custom_event_type(&event_type);
     config::validate_view_prefix(&prefix)?;
     config.require_dataset_id()?;
 
@@ -362,7 +369,7 @@ pub async fn run_create_with_executor(
     prefix: String,
     config: &Config,
 ) -> Result<()> {
-    validate_event_type(&event_type)?;
+    warn_if_custom_event_type(&event_type);
     let result = build_view_create(executor, &event_type, &prefix, config).await?;
     render_view_create(&result, config)?;
     if result.status == "failed" {

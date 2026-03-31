@@ -21,7 +21,7 @@ use dcx::commands::analytics::insights::{
     top_errors_from_rows, top_tools_from_rows,
 };
 use dcx::commands::analytics::list_traces::{build_list_traces_query, traces_from_rows};
-use dcx::commands::analytics::views::{build_create_view_sql, validate_event_type};
+use dcx::commands::analytics::views::{build_create_view_sql, is_known_event_type};
 use dcx::commands::analytics::categorical_eval::{
     build_list_sessions_query, build_persist_sql, build_session_events_query,
     classify_session, sessions_from_rows,
@@ -1550,18 +1550,17 @@ async fn distribution_rejects_invalid_agent_id() {
 // ═══════════════════════════════════════════════
 
 #[test]
-fn validate_event_type_accepts_valid() {
-    assert!(validate_event_type("LLM_REQUEST").is_ok());
-    assert!(validate_event_type("llm_request").is_ok()); // case-insensitive
-    assert!(validate_event_type("TOOL_ERROR").is_ok());
-    assert!(validate_event_type("SESSION_START").is_ok());
+fn is_known_event_type_accepts_standard() {
+    assert!(is_known_event_type("LLM_REQUEST"));
+    assert!(is_known_event_type("llm_request")); // case-insensitive
+    assert!(is_known_event_type("TOOL_ERROR"));
+    assert!(is_known_event_type("SESSION_START"));
 }
 
 #[test]
-fn validate_event_type_rejects_invalid() {
-    let result = validate_event_type("NOT_A_TYPE");
-    assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Unknown event type"));
+fn is_known_event_type_returns_false_for_custom() {
+    assert!(!is_known_event_type("CUSTOM_EVENT"));
+    assert!(!is_known_event_type("MY_SPECIAL_TYPE"));
 }
 
 #[tokio::test]
@@ -1593,18 +1592,18 @@ async fn views_create_single_with_prefix() {
 }
 
 #[tokio::test]
-async fn views_create_single_rejects_invalid_type() {
+async fn views_create_single_accepts_custom_type() {
+    // SDK passes event_type through directly; dcx should not reject custom types.
     let executor = MockExecutor::empty(vec![]);
     let config = test_config(OutputFormat::Json);
     let result = dcx::commands::analytics::views::run_create_with_executor(
         &executor,
-        "INVALID".into(),
+        "CUSTOM_EVENT".into(),
         "".into(),
         &config,
     )
     .await;
-    assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Unknown event type"));
+    assert!(result.is_ok());
 }
 
 // ═══════════════════════════════════════════════
@@ -1928,4 +1927,87 @@ async fn categorical_eval_rejects_endpoint_flag() {
     assert!(err.contains("--endpoint is not yet supported"));
     // cleanup
     let _ = std::fs::remove_file(&metrics_path);
+}
+
+// ═══════════════════════════════════════════════
+// Duplicate metric name rejection
+// ═══════════════════════════════════════════════
+
+#[test]
+fn load_metrics_file_rejects_duplicate_names() {
+    let dir = std::env::temp_dir().join("dcx_test_dup_metrics");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("dup_metrics.json");
+    std::fs::write(
+        &path,
+        r#"[
+            {"name":"quality","definition":"q","categories":[{"name":"good","definition":"g"}]},
+            {"name":"quality","definition":"different","categories":[{"name":"bad","definition":"b"}]}
+        ]"#,
+    )
+    .unwrap();
+
+    let result = dcx::commands::analytics::categorical_eval::load_metrics_file(
+        path.to_str().unwrap(),
+    );
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("Duplicate metric name 'quality'"));
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn load_metrics_file_accepts_unique_names() {
+    let dir = std::env::temp_dir().join("dcx_test_unique_metrics");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("unique_metrics.json");
+    std::fs::write(
+        &path,
+        r#"[
+            {"name":"quality","definition":"q","categories":[{"name":"good","definition":"g"}]},
+            {"name":"safety","definition":"s","categories":[{"name":"safe","definition":"s"}]}
+        ]"#,
+    )
+    .unwrap();
+
+    let result = dcx::commands::analytics::categorical_eval::load_metrics_file(
+        path.to_str().unwrap(),
+    );
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().len(), 2);
+    let _ = std::fs::remove_file(&path);
+}
+
+// ═══════════════════════════════════════════════
+// --no-include-justification flag
+// ═══════════════════════════════════════════════
+
+#[tokio::test]
+async fn categorical_eval_no_include_justification() {
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Json);
+    let metrics = vec![MetricDefinition {
+        name: "quality".into(),
+        definition: "Response quality".into(),
+        categories: vec![CategoryDef {
+            name: "good".into(),
+            definition: "Good quality".into(),
+        }],
+        required: true,
+    }];
+    // include_justification = false should work and omit justifications
+    let result = dcx::commands::analytics::categorical_eval::run_with_executor(
+        &executor,
+        &metrics,
+        Some("7d".into()),
+        None,
+        100,
+        false, // justification disabled
+        false,
+        None,
+        None,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
 }

@@ -318,9 +318,9 @@ pub enum AnalyticsCommand {
         #[arg(long)]
         endpoint: Option<String>,
 
-        /// Include justification in output
-        #[arg(long, default_value = "true")]
-        include_justification: bool,
+        /// Disable justification in output (justification included by default)
+        #[arg(long)]
+        no_include_justification: bool,
 
         /// Write results to BigQuery
         #[arg(long)]

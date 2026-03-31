@@ -49,7 +49,7 @@ pub struct MetricsFile {
     pub metrics: Vec<MetricDefinition>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct MetricDefinition {
     pub name: String,
     pub definition: String,
@@ -62,7 +62,7 @@ fn default_true() -> bool {
     true
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct CategoryDef {
     pub name: String,
     pub definition: String,
@@ -627,6 +627,20 @@ pub fn load_metrics_file(path: &str) -> Result<Vec<MetricDefinition>> {
 
     if metrics.is_empty() {
         anyhow::bail!("No metrics found in metrics file '{}'", path);
+    }
+
+    // Reject duplicate metric names — they would collapse in persistence
+    // and double-count in summary output.
+    let mut seen = std::collections::HashSet::new();
+    for m in &metrics {
+        if !seen.insert(&m.name) {
+            anyhow::bail!(
+                "Duplicate metric name '{}' in metrics file '{}'. \
+                 Each metric must have a unique name.",
+                m.name,
+                path
+            );
+        }
     }
 
     Ok(metrics)
