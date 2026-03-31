@@ -584,7 +584,48 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                 ViewsCommand::CreateAll { prefix } => {
                     commands::analytics::views::run(prefix, &auth_opts, &config).await
                 }
+                ViewsCommand::Create { event_type, prefix } => {
+                    commands::analytics::views::run_create(
+                        event_type, prefix, &auth_opts, &config,
+                    )
+                    .await
+                }
             },
+            AnalyticsCommand::CategoricalEval {
+                metrics_file,
+                agent_id,
+                last,
+                limit,
+                endpoint,
+                include_justification,
+                persist,
+                results_table,
+                prompt_version,
+            } => {
+                commands::analytics::categorical_eval::run(
+                    metrics_file,
+                    agent_id,
+                    last,
+                    limit,
+                    endpoint,
+                    include_justification,
+                    persist,
+                    results_table,
+                    prompt_version,
+                    &auth_opts,
+                    &config,
+                )
+                .await
+            }
+            AnalyticsCommand::CategoricalViews {
+                results_table,
+                prefix,
+            } => {
+                commands::analytics::categorical_views::run(
+                    results_table, prefix, &auth_opts, &config,
+                )
+                .await
+            }
         },
         Command::Auth { .. }
         | Command::GenerateSkills { .. }

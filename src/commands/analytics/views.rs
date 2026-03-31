@@ -218,3 +218,155 @@ pub async fn run_with_executor(
     render_views_create(&result, config)?;
     check_failures(&result)
 }
+
+// ── Single-view create ──
+
+/// Validate that the given event type is one of the 18 standard types.
+pub fn validate_event_type(event_type: &str) -> Result<()> {
+    let upper = event_type.to_uppercase();
+    if !EVENT_TYPES.contains(&upper.as_str()) {
+        anyhow::bail!(
+            "Unknown event type: '{}'. Expected one of: {}",
+            event_type,
+            EVENT_TYPES.join(", ")
+        );
+    }
+    Ok(())
+}
+
+#[derive(Serialize)]
+pub struct ViewCreateResult {
+    pub view_name: String,
+    pub event_type: String,
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+async fn build_view_create(
+    executor: &dyn QueryExecutor,
+    event_type: &str,
+    prefix: &str,
+    config: &Config,
+) -> Result<ViewCreateResult> {
+    let dataset_id = config.require_dataset_id()?;
+    let canonical = event_type.to_uppercase();
+    let (view_name, sql) = build_create_view_sql(
+        &config.project_id,
+        dataset_id,
+        &config.table,
+        prefix,
+        &canonical,
+    );
+
+    let result = executor
+        .query(
+            &config.project_id,
+            QueryRequest {
+                query: sql,
+                use_legacy_sql: false,
+                location: config.location.clone(),
+                max_results: None,
+                timeout_ms: Some(30000),
+            },
+        )
+        .await;
+
+    match result {
+        Ok(_) => Ok(ViewCreateResult {
+            view_name,
+            event_type: canonical,
+            status: "created".to_string(),
+            error: None,
+        }),
+        Err(e) => Ok(ViewCreateResult {
+            view_name,
+            event_type: canonical,
+            status: "failed".to_string(),
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+fn render_view_create(result: &ViewCreateResult, config: &Config) -> Result<()> {
+    match config.format {
+        OutputFormat::Text => {
+            if result.status == "created" {
+                println!("Created view: {}", result.view_name);
+            } else {
+                println!(
+                    "Failed to create view {}: {}",
+                    result.view_name,
+                    result.error.as_deref().unwrap_or("unknown error")
+                );
+            }
+        }
+        OutputFormat::Table => {
+            let columns = vec![
+                "view_name".into(),
+                "event_type".into(),
+                "status".into(),
+            ];
+            let rows = vec![vec![
+                result.view_name.clone(),
+                result.event_type.clone(),
+                result.status.clone(),
+            ]];
+            output::render_rows_as_table(&columns, &rows)?;
+        }
+        OutputFormat::Json => {
+            output::render(result, &config.format)?;
+        }
+    }
+    Ok(())
+}
+
+pub async fn run_create(
+    event_type: String,
+    prefix: String,
+    auth_opts: &AuthOptions,
+    config: &Config,
+) -> Result<()> {
+    validate_event_type(&event_type)?;
+    config::validate_view_prefix(&prefix)?;
+    config.require_dataset_id()?;
+
+    let resolved = auth::resolve(auth_opts).await?;
+    let client = BigQueryClient::new(resolved.clone());
+    let result = build_view_create(&client, &event_type, &prefix, config).await?;
+
+    if let Some(ref template) = config.sanitize_template {
+        let json_val = serde_json::to_value(&result)?;
+        let sanitize_result =
+            crate::bigquery::sanitize::sanitize_response(&resolved, template, &json_val).await?;
+        crate::bigquery::sanitize::print_sanitization_notice(&sanitize_result);
+        if sanitize_result.sanitized {
+            crate::output::render(&sanitize_result.content, &config.format)?;
+            if result.status == "failed" {
+                anyhow::bail!("View creation failed");
+            }
+            return Ok(());
+        }
+    }
+
+    render_view_create(&result, config)?;
+    if result.status == "failed" {
+        anyhow::bail!("View creation failed");
+    }
+    Ok(())
+}
+
+pub async fn run_create_with_executor(
+    executor: &dyn QueryExecutor,
+    event_type: String,
+    prefix: String,
+    config: &Config,
+) -> Result<()> {
+    validate_event_type(&event_type)?;
+    let result = build_view_create(executor, &event_type, &prefix, config).await?;
+    render_view_create(&result, config)?;
+    if result.status == "failed" {
+        anyhow::bail!("View creation failed");
+    }
+    Ok(())
+}

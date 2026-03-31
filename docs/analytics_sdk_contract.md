@@ -12,8 +12,8 @@ edit intentional divergence notes only.
 | Metric | Count |
 |--------|-------|
 | SDK commands | 12 |
-| Matched in dcx | 9 |
-| Missing from dcx | 3 |
+| Matched in dcx | 12 |
+| Missing from dcx | 0 |
 | Code evaluators (SDK) | 6 |
 | Code evaluators in dcx | 2 |
 | LLM judges (SDK) | 3 |
@@ -31,10 +31,10 @@ edit intentional divergence notes only.
 | `distribution` | `dcx analytics distribution` | present |
 | `hitl-metrics` | `dcx analytics hitl-metrics` | present |
 | `list-traces` | `dcx analytics list-traces` | present |
-| `categorical-eval` | `—` | missing |
-| `categorical-views` | `—` | missing |
+| `categorical-eval` | `dcx analytics categorical-eval` | present |
+| `categorical-views` | `dcx analytics categorical-views` | present |
 | `views create-all` | `dcx analytics views create-all` | present |
-| `views create` | `—` | missing |
+| `views create` | `dcx analytics views create` | present |
 
 ## Flag Parity
 
@@ -176,9 +176,42 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
-### `categorical-eval` — missing from dcx
+### `categorical-eval` (8 exact, 5 semantic mismatch, 1 divergent, 3 dcx-only)
 
-### `categorical-views` — missing from dcx
+| SDK Flag | Type | Required | Status | Note |
+|----------|------|----------|--------|------|
+| `--project-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
+| `--dataset-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
+| `--table-id` | str | no | intentional_divergence | --table-id -> --table |
+| `--location` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='US' |
+| `--metrics-file` | path | yes | exact |  |
+| `--agent-id` | optional<str> | no | exact |  |
+| `--last` | optional<str> | no | exact |  |
+| `--limit` | int | no | semantic_mismatch | SDK default=100, dcx default='100' |
+| `--endpoint` | optional<str> | no | exact |  |
+| `--include-justification` | bool | no | semantic_mismatch | SDK default=True, dcx default='true' |
+| `--persist` | bool | no | exact |  |
+| `--results-table` | optional<str> | no | exact |  |
+| `--prompt-version` | optional<str> | no | exact |  |
+| `--format` | str | no | exact |  |
+| `--token` | optional<string> | — | dcx_extension (global) | |
+| `--credentials-file` | optional<string> | — | dcx_extension (global) | |
+| `--sanitize` | optional<string> | — | dcx_extension (global) | |
+
+### `categorical-views` (3 exact, 3 semantic mismatch, 4 dcx-only)
+
+| SDK Flag | Type | Required | Status | Note |
+|----------|------|----------|--------|------|
+| `--project-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
+| `--dataset-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
+| `--results-table` | str | no | exact |  |
+| `--location` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='US' |
+| `--prefix` | str | no | exact |  |
+| `--format` | str | no | exact |  |
+| `--table` | string | — | dcx_extension (global) | |
+| `--token` | optional<string> | — | dcx_extension (global) | |
+| `--credentials-file` | optional<string> | — | dcx_extension (global) | |
+| `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
 ### `views create-all` (1 exact, 3 semantic mismatch, 1 divergent, 4 dcx-only)
 
@@ -194,7 +227,20 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
-### `views create` — missing from dcx
+### `views create` (1 exact, 3 semantic mismatch, 1 divergent, 5 dcx-only)
+
+| SDK Flag | Type | Required | Status | Note |
+|----------|------|----------|--------|------|
+| `--project-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
+| `--dataset-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
+| `--table-id` | str | no | intentional_divergence | --table-id -> --table |
+| `--prefix` | str | no | semantic_mismatch | SDK default='adk_', dcx default='' |
+| `--format` | str | no | exact |  |
+| `--location` | string | — | dcx_extension (global) | |
+| `--token` | optional<string> | — | dcx_extension (global) | |
+| `--credentials-file` | optional<string> | — | dcx_extension (global) | |
+| `--sanitize` | optional<string> | — | dcx_extension (global) | |
+| `--event-type` | string | — | dcx_extension (local) | |
 
 ## Evaluator Parity
 
@@ -244,3 +290,5 @@ edit intentional divergence notes only.
 | env var prefix | DCX_PROJECT / DCX_DATASET | BQ_AGENT_PROJECT / BQ_AGENT_DATASET | dcx uses its own namespace; same semantics |
 | --sanitize flag | present (Model Armor) | absent | dcx-only feature for response sanitization |
 | evaluator name spelling | error-rate (kebab-case) | error_rate (snake_case) | dcx follows CLI kebab-case convention; may add aliases for SDK names |
+| categorical-eval --endpoint | flag accepted but errors if provided | routes to AI.GENERATE for LLM-based classification | dcx uses heuristic-based classification; LLM-judge integration planned for Milestone C |
+| categorical-views view set | summary, timeline, by_agent, latest_per_session | CategoricalViewManager.create_all_views() (internal) | SDK view manager source is not public; dcx provides equivalent dashboarding views |

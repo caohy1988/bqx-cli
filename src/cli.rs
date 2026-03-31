@@ -295,12 +295,71 @@ pub enum AnalyticsCommand {
         #[command(subcommand)]
         command: ViewsCommand,
     },
+
+    /// Run categorical evaluation over agent traces
+    CategoricalEval {
+        /// JSON file with metric definitions
+        #[arg(long)]
+        metrics_file: String,
+
+        /// Filter by agent name
+        #[arg(long)]
+        agent_id: Option<String>,
+
+        /// Time window (e.g., 1h, 24h, 7d)
+        #[arg(long)]
+        last: Option<String>,
+
+        /// Maximum number of sessions to evaluate
+        #[arg(long, default_value = "100")]
+        limit: u32,
+
+        /// Model endpoint for classification
+        #[arg(long)]
+        endpoint: Option<String>,
+
+        /// Include justification in output
+        #[arg(long, default_value = "true")]
+        include_justification: bool,
+
+        /// Write results to BigQuery
+        #[arg(long)]
+        persist: bool,
+
+        /// Destination table for persisted results
+        #[arg(long)]
+        results_table: Option<String>,
+
+        /// Prompt version tag for reproducibility
+        #[arg(long)]
+        prompt_version: Option<String>,
+    },
+
+    /// Create dashboard views over categorical evaluation results
+    CategoricalViews {
+        /// Source results table name
+        #[arg(long, default_value = "categorical_results")]
+        results_table: String,
+
+        /// View name prefix
+        #[arg(long, default_value = "")]
+        prefix: String,
+    },
 }
 
 #[derive(Subcommand)]
 pub enum ViewsCommand {
     /// Create views for all 18 standard event types
     CreateAll {
+        /// Prefix for view names (e.g., "adk_" → adk_llm_request)
+        #[arg(long, default_value = "")]
+        prefix: String,
+    },
+    /// Create a view for a single event type
+    Create {
+        /// Event type to create a view for (e.g. LLM_REQUEST)
+        event_type: String,
+
         /// Prefix for view names (e.g., "adk_" → adk_llm_request)
         #[arg(long, default_value = "")]
         prefix: String,
