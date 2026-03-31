@@ -38,17 +38,20 @@ via `dcx` costs zero additional tool definitions.
 
 | | BigQuery MCP server | MCP Toolbox for Databases | dcx CLI |
 |---|---|---|---|
-| **Tools registered** | 5 (list/get datasets, tables, execute\_sql) | 9 (+ search\_catalog, forecast, analyze\_contribution, ask\_data\_insights) | 0 extra (uses bash) |
-| **Tool-def tokens per LLM call** | ~660 | ~1,880 | 0 |
+| **Tools registered** | 5 (list/get datasets, tables, execute\_sql) | 9 (+ search\_catalog, forecast, analyze\_contribution, ask\_data\_insights) | 0 extra Data Cloud tools (uses bash) |
+| **Tool-def tokens per LLM call** | ~660 | ~1,880 | ~0 additional Data Cloud tool-def tokens |
 | **Total tokens for one query** | ~1,570 | ~4,000 | ~460 |
 | **Tool-def overhead in a 10-turn session** | ~13,200 | ~37,500 | 0 |
 
 Token counts are calculated from the actual JSON tool schemas sent to the
 LLM. MCP Toolbox pays the highest tax because all 9 tools — including
 `forecast` and `analyze_contribution` with 5–6 parameters each — are
-registered even when the agent only needs `execute_sql`. `dcx` avoids
-this entirely: the agent calls `dcx jobs query --query "..." --format
-json` through the bash tool it already has.
+registered even when the agent only needs `execute_sql`. `dcx` does not
+add a separate per-command Data Cloud tool catalog: the agent calls
+`dcx jobs query --query "..." --format json` through the bash tool it
+already has. The shell surface itself is not literally free, but adding
+`dcx` does not introduce the same per-turn tool-definition overhead as
+MCP.
 
 The right long-term model is not CLI-only or MCP-only. It is one shared
 contract with two delivery modes: a CLI-first surface for agents that can
