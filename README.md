@@ -982,7 +982,7 @@ Data Cloud support; docs updated.
 
 See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 
-### Phase 5: Native Data Cloud Commands Beyond BigQuery (v0.5) — In Progress
+### Phase 5: Native Data Cloud Commands Beyond BigQuery (v0.5) — Complete
 
 - [x] Add top-level profile utilities: `dcx profiles list|show|validate`
 - [x] Add `dcx looker instances|backups list|get` (Discovery-driven)
@@ -994,9 +994,8 @@ See [PHASE4_PLAN.md](PHASE4_PLAN.md) for the full plan.
 - [x] Add profile-aware schema and database helpers: `dcx spanner schema
   describe`, `dcx cloudsql schema describe`, `dcx alloydb schema describe`,
   `dcx alloydb databases list`
-- [ ] Expand skills and docs so agents can choose between `ca ask` and direct
-  source commands
-- [ ] Release `0.5.0` with a validated cross-source command matrix
+- [x] Consolidate skills (39 → 14) per agent-skills best practices
+- [x] Release `0.5.0` with validated cross-source command matrix
 
 **Architecture note (M3):** Spanner, AlloyDB, and Cloud SQL commands are
 generated from bundled Discovery documents (`spanner/v1`, `alloydb/v1`,
