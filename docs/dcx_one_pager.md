@@ -19,12 +19,20 @@ Recent signals from Perplexity and the industry trajectory toward coding
 agents with VM execution environments confirm this direction. Local
 orchestrators like OpenClaw demonstrate that the control plane is shifting.
 
-### Why CLI instead of MCP?
+### When CLI vs MCP
 
-MCP servers register every operation as a separate tool. Each tool
-definition is sent to the LLM on every call — a per-turn tax that grows
-with tool count. A CLI is equivalent to one tool: the agent already has
-`bash`. Adding BigQuery via dcx costs zero additional tool definitions.
+Both have real use cases.
+
+MCP is a good fit when the agent does not have `bash`, when tool use must
+go through a tightly controlled function boundary, or when the host
+environment only allows API-style tools.
+
+CLI is a better fit when the agent has a shell or VM and needs to do
+iterative work across many operations. MCP servers register every
+operation as a separate tool. Each tool definition is sent to the LLM on
+every call — a per-turn tax that grows with tool count. A CLI is
+equivalent to one tool: the agent already has `bash`. Adding Data Cloud
+via `dcx` costs zero additional tool definitions.
 
 **Task:** `SELECT status, COUNT(*) FROM traces WHERE agent_id='support_bot' GROUP BY status`
 
@@ -38,9 +46,14 @@ with tool count. A CLI is equivalent to one tool: the agent already has
 Token counts are calculated from the actual JSON tool schemas sent to the
 LLM. MCP Toolbox pays the highest tax because all 9 tools — including
 `forecast` and `analyze_contribution` with 5–6 parameters each — are
-registered even when the agent only needs `execute_sql`. dcx avoids this
-entirely: the agent calls `dcx jobs query --query "..." --format json`
-through the bash tool it already has.
+registered even when the agent only needs `execute_sql`. `dcx` avoids
+this entirely: the agent calls `dcx jobs query --query "..." --format
+json` through the bash tool it already has.
+
+The right long-term model is not CLI-only or MCP-only. It is one shared
+contract with two delivery modes: a CLI-first surface for agents that can
+use `bash`, and API-oriented adapters for environments where shell access
+is not available.
 
 ### Do agents need their own CLI?
 
