@@ -1,0 +1,7 @@
+interface:
+  display_name: "Recipe: Source Onboarding"
+  short_description: "Step-by-step onboarding for new Data Cloud sources"
+  default_prompt: "Use $recipe-source-onboarding to validate profiles, bootstrap CA, and connect new data sources."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,7 +1,0 @@
-interface:
-  display_name: "Recipe: Cross-Source Debugging"
-  short_description: "Debug issues across multiple Data Cloud sources step-by-step"
-  default_prompt: "Use $recipe-cross-source-debugging to debug connectivity and data issues across multiple Data Cloud sources."
-
-policy:
-  allow_implicit_invocation: true

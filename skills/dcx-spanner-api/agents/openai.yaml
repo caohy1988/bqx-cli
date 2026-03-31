@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Spanner API"
+  short_description: "Discovery-generated Spanner instance and database commands"
+  default_prompt: "Use $dcx-spanner-api for Spanner v1 instance/database listing, metadata, and DDL retrieval."
+
+policy:
+  allow_implicit_invocation: true

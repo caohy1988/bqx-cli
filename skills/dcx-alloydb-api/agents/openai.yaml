@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx AlloyDB API"
+  short_description: "Discovery-generated AlloyDB cluster and instance commands"
+  default_prompt: "Use $dcx-alloydb-api for AlloyDB v1 cluster/instance listing and metadata."
+
+policy:
+  allow_implicit_invocation: true

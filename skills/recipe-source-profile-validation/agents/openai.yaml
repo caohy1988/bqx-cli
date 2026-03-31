@@ -1,7 +1,0 @@
-interface:
-  display_name: "Recipe: Profile Validation"
-  short_description: "Validate and debug source profiles step-by-step"
-  default_prompt: "Use $recipe-source-profile-validation to validate and debug a Data Cloud source profile."
-
-policy:
-  allow_implicit_invocation: true

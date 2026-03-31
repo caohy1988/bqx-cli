@@ -1,7 +1,0 @@
-interface:
-  display_name: "dcx Models"
-  short_description: "get/list BigQuery models via dcx"
-  default_prompt: "Use $dcx-models to get/list BigQuery models using the dcx CLI."
-
-policy:
-  allow_implicit_invocation: true

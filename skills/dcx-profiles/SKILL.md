@@ -13,9 +13,8 @@ Use when the user wants to:
 
 ## Prerequisites
 
-See **dcx-shared** for authentication and global flags.
-
 Profiles are YAML files that define source connection context.
+See **dcx-bigquery** for authentication.
 
 ## Commands
 
@@ -24,7 +23,6 @@ Profiles are YAML files that define source connection context.
 ```bash
 dcx profiles list --format json
 dcx profiles list --format table
-dcx profiles list --format text
 ```
 
 Lists all discoverable profiles with name, source type, family, and path.
@@ -36,18 +34,15 @@ dcx profiles show --profile spanner-finance --format json
 dcx profiles show --profile /path/to/profile.yaml --format json
 ```
 
-Displays the resolved profile configuration with secrets redacted.
-Accepts either a profile name or a file path.
+Displays resolved configuration with secrets redacted. Accepts name or path.
 
 ### Validate profile
 
 ```bash
-dcx profiles validate --profile spanner-finance --format json
-dcx profiles validate --profile /path/to/profile.yaml --format text
+dcx profiles validate --profile spanner-finance --format text
 ```
 
-Performs structural validation: checks required fields, source type,
-and field constraints without making network calls.
+Checks required fields, source type, and field constraints without network calls.
 
 ## Profile discovery order
 
@@ -78,6 +73,6 @@ User-local profiles shadow repo-local profiles with the same name.
 
 ## Constraints
 
-- `validate` checks structure only — it does not test network connectivity
+- `validate` checks structure only — does not test network connectivity
 - Secrets (OAuth client_secret, tokens) are redacted in `show` output
 - User-local profiles shadow repo-local profiles with the same name

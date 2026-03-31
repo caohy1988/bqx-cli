@@ -113,8 +113,9 @@ A new agent-native CLI for Google Cloud's Data Cloud that combines:
 │                                                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
 │  │                     Skills (SKILL.md)                              │  │
-│  │  39 skills (4 generated + 35 curated; see §4.1)                    │  │
-│  │  1 shared · 12 service · 6 helper · 7 CA · 3 persona · 10 recipe    │  │
+│  │  14 skills (5 API + 9 curated; see §4.1)                            │  │
+│  │  1 bigquery · 1 analytics · 1 ca · 1 databases · 2 looker           │  │
+│  │  1 profiles · 5 api · 3 recipe                                      │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
 │                                                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
@@ -484,51 +485,25 @@ CLI, Cursor, Copilot, Codex) can discover and use.
 
 ```
 skills/
-│ ## Shared
-├── dcx-shared/SKILL.md                       # Curated: auth, global flags, security rules
+│ ## Router skills — one per domain
+├── dcx-bigquery/SKILL.md                     # Auth, globals, SQL queries, schema, connections
+├── dcx-analytics/SKILL.md                    # Agent health, evaluate, trace, drift, views
+├── dcx-ca/SKILL.md                           # Natural language queries across 6 sources
+├── dcx-databases/SKILL.md                    # AlloyDB, Spanner, Cloud SQL direct commands
+├── dcx-looker/SKILL.md                       # Looker explore/dashboard content inspection
+├── dcx-profiles/SKILL.md                     # Profile list/show/validate across source types
 │
-│ ## Service skills — generated from BigQuery v2 Discovery API
-├── dcx-datasets/SKILL.md                     # Generated: dataset list/get
-├── dcx-tables/SKILL.md                       # Generated: table list/get
-├── dcx-routines/SKILL.md                     # Generated: routine list/get
-├── dcx-models/SKILL.md                       # Generated: ML model list/get
+│ ## API skills — one per Discovery service (generated)
+├── dcx-bigquery-api/SKILL.md                 # BigQuery v2: datasets, tables, routines, models
+├── dcx-spanner-api/SKILL.md                  # Spanner v1: instances, databases, DDL
+├── dcx-alloydb-api/SKILL.md                  # AlloyDB v1: clusters, instances
+├── dcx-cloudsql-api/SKILL.md                 # sqladmin v1: instances, databases
+├── dcx-looker-admin-api/SKILL.md             # Looker v1: instances, backups (GCP admin)
 │
-│ ## Service skills — curated (static commands or non-Discovery APIs)
-├── dcx-jobs/SKILL.md                         # Curated: query execution (static command)
-├── dcx-connections/SKILL.md                  # Curated: external connections (via INFORMATION_SCHEMA)
-├── dcx-analytics/SKILL.md                    # Curated: Agent Analytics SDK
-│
-│ ## Helper skills — curated
-├── dcx-analytics-evaluate/SKILL.md           # Curated: run evaluations
-├── dcx-analytics-trace/SKILL.md              # Curated: retrieve traces
-├── dcx-analytics-drift/SKILL.md              # Curated: drift detection workflow
-├── dcx-analytics-views/SKILL.md              # Curated: manage event views
-├── dcx-query/SKILL.md                        # Curated: shortcut for `dcx jobs query`
-├── dcx-schema/SKILL.md                       # Curated: inspect table schemas
-│
-│ ## CA skills — multi-source (Phase 3 + Phase 4)
-├── dcx-ca/SKILL.md                           # Routing: CA entry point, source selection
-├── dcx-ca-ask/SKILL.md                       # Helper: ask questions across all sources
-├── dcx-ca-create-agent/SKILL.md              # Helper: create BigQuery data agents
-├── dcx-ca-looker/SKILL.md                    # Phase 4: Looker explore CA profiles
-├── dcx-ca-database/SKILL.md                  # Phase 4: database source routing
-├── dcx-ca-alloydb/SKILL.md                   # Phase 4: AlloyDB prerequisites + CA
-├── dcx-ca-spanner/SKILL.md                   # Phase 4: Spanner GoogleSQL CA patterns
-│
-│ ## Personas — curated
-├── persona-agent-developer/SKILL.md          # Curated: agent developer workflows
-├── persona-data-analyst/SKILL.md             # Curated: SQL analyst workflows
-├── persona-sre/SKILL.md                      # SRE/on-call with cross-source CA
-│
-│ ## Recipes — curated
-├── recipe-eval-pipeline/SKILL.md             # Curated: CI/CD eval gate setup
-├── recipe-quality-dashboard/SKILL.md         # Curated: dashboard via BigQuery views
-├── recipe-drift-monitoring/SKILL.md          # Curated: weekly drift detection
-├── recipe-error-alerting/SKILL.md            # Phase 3: CQ + AI.GENERATE_TEXT alerting
-├── recipe-self-diagnostic-agent/SKILL.md     # Phase 3: agent self-correction loop
-├── recipe-ca-data-agent-setup/SKILL.md       # Phase 3: CA data agent creation
-├── recipe-ca-looker-exploration/SKILL.md     # Phase 4: Looker CA exploration workflow
-└── recipe-ca-database-ops/SKILL.md           # Phase 4: database CA ops workflow
+│ ## Recipes — consolidated workflows
+├── recipe-source-onboarding/SKILL.md         # Profile validation, CA bootstrap, Looker setup
+├── recipe-debugging/SKILL.md                 # Session debugging, cross-source, CA failures
+└── recipe-quality-ops/SKILL.md               # CI gates, drift, alerting, dashboards
 ```
 
 ### 4.2 Example Skills
@@ -549,8 +524,8 @@ metadata:
 
 # analytics
 
-> **PREREQUISITE:** Read `../dcx-shared/SKILL.md` for auth, global flags,
-> and security rules.
+> **PREREQUISITE:** Read `../dcx-bigquery/SKILL.md` for auth, global flags,
+> and output formats.
 
 ```bash
 dcx analytics <command> [flags]
@@ -570,16 +545,16 @@ dcx analytics <command> [flags]
 | `hitl-metrics` | Show human-in-the-loop interaction metrics |
 | `views` | Create per-event-type BigQuery views (18 event types) |
 
-## Helper Skills
+## References
 
-For common tasks, use the shortcut helper skills:
+Detailed command docs are in the `references/` subdirectory:
 
-| Helper | Description |
-|--------|-------------|
-| [`dcx-analytics-evaluate`](../dcx-analytics-evaluate/SKILL.md) | Quick evaluation commands |
-| [`dcx-analytics-trace`](../dcx-analytics-trace/SKILL.md) | Trace retrieval and analysis |
-| [`dcx-analytics-drift`](../dcx-analytics-drift/SKILL.md) | Drift detection workflows |
-| [`dcx-analytics-views`](../dcx-analytics-views/SKILL.md) | Manage per-event-type views |
+| Reference | Description |
+|-----------|-------------|
+| `references/evaluate.md` | Evaluate command flags and output formats |
+| `references/trace.md` | Trace retrieval and analysis |
+| `references/drift.md` | Drift detection workflows |
+| `references/views.md` | Per-event-type BigQuery view management |
 
 ## Global Flags
 
@@ -593,154 +568,46 @@ For common tasks, use the shortcut helper skills:
 | `--exit-code` | Return exit code 1 on evaluation failure |
 ```
 
-#### Helper Skill: `dcx-analytics-evaluate/SKILL.md`
+#### Example: Router Skill `dcx-analytics/SKILL.md` (abridged)
 
 ```markdown
 ---
-name: dcx-analytics-evaluate
-version: 1.0.0
-description: "Evaluate AI agent sessions for latency, error rate, or correctness."
-metadata:
-  category: "analytics"
-  requires:
-    bins: ["dcx"]
-  cliHelp: "dcx analytics evaluate --help"
+name: dcx-analytics
+description: Agent analytics workflows — health checks, session evaluation,
+  trace debugging, drift detection, and event views.
 ---
 
-# analytics evaluate
+## Command routing
 
-> **PREREQUISITE:** Read `../dcx-shared/SKILL.md` for auth and global flags.
+| User goal | Command |
+|-----------|---------|
+| Health check | `dcx analytics doctor` |
+| Gate sessions | `dcx analytics evaluate --evaluator latency --threshold N --last <dur>` |
+| Inspect session | `dcx analytics get-trace --session-id <ID>` |
 
-Evaluate agent sessions against a threshold. Returns pass/fail per session.
+## References
 
-## Usage
-
-```bash
-dcx analytics evaluate --evaluator=<TYPE> --threshold=<N> [flags]
+- `references/evaluate.md` — flags and output
+- `references/trace.md` — trace formats
+- `references/drift.md` — drift workflow
+- `references/views.md` — event-type views
 ```
 
-## Flags
-
-| Flag | Required | Default | Description |
-|------|----------|---------|-------------|
-| `--evaluator` | Yes | — | `latency`, `error_rate`, `turn_count`, `token_efficiency`, `llm-judge` |
-| `--threshold` | Yes | — | Pass/fail threshold (ms for latency, 0-1 for rates/scores) |
-| `--criterion` | If llm-judge | — | `correctness`, `hallucination`, `sentiment`, `custom` |
-| `--custom-prompt` | If custom | — | Custom LLM judge prompt |
-| `--exit-code` | No | false | Return exit code 1 on failure (for CI/CD) |
-
-## Examples
-
-```bash
-# Check latency compliance (agent self-diagnostic)
-dcx analytics evaluate --evaluator=latency --threshold=5000 --agent-id=support_bot --last=1h
-
-# CI/CD gate: fail if correctness drops below 0.7
-dcx analytics evaluate --evaluator=llm-judge --criterion=correctness \
-  --threshold=0.7 --last=24h --exit-code
-
-# Custom evaluation
-dcx analytics evaluate --evaluator=llm-judge --criterion=custom \
-  --custom-prompt="Rate how well the agent handled PII. Score 0-1." \
-  --threshold=0.9 --last=24h
-```
-
-> [!NOTE]
-> This is a **read-only** command. Safe to run without confirmation.
-```
-
-#### Persona Skill: `persona-sre/SKILL.md`
+#### Example: Recipe Skill `recipe-quality-ops/SKILL.md` (abridged)
 
 ```markdown
 ---
-name: persona-sre
-version: 1.0.0
-description: "On-call SRE workflows for monitoring and triaging AI agent issues."
-metadata:
-  category: "persona"
-  requires:
-    bins: ["dcx"]
-    skills: ["dcx-analytics", "dcx-ca", "dcx-query"]
+name: recipe-quality-ops
+description: CI evaluation gates, drift monitoring, error alerting,
+  and quality dashboards.
 ---
 
-# SRE / On-Call Engineer
-
-> **PREREQUISITE:** Load the following skills: `dcx-analytics`, `dcx-ca`,
-> `dcx-query`
-
-Monitor AI agent health, triage incidents, and validate fixes.
-
-## Incident Triage Workflow
-
-1. Check overall health:
-   `dcx analytics doctor`
-2. Look for error spikes:
-   `dcx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=1h`
-3. Identify failing sessions:
-   `dcx analytics evaluate --evaluator=latency --threshold=5000 --last=1h --format=table`
-4. Inspect a specific failure:
-   `dcx analytics get-trace --session-id=<ID_FROM_STEP_3>`
-5. Ask follow-up in natural language:
-   `dcx ca ask "What tools failed most in the last hour?" --agent=agent-analytics`
-
-## Daily Health Check
+## Recipe: CI evaluation gate
 
 ```bash
-dcx analytics doctor && \
-dcx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h && \
-dcx analytics evaluate --evaluator=latency --threshold=5000 --last=24h
+dcx analytics evaluate --evaluator=latency --threshold=5000 --last=24h --exit-code
+dcx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h --exit-code
 ```
-
-## Tips
-
-- Use `--format=table` for quick visual scans during incidents.
-- Pipe `--format=json` output to `jq` for scripted analysis.
-- Set `DCX_PROJECT` and `DCX_DATASET` env vars to avoid repetitive flags.
-```
-
-#### Recipe Skill: `recipe-eval-pipeline/SKILL.md`
-
-```markdown
----
-name: recipe-eval-pipeline
-version: 1.0.0
-description: "Set up a CI/CD evaluation pipeline that gates agent deployment on quality metrics."
-metadata:
-  category: "recipe"
-  domain: "devops"
-  requires:
-    bins: ["dcx"]
-    skills: ["dcx-analytics"]
----
-
-# CI/CD Evaluation Pipeline
-
-> **PREREQUISITE:** Load `dcx-analytics` skill.
-
-Set up a GitHub Actions workflow that blocks deployment when agent quality
-drops below thresholds.
-
-## Steps
-
-1. Install `dcx` in CI (distributed as platform-specific binaries via npm,
-   similar to [`esbuild`](https://github.com/evanw/esbuild) and
-   [`turbo`](https://github.com/vercel/turbo)):
-   `npm install -g dcx`
-
-2. Authenticate with Workload Identity Federation:
-   ```yaml
-   - uses: google-github-actions/auth@v2
-     with:
-       workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-       service_account: ${{ vars.SA_EMAIL }}
-   ```
-
-3. Add evaluation gates:
-   ```bash
-   dcx analytics evaluate --evaluator=latency --threshold=5000 --last=24h --exit-code
-   dcx analytics evaluate --evaluator=error-rate --threshold=0.05 --last=24h --exit-code
-   dcx analytics drift --golden-dataset=golden_qs --min-coverage=0.85 --exit-code
-   ```
 
 4. Upload reports as artifacts:
    ```bash
@@ -762,7 +629,7 @@ Discovery Document:
 dcx generate-skills --output-dir=./skills
 
 # Regenerate only dataset skills
-dcx generate-skills --filter=dcx-datasets --output-dir=./skills
+dcx generate-skills --filter=dcx-bigquery-api --output-dir=./skills
 ```
 
 The generator:
@@ -771,21 +638,17 @@ The generator:
 - Only generates skills for methods in the read-only allowlist
 - Includes flag tables, usage examples, and cross-references
 
-**Generated vs curated scope:** `generate-skills` produces service skills
-for BigQuery API resource families (datasets, tables, routines, models).
-Analytics helpers, personas, and recipes are curated by hand — they
-require opinionated workflow guidance that raw Discovery metadata cannot
-provide.
+**Generated vs curated scope:** `generate-skills` produces service-level
+API skills — one per Discovery namespace (BigQuery, Spanner, AlloyDB,
+Cloud SQL, Looker admin). Router skills, recipes, and domain skills are
+curated by hand — they require opinionated routing and workflow guidance
+that raw Discovery metadata cannot provide.
 
 | Type | Count | Generated? | Examples |
 |------|-------|------------|----------|
-| Shared | 1 | No | `dcx-shared` |
-| Service (API) | 4 | Yes | `dcx-datasets`, `dcx-tables`, `dcx-routines`, `dcx-models` |
-| Service (static) | 3 | No | `dcx-jobs`, `dcx-connections`, `dcx-analytics` |
-| Helper | 6 | No | `dcx-analytics-evaluate`, `dcx-analytics-trace`, `dcx-analytics-drift`, `dcx-analytics-views`, `dcx-query`, `dcx-schema` |
-| CA | 7 | No | `dcx-ca`, `dcx-ca-ask`, `dcx-ca-create-agent`, `dcx-ca-looker`, `dcx-ca-database`, `dcx-ca-alloydb`, `dcx-ca-spanner` |
-| Persona | 3 | No | `persona-agent-developer`, `persona-data-analyst`, `persona-sre` |
-| Recipe | 8 | No | `recipe-eval-pipeline`, `recipe-ca-data-agent-setup`, `recipe-ca-looker-exploration`, `recipe-ca-database-ops` |
+| Router | 6 | No | `dcx-bigquery`, `dcx-analytics`, `dcx-ca`, `dcx-databases`, `dcx-looker`, `dcx-profiles` |
+| API | 5 | Yes | `dcx-bigquery-api`, `dcx-spanner-api`, `dcx-alloydb-api`, `dcx-cloudsql-api`, `dcx-looker-admin-api` |
+| Recipe | 3 | No | `recipe-source-onboarding`, `recipe-debugging`, `recipe-quality-ops` |
 
 ### 4.4 Skill Distribution
 
@@ -976,7 +839,7 @@ instance_id: my-spanner-instance
 database_id: my-database
 ```
 
-See `skills/dcx-ca-database/SKILL.md` and `skills/dcx-ca-looker/SKILL.md`
+See `skills/dcx-ca/references/querydata.md` and `skills/dcx-ca/references/looker.md`
 for source-specific profile formats and prerequisites.
 
 ---

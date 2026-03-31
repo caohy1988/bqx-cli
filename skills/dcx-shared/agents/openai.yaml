@@ -1,7 +1,0 @@
-interface:
-  display_name: "dcx Shared Setup"
-  short_description: "Auth, flags, and output formats for dcx"
-  default_prompt: "Use $dcx-shared to set up authentication and configure global flags for the dcx CLI."
-
-policy:
-  allow_implicit_invocation: true

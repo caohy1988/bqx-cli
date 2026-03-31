@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Looker Admin API"
+  short_description: "Discovery-generated Looker instance and backup commands"
+  default_prompt: "Use $dcx-looker-admin-api for Looker v1 instance/backup listing and metadata via GCP admin API."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,7 +1,0 @@
-interface:
-  display_name: "Agent Developer Persona"
-  short_description: "Guide agent developers through dcx workflows"
-  default_prompt: "Use $persona-agent-developer to guide the user through agent development workflows using dcx."
-
-policy:
-  allow_implicit_invocation: true

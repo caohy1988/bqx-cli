@@ -1,7 +1,0 @@
-interface:
-  display_name: "Self-Diagnostic Agent Recipe"
-  short_description: "Build an agent that monitors and adjusts its own behavior"
-  default_prompt: "Use $recipe-self-diagnostic-agent to create a self-correction loop where agents monitor their own performance."
-
-policy:
-  allow_implicit_invocation: true

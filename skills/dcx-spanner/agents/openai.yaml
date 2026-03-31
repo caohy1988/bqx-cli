@@ -1,7 +1,0 @@
-interface:
-  display_name: "dcx Spanner"
-  short_description: "Spanner inventory, DDL, and schema commands via Discovery API"
-  default_prompt: "Use $dcx-spanner for direct Spanner instance/database listing, DDL retrieval, and schema inspection."
-
-policy:
-  allow_implicit_invocation: true

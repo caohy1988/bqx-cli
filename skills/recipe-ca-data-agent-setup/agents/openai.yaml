@@ -1,7 +1,0 @@
-interface:
-  display_name: "CA Data Agent Setup Recipe"
-  short_description: "Set up a Conversational Analytics data agent from scratch"
-  default_prompt: "Use $recipe-ca-data-agent-setup to bootstrap a CA data agent with tables, views, and verified queries."
-
-policy:
-  allow_implicit_invocation: true

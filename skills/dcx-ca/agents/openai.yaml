@@ -1,7 +1,7 @@
 interface:
   display_name: "dcx Conversational Analytics"
-  short_description: "Route to CA ask, create-agent, or list-agents across Data Cloud sources"
-  default_prompt: "Use $dcx-ca to ask natural language questions over Data Cloud sources (BigQuery, Looker, AlloyDB, Spanner, Cloud SQL) or manage data agents."
+  short_description: "Natural language queries over BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL"
+  default_prompt: "Use $dcx-ca for natural language queries, data agent management, and verified queries across all Data Cloud sources."
 
 policy:
   allow_implicit_invocation: true

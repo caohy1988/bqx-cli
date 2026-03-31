@@ -1,7 +1,0 @@
-interface:
-  display_name: "dcx AlloyDB"
-  short_description: "AlloyDB inventory, schema, and database commands via Discovery API"
-  default_prompt: "Use $dcx-alloydb for direct AlloyDB cluster/instance listing, schema inspection, and database enumeration."
-
-policy:
-  allow_implicit_invocation: true
