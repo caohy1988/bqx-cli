@@ -257,13 +257,13 @@ async fn build_view_create(
     config: &Config,
 ) -> Result<ViewCreateResult> {
     let dataset_id = config.require_dataset_id()?;
-    let canonical = event_type.to_uppercase();
+    // Pass event_type through as-is — the SDK does not normalize casing.
     let (view_name, sql) = build_create_view_sql(
         &config.project_id,
         dataset_id,
         &config.table,
         prefix,
-        &canonical,
+        event_type,
     );
 
     let result = executor
@@ -282,13 +282,13 @@ async fn build_view_create(
     match result {
         Ok(_) => Ok(ViewCreateResult {
             view_name,
-            event_type: canonical,
+            event_type: event_type.to_string(),
             status: "created".to_string(),
             error: None,
         }),
         Err(e) => Ok(ViewCreateResult {
             view_name,
-            event_type: canonical,
+            event_type: event_type.to_string(),
             status: "failed".to_string(),
             error: Some(e.to_string()),
         }),

@@ -625,6 +625,12 @@ KNOWN_DIVERGENCES: list[dict[str, str]] = [
         "sdk": "CategoricalViewManager.create_all_views() (internal)",
         "reason": "SDK view manager source is not public; dcx provides equivalent dashboarding views",
     },
+    {
+        "item": "categorical-eval --include-justification / --no-include-justification",
+        "dcx": "--no-include-justification (negated flag, justification on by default)",
+        "sdk": "--include-justification (default True)",
+        "reason": "clap bool flags are always false by default; negated flag achieves same semantics",
+    },
 ]
 
 

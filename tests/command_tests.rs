@@ -2011,3 +2011,52 @@ async fn categorical_eval_no_include_justification() {
     .await;
     assert!(result.is_ok());
 }
+
+// ═══════════════════════════════════════════════
+// Empty categories rejection
+// ═══════════════════════════════════════════════
+
+#[test]
+fn load_metrics_file_rejects_empty_categories() {
+    let dir = std::env::temp_dir().join("dcx_test_empty_cats");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("empty_cats.json");
+    std::fs::write(
+        &path,
+        r#"[{"name":"quality","definition":"q","categories":[]}]"#,
+    )
+    .unwrap();
+
+    let result = dcx::commands::analytics::categorical_eval::load_metrics_file(
+        path.to_str().unwrap(),
+    );
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("has no categories"));
+    let _ = std::fs::remove_file(&path);
+}
+
+// ═══════════════════════════════════════════════
+// Custom event type passthrough (no uppercasing)
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_create_view_sql_preserves_event_type_case() {
+    // SDK passes event_type as-is; dcx should not uppercase it.
+    let (view_name, sql) =
+        dcx::commands::analytics::views::build_create_view_sql("p", "d", "t", "", "My_Custom_Event");
+    // view_name still lowercases for the view identifier
+    assert_eq!(view_name, "my_custom_event");
+    // SQL WHERE clause must use the original case
+    assert!(sql.contains("WHERE event_type = 'My_Custom_Event'"));
+}
+
+#[test]
+fn is_known_event_type_case_insensitive() {
+    // Known types should be recognized regardless of case
+    assert!(is_known_event_type("llm_request"));
+    assert!(is_known_event_type("LLM_REQUEST"));
+    assert!(is_known_event_type("Llm_Request"));
+    // Unknown types
+    assert!(!is_known_event_type("CUSTOM_THING"));
+}

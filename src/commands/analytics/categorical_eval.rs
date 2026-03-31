@@ -629,14 +629,25 @@ pub fn load_metrics_file(path: &str) -> Result<Vec<MetricDefinition>> {
         anyhow::bail!("No metrics found in metrics file '{}'", path);
     }
 
-    // Reject duplicate metric names — they would collapse in persistence
-    // and double-count in summary output.
+    // Validate each metric definition.
     let mut seen = std::collections::HashSet::new();
     for m in &metrics {
+        // Reject duplicate metric names — they would collapse in persistence
+        // and double-count in summary output.
         if !seen.insert(&m.name) {
             anyhow::bail!(
                 "Duplicate metric name '{}' in metrics file '{}'. \
                  Each metric must have a unique name.",
+                m.name,
+                path
+            );
+        }
+        // Reject metrics with empty categories — the classifier would
+        // synthesize fallback names that are invisible in the summary.
+        if m.categories.is_empty() {
+            anyhow::bail!(
+                "Metric '{}' in metrics file '{}' has no categories. \
+                 Each metric must define at least one category.",
                 m.name,
                 path
             );
