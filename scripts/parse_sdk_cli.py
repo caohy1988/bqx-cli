@@ -613,6 +613,24 @@ KNOWN_DIVERGENCES: list[dict[str, str]] = [
         "sdk": "error_rate (snake_case)",
         "reason": "dcx follows CLI kebab-case convention; may add aliases for SDK names",
     },
+    {
+        "item": "categorical-eval --endpoint",
+        "dcx": "flag accepted but errors if provided",
+        "sdk": "routes to AI.GENERATE for LLM-based classification",
+        "reason": "dcx uses heuristic-based classification; LLM-judge integration planned for Milestone C",
+    },
+    {
+        "item": "categorical-views view set",
+        "dcx": "summary, timeline, by_agent, latest_per_session",
+        "sdk": "CategoricalViewManager.create_all_views() (internal)",
+        "reason": "SDK view manager source is not public; dcx provides equivalent dashboarding views",
+    },
+    {
+        "item": "categorical-eval --include-justification / --no-include-justification",
+        "dcx": "--no-include-justification (negated flag, justification on by default)",
+        "sdk": "--include-justification (default True)",
+        "reason": "clap bool flags are always false by default; negated flag achieves same semantics",
+    },
 ]
 
 

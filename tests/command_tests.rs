@@ -4,6 +4,11 @@ use serde_json::json;
 
 use dcx::bigquery::client::{QueryExecutor, QueryRequest, QueryResult, SchemaField, TableSchema};
 use dcx::cli::{EvaluatorType, OutputFormat};
+use dcx::commands::analytics::categorical_eval::{
+    build_list_sessions_query, build_persist_sql, build_session_events_query, classify_session,
+    sessions_from_rows, CategoryDef, Classification, MetricDefinition, SessionCategoricalResult,
+};
+use dcx::commands::analytics::categorical_views::build_categorical_view_sqls;
 use dcx::commands::analytics::distribution::{build_distribution_query, distribution_from_rows};
 use dcx::commands::analytics::doctor::{
     build_columns_query, build_stats_query, columns_from_result, doctor_report_from_rows,
@@ -21,7 +26,7 @@ use dcx::commands::analytics::insights::{
     top_errors_from_rows, top_tools_from_rows,
 };
 use dcx::commands::analytics::list_traces::{build_list_traces_query, traces_from_rows};
-use dcx::commands::analytics::views::build_create_view_sql;
+use dcx::commands::analytics::views::{build_create_view_sql, is_known_event_type};
 use dcx::commands::jobs_query::build_query_request;
 use dcx::config::Config;
 
@@ -1537,4 +1542,530 @@ async fn distribution_rejects_invalid_agent_id() {
     .await;
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("Invalid agent_id"));
+}
+
+// ═══════════════════════════════════════════════
+// Views Create (single) Tests
+// ═══════════════════════════════════════════════
+
+#[test]
+fn is_known_event_type_accepts_standard() {
+    assert!(is_known_event_type("LLM_REQUEST"));
+    assert!(is_known_event_type("llm_request")); // case-insensitive
+    assert!(is_known_event_type("TOOL_ERROR"));
+    assert!(is_known_event_type("SESSION_START"));
+}
+
+#[test]
+fn is_known_event_type_returns_false_for_custom() {
+    assert!(!is_known_event_type("CUSTOM_EVENT"));
+    assert!(!is_known_event_type("MY_SPECIAL_TYPE"));
+}
+
+#[tokio::test]
+async fn views_create_single_json_output() {
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = dcx::commands::analytics::views::run_create_with_executor(
+        &executor,
+        "LLM_REQUEST".into(),
+        "".into(),
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn views_create_single_with_prefix() {
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = dcx::commands::analytics::views::run_create_with_executor(
+        &executor,
+        "TOOL_COMPLETED".into(),
+        "adk_".into(),
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn views_create_single_accepts_custom_type() {
+    // SDK passes event_type through directly; dcx should not reject custom types.
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = dcx::commands::analytics::views::run_create_with_executor(
+        &executor,
+        "CUSTOM_EVENT".into(),
+        "".into(),
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+// ═══════════════════════════════════════════════
+// Categorical Eval Tests
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_list_sessions_query_basic() {
+    let sql = build_list_sessions_query("proj", "ds", "events", None, None, 100).unwrap();
+    assert!(sql.contains("SELECT DISTINCT"));
+    assert!(sql.contains("session_id"));
+    assert!(sql.contains("LIMIT 100"));
+}
+
+#[test]
+fn build_list_sessions_query_with_filters() {
+    let sql =
+        build_list_sessions_query("proj", "ds", "events", Some("7d"), Some("bot"), 50).unwrap();
+    assert!(sql.contains("INTERVAL 7 DAY"));
+    assert!(sql.contains("AND agent = 'bot'"));
+    assert!(sql.contains("LIMIT 50"));
+}
+
+#[test]
+fn build_session_events_query_basic() {
+    let sql = build_session_events_query("proj", "ds", "events", "sess-123");
+    assert!(sql.contains("WHERE session_id = 'sess-123'"));
+    assert!(sql.contains("event_type"));
+    assert!(sql.contains("user_query"));
+}
+
+#[test]
+fn sessions_from_rows_parses() {
+    let result = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("session_id".into(), json!("s-1"));
+                m.insert("agent".into(), json!("bot"));
+                m
+            },
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("session_id".into(), json!("s-2"));
+                m.insert("agent".into(), json!("assistant"));
+                m
+            },
+        ],
+        total_rows: 2,
+    };
+    let sessions = sessions_from_rows(&result);
+    assert_eq!(sessions.len(), 2);
+    assert_eq!(sessions[0].0, "s-1");
+    assert_eq!(sessions[0].1, "bot");
+    assert_eq!(sessions[1].0, "s-2");
+    assert_eq!(sessions[1].1, "assistant");
+}
+
+#[test]
+fn classify_session_with_errors() {
+    let events = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("event_type".into(), json!("LLM_REQUEST"));
+                m.insert("error_message".into(), json!(""));
+                m.insert("user_query".into(), json!("hello"));
+                m.insert("agent_response".into(), json!("hi"));
+                m.insert("tool_name".into(), json!(""));
+                m
+            },
+            {
+                let mut m = serde_json::Map::new();
+                m.insert("event_type".into(), json!("TOOL_ERROR"));
+                m.insert("error_message".into(), json!("connection failed"));
+                m.insert("user_query".into(), json!(""));
+                m.insert("agent_response".into(), json!(""));
+                m.insert("tool_name".into(), json!("search"));
+                m
+            },
+        ],
+        total_rows: 2,
+    };
+
+    let metrics = vec![MetricDefinition {
+        name: "error_handling".into(),
+        definition: "Evaluates error handling behavior".into(),
+        categories: vec![
+            CategoryDef {
+                name: "graceful".into(),
+                definition: "Handles errors gracefully".into(),
+            },
+            CategoryDef {
+                name: "poor".into(),
+                definition: "Poor error handling".into(),
+            },
+        ],
+        required: true,
+    }];
+
+    let classifications = classify_session(&events, &metrics, true);
+    assert_eq!(classifications.len(), 1);
+    assert_eq!(classifications[0].metric, "error_handling");
+    // Should classify as the last category because errors were found
+    assert_eq!(classifications[0].category, "poor");
+    assert!(classifications[0].justification.is_some());
+}
+
+#[test]
+fn classify_session_without_justification() {
+    let events = QueryResult {
+        schema: TableSchema { fields: vec![] },
+        rows: vec![],
+        total_rows: 0,
+    };
+
+    let metrics = vec![MetricDefinition {
+        name: "completeness".into(),
+        definition: "Response completeness".into(),
+        categories: vec![CategoryDef {
+            name: "empty".into(),
+            definition: "No events".into(),
+        }],
+        required: true,
+    }];
+
+    let classifications = classify_session(&events, &metrics, false);
+    assert_eq!(classifications.len(), 1);
+    assert!(classifications[0].justification.is_none());
+}
+
+#[tokio::test]
+async fn categorical_eval_json_output() {
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Json);
+    let metrics = vec![MetricDefinition {
+        name: "quality".into(),
+        definition: "Response quality".into(),
+        categories: vec![
+            CategoryDef {
+                name: "good".into(),
+                definition: "Good quality".into(),
+            },
+            CategoryDef {
+                name: "bad".into(),
+                definition: "Bad quality".into(),
+            },
+        ],
+        required: true,
+    }];
+    let result = dcx::commands::analytics::categorical_eval::run_with_executor(
+        &executor,
+        &metrics,
+        Some("7d".into()),
+        None,
+        100,
+        true,
+        false,
+        None,
+        None,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+// ═══════════════════════════════════════════════
+// Categorical Views Tests
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_categorical_view_sqls_creates_four_views() {
+    let views = build_categorical_view_sqls("proj", "ds", "categorical_results", "");
+    assert_eq!(views.len(), 4);
+    let names: Vec<&str> = views.iter().map(|(n, _)| n.as_str()).collect();
+    assert!(names.contains(&"categorical_summary"));
+    assert!(names.contains(&"categorical_timeline"));
+    assert!(names.contains(&"categorical_by_agent"));
+    assert!(names.contains(&"categorical_latest_per_session"));
+}
+
+#[test]
+fn build_categorical_view_sqls_with_prefix() {
+    let views = build_categorical_view_sqls("proj", "ds", "categorical_results", "v_");
+    for (name, sql) in &views {
+        assert!(name.starts_with("v_categorical_"));
+        assert!(sql.contains("categorical_results"));
+    }
+}
+
+#[test]
+fn build_categorical_view_sqls_uses_custom_results_table() {
+    let views = build_categorical_view_sqls("proj", "ds", "my_results", "");
+    for (_, sql) in &views {
+        assert!(sql.contains("my_results"));
+    }
+}
+
+#[tokio::test]
+async fn categorical_views_json_output() {
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = dcx::commands::analytics::categorical_views::run_with_executor(
+        &executor,
+        "categorical_results".into(),
+        "".into(),
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn categorical_views_with_prefix_json_output() {
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Json);
+    let result = dcx::commands::analytics::categorical_views::run_with_executor(
+        &executor,
+        "categorical_results".into(),
+        "dash_".into(),
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+// ═══════════════════════════════════════════════
+// SQL Escaping Tests (categorical-eval)
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_persist_sql_escapes_single_quotes() {
+    let results = vec![SessionCategoricalResult {
+        session_id: "s-1".into(),
+        agent: "O'Reilly's bot".into(),
+        classifications: vec![Classification {
+            metric: "met'ric".into(),
+            category: "cat'egory".into(),
+            justification: Some("it's a test".into()),
+        }],
+    }];
+    let sql = build_persist_sql("proj", "ds", "results", &results, Some("v1.0"));
+    // All single quotes in values must be escaped
+    assert!(sql.contains("O\\'Reilly\\'s bot"));
+    assert!(sql.contains("met\\'ric"));
+    assert!(sql.contains("cat\\'egory"));
+    assert!(sql.contains("it\\'s a test"));
+    assert!(sql.contains("'v1.0'"));
+    // No unescaped single quotes inside value positions
+    assert!(!sql.contains("O'Reilly"));
+}
+
+#[test]
+fn build_persist_sql_handles_null_justification_and_prompt_version() {
+    let results = vec![SessionCategoricalResult {
+        session_id: "s-1".into(),
+        agent: "bot".into(),
+        classifications: vec![Classification {
+            metric: "quality".into(),
+            category: "good".into(),
+            justification: None,
+        }],
+    }];
+    let sql = build_persist_sql("proj", "ds", "results", &results, None);
+    // justification and prompt_version should be NULL
+    let values_part = sql.split("VALUES").nth(1).unwrap();
+    assert!(values_part.contains("NULL"));
+    // Two NULLs: justification + prompt_version
+    assert_eq!(values_part.matches("NULL").count(), 2);
+}
+
+#[test]
+fn build_session_events_query_escapes_session_id() {
+    let sql = build_session_events_query("proj", "ds", "events", "s'; DROP TABLE --");
+    assert!(sql.contains("s\\'; DROP TABLE --"));
+    assert!(!sql.contains("s'; DROP TABLE --"));
+}
+
+#[test]
+fn build_list_sessions_query_escapes_agent_id() {
+    let sql = build_list_sessions_query(
+        "proj",
+        "ds",
+        "events",
+        None,
+        Some("bot'; DROP TABLE --"),
+        10,
+    )
+    .unwrap();
+    assert!(sql.contains("bot\\'; DROP TABLE --"));
+    assert!(!sql.contains("bot'; DROP TABLE --"));
+}
+
+#[tokio::test]
+async fn categorical_eval_rejects_endpoint_flag() {
+    let config = test_config(OutputFormat::Json);
+    // Create a temp metrics file
+    let dir = std::env::temp_dir().join("dcx_test_metrics");
+    let _ = std::fs::create_dir_all(&dir);
+    let metrics_path = dir.join("test_metrics.json");
+    std::fs::write(
+        &metrics_path,
+        r#"[{"name":"q","definition":"quality","categories":[{"name":"good","definition":"g"}]}]"#,
+    )
+    .unwrap();
+
+    let auth_opts = dcx::auth::AuthOptions {
+        token: Some("fake".into()),
+        credentials_file: None,
+    };
+    let result = dcx::commands::analytics::categorical_eval::run(
+        metrics_path.to_str().unwrap().into(),
+        None,
+        Some("7d".into()),
+        10,
+        Some("https://model.example.com".into()), // --endpoint provided
+        true,
+        false,
+        None,
+        None,
+        &auth_opts,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("--endpoint is not yet supported"));
+    // cleanup
+    let _ = std::fs::remove_file(&metrics_path);
+}
+
+// ═══════════════════════════════════════════════
+// Duplicate metric name rejection
+// ═══════════════════════════════════════════════
+
+#[test]
+fn load_metrics_file_rejects_duplicate_names() {
+    let dir = std::env::temp_dir().join("dcx_test_dup_metrics");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("dup_metrics.json");
+    std::fs::write(
+        &path,
+        r#"[
+            {"name":"quality","definition":"q","categories":[{"name":"good","definition":"g"}]},
+            {"name":"quality","definition":"different","categories":[{"name":"bad","definition":"b"}]}
+        ]"#,
+    )
+    .unwrap();
+
+    let result =
+        dcx::commands::analytics::categorical_eval::load_metrics_file(path.to_str().unwrap());
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("Duplicate metric name 'quality'"));
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn load_metrics_file_accepts_unique_names() {
+    let dir = std::env::temp_dir().join("dcx_test_unique_metrics");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("unique_metrics.json");
+    std::fs::write(
+        &path,
+        r#"[
+            {"name":"quality","definition":"q","categories":[{"name":"good","definition":"g"}]},
+            {"name":"safety","definition":"s","categories":[{"name":"safe","definition":"s"}]}
+        ]"#,
+    )
+    .unwrap();
+
+    let result =
+        dcx::commands::analytics::categorical_eval::load_metrics_file(path.to_str().unwrap());
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().len(), 2);
+    let _ = std::fs::remove_file(&path);
+}
+
+// ═══════════════════════════════════════════════
+// --no-include-justification flag
+// ═══════════════════════════════════════════════
+
+#[tokio::test]
+async fn categorical_eval_no_include_justification() {
+    let executor = MockExecutor::empty(vec![]);
+    let config = test_config(OutputFormat::Json);
+    let metrics = vec![MetricDefinition {
+        name: "quality".into(),
+        definition: "Response quality".into(),
+        categories: vec![CategoryDef {
+            name: "good".into(),
+            definition: "Good quality".into(),
+        }],
+        required: true,
+    }];
+    // include_justification = false should work and omit justifications
+    let result = dcx::commands::analytics::categorical_eval::run_with_executor(
+        &executor,
+        &metrics,
+        Some("7d".into()),
+        None,
+        100,
+        false, // justification disabled
+        false,
+        None,
+        None,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+// ═══════════════════════════════════════════════
+// Empty categories rejection
+// ═══════════════════════════════════════════════
+
+#[test]
+fn load_metrics_file_rejects_empty_categories() {
+    let dir = std::env::temp_dir().join("dcx_test_empty_cats");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("empty_cats.json");
+    std::fs::write(
+        &path,
+        r#"[{"name":"quality","definition":"q","categories":[]}]"#,
+    )
+    .unwrap();
+
+    let result =
+        dcx::commands::analytics::categorical_eval::load_metrics_file(path.to_str().unwrap());
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("has no categories"));
+    let _ = std::fs::remove_file(&path);
+}
+
+// ═══════════════════════════════════════════════
+// Custom event type passthrough (no uppercasing)
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_create_view_sql_preserves_event_type_case() {
+    // SDK passes event_type as-is; dcx should not uppercase it.
+    let (view_name, sql) = dcx::commands::analytics::views::build_create_view_sql(
+        "p",
+        "d",
+        "t",
+        "",
+        "My_Custom_Event",
+    );
+    // view_name still lowercases for the view identifier
+    assert_eq!(view_name, "my_custom_event");
+    // SQL WHERE clause must use the original case
+    assert!(sql.contains("WHERE event_type = 'My_Custom_Event'"));
+}
+
+#[test]
+fn is_known_event_type_case_insensitive() {
+    // Known types should be recognized regardless of case
+    assert!(is_known_event_type("llm_request"));
+    assert!(is_known_event_type("LLM_REQUEST"));
+    assert!(is_known_event_type("Llm_Request"));
+    // Unknown types
+    assert!(!is_known_event_type("CUSTOM_THING"));
 }

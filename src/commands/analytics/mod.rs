@@ -1,3 +1,5 @@
+pub mod categorical_eval;
+pub mod categorical_views;
 pub mod distribution;
 pub mod doctor;
 pub mod drift;

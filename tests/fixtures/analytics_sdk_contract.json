@@ -2,7 +2,6 @@
   "generated": "2026-03-31",
   "upstream_repo": "haiyuan-eng-google/BigQuery-Agent-Analytics-SDK",
   "upstream_branch": "main",
-  "upstream_sha": "5bc8876b73841ea20d24b6606fcff39a6e22b419",
   "commands": [
     {
       "sdk_command": "doctor",
@@ -861,8 +860,8 @@
     },
     {
       "sdk_command": "categorical-eval",
-      "dcx_command": null,
-      "status": "missing",
+      "dcx_command": "dcx analytics categorical-eval",
+      "status": "present",
       "flags": [
         {
           "sdk_flag": "--project-id",
@@ -870,7 +869,8 @@
           "sdk_required": true,
           "sdk_default": null,
           "sdk_env": "BQ_AGENT_PROJECT",
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
         },
         {
           "sdk_flag": "--dataset-id",
@@ -878,7 +878,8 @@
           "sdk_required": true,
           "sdk_default": null,
           "sdk_env": "BQ_AGENT_DATASET",
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
         },
         {
           "sdk_flag": "--table-id",
@@ -886,7 +887,8 @@
           "sdk_required": false,
           "sdk_default": "agent_events",
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
         },
         {
           "sdk_flag": "--location",
@@ -894,7 +896,8 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
         },
         {
           "sdk_flag": "--metrics-file",
@@ -902,7 +905,7 @@
           "sdk_required": true,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--agent-id",
@@ -910,7 +913,7 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--last",
@@ -918,7 +921,7 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--limit",
@@ -926,7 +929,8 @@
           "sdk_required": false,
           "sdk_default": 100,
           "sdk_env": null,
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK default=100, dcx default='100'"
         },
         {
           "sdk_flag": "--endpoint",
@@ -934,7 +938,7 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--include-justification",
@@ -950,7 +954,7 @@
           "sdk_required": false,
           "sdk_default": false,
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--results-table",
@@ -958,7 +962,7 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--prompt-version",
@@ -966,7 +970,7 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--format",
@@ -974,16 +978,41 @@
           "sdk_required": false,
           "sdk_default": "json",
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         }
       ],
-      "dcx_extensions": [],
+      "dcx_extensions": [
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--no-include-justification",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": false
+        }
+      ],
       "args": []
     },
     {
       "sdk_command": "categorical-views",
-      "dcx_command": null,
-      "status": "missing",
+      "dcx_command": "dcx analytics categorical-views",
+      "status": "present",
       "flags": [
         {
           "sdk_flag": "--project-id",
@@ -991,7 +1020,8 @@
           "sdk_required": true,
           "sdk_default": null,
           "sdk_env": "BQ_AGENT_PROJECT",
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
         },
         {
           "sdk_flag": "--dataset-id",
@@ -999,7 +1029,8 @@
           "sdk_required": true,
           "sdk_default": null,
           "sdk_env": "BQ_AGENT_DATASET",
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
         },
         {
           "sdk_flag": "--results-table",
@@ -1007,7 +1038,7 @@
           "sdk_required": false,
           "sdk_default": "categorical_results",
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--location",
@@ -1015,7 +1046,8 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
         },
         {
           "sdk_flag": "--prefix",
@@ -1023,7 +1055,7 @@
           "sdk_required": false,
           "sdk_default": "",
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--format",
@@ -1031,10 +1063,35 @@
           "sdk_required": false,
           "sdk_default": "json",
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         }
       ],
-      "dcx_extensions": [],
+      "dcx_extensions": [
+        {
+          "flag": "--table",
+          "status": "dcx_extension",
+          "type": "string",
+          "global": true
+        },
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        }
+      ],
       "args": []
     },
     {
@@ -1117,8 +1174,8 @@
     },
     {
       "sdk_command": "views create",
-      "dcx_command": null,
-      "status": "missing",
+      "dcx_command": "dcx analytics views create",
+      "status": "present",
       "flags": [
         {
           "sdk_flag": "--project-id",
@@ -1126,7 +1183,8 @@
           "sdk_required": true,
           "sdk_default": null,
           "sdk_env": "BQ_AGENT_PROJECT",
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
         },
         {
           "sdk_flag": "--dataset-id",
@@ -1134,7 +1192,8 @@
           "sdk_required": true,
           "sdk_default": null,
           "sdk_env": "BQ_AGENT_DATASET",
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
         },
         {
           "sdk_flag": "--table-id",
@@ -1142,7 +1201,8 @@
           "sdk_required": false,
           "sdk_default": "agent_events",
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
         },
         {
           "sdk_flag": "--prefix",
@@ -1150,7 +1210,8 @@
           "sdk_required": false,
           "sdk_default": "adk_",
           "sdk_env": null,
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK default='adk_', dcx default=''"
         },
         {
           "sdk_flag": "--format",
@@ -1158,10 +1219,41 @@
           "sdk_required": false,
           "sdk_default": "json",
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         }
       ],
-      "dcx_extensions": [],
+      "dcx_extensions": [
+        {
+          "flag": "--location",
+          "status": "dcx_extension",
+          "type": "string",
+          "global": true
+        },
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--event-type",
+          "status": "dcx_extension",
+          "type": "string",
+          "global": false
+        }
+      ],
       "args": [
         {
           "name": "event_type",
@@ -1311,6 +1403,24 @@
       "dcx": "error-rate (kebab-case)",
       "sdk": "error_rate (snake_case)",
       "reason": "dcx follows CLI kebab-case convention; may add aliases for SDK names"
+    },
+    {
+      "item": "categorical-eval --endpoint",
+      "dcx": "flag accepted but errors if provided",
+      "sdk": "routes to AI.GENERATE for LLM-based classification",
+      "reason": "dcx uses heuristic-based classification; LLM-judge integration planned for Milestone C"
+    },
+    {
+      "item": "categorical-views view set",
+      "dcx": "summary, timeline, by_agent, latest_per_session",
+      "sdk": "CategoricalViewManager.create_all_views() (internal)",
+      "reason": "SDK view manager source is not public; dcx provides equivalent dashboarding views"
+    },
+    {
+      "item": "categorical-eval --include-justification / --no-include-justification",
+      "dcx": "--no-include-justification (negated flag, justification on by default)",
+      "sdk": "--include-justification (default True)",
+      "reason": "clap bool flags are always false by default; negated flag achieves same semantics"
     }
   ]
 }
