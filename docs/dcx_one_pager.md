@@ -144,8 +144,8 @@ format changes.
 | | `bq` CLI | `dcx` CLI |
 |---|---|---|
 | **Output** | ASCII tables and mixed text/status lines. No guaranteed schema. | Every command returns structured JSON with a predictable schema. |
-| **Parsing** | Agent must regex-parse table borders, handle wrapped rows, strip status messages. Fragile across `bq` versions. | Agent calls `JSON.parse()` on stdout. Done. |
-| **Example** | `bq query "SELECT ..."` returns a human-formatted table. Agent needs ~30 lines of parsing logic to extract rows, and breaks if column widths change. | `dcx jobs query --query "SELECT ..." --format json` returns `{"rows": [...], "schema": {...}}`. Zero parsing code. |
+| **Parsing** | Agent must regex-parse table borders, handle wrapped rows, strip status messages. Fragile across `bq` versions. | Agent can parse stdout as JSON, pipe it to `jq`, redirect it to a file, or write code directly against the output. |
+| **Example** | `bq query "SELECT ..."` returns a human-formatted table. Agent needs ~30 lines of parsing logic to extract rows, and breaks if column widths change. | `dcx jobs query --query "SELECT ..." --format json` returns `{"rows": [...], "schema": {...}}`. The agent can parse it directly or compose follow-on shell/code steps in a standard way. |
 
 ### Gap 3 — Extensibility
 
