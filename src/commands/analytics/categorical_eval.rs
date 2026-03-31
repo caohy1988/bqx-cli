@@ -273,26 +273,17 @@ fn summarize_events(result: &QueryResult) -> EventSummary {
 
     for row in &result.rows {
         total_events += 1;
-        let event_type = row
-            .get("event_type")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let event_type = row.get("event_type").and_then(|v| v.as_str()).unwrap_or("");
         let error_message = row
             .get("error_message")
             .and_then(|v| v.as_str())
             .unwrap_or("");
-        let user_query = row
-            .get("user_query")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let user_query = row.get("user_query").and_then(|v| v.as_str()).unwrap_or("");
         let agent_response = row
             .get("agent_response")
             .and_then(|v| v.as_str())
             .unwrap_or("");
-        let tool_name = row
-            .get("tool_name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let tool_name = row.get("tool_name").and_then(|v| v.as_str()).unwrap_or("");
 
         if event_type.ends_with("_ERROR") || !error_message.is_empty() {
             error_count += 1;
@@ -340,11 +331,7 @@ fn match_metric(summary: &EventSummary, metric: &MetricDefinition) -> (String, S
 
     if definition_lower.contains("tool") || definition_lower.contains("function") {
         if summary.has_tool_errors {
-            return last_or_default(
-                &metric.categories,
-                "tool_error",
-                "Session has tool errors",
-            );
+            return last_or_default(&metric.categories, "tool_error", "Session has tool errors");
         } else if !summary.tool_names.is_empty() {
             return first_or_default(
                 &metric.categories,
@@ -352,11 +339,7 @@ fn match_metric(summary: &EventSummary, metric: &MetricDefinition) -> (String, S
                 &format!("Tools used: {}", summary.tool_names.join(", ")),
             );
         } else {
-            return first_or_default(
-                &metric.categories,
-                "no_tools",
-                "No tool usage in session",
-            );
+            return first_or_default(&metric.categories, "no_tools", "No tool usage in session");
         }
     }
 
@@ -444,6 +427,7 @@ fn build_metric_summaries(
 
 // ── Data builder ──
 
+#[allow(clippy::too_many_arguments)]
 async fn build_categorical_eval(
     executor: &dyn QueryExecutor,
     metrics: &[MetricDefinition],
@@ -486,12 +470,8 @@ async fn build_categorical_eval(
     // Step 2: For each session, fetch events and classify
     let mut sessions = Vec::new();
     for (session_id, agent) in &session_ids {
-        let events_sql = build_session_events_query(
-            &config.project_id,
-            dataset_id,
-            &config.table,
-            session_id,
-        );
+        let events_sql =
+            build_session_events_query(&config.project_id, dataset_id, &config.table, session_id);
 
         let events = executor
             .query(
@@ -577,18 +557,14 @@ fn render_categorical_eval(result: &CategoricalEvalResult, config: &Config) -> R
             }
         }
         OutputFormat::Table => {
-            let columns = vec![
-                "metric".into(),
-                "category".into(),
-                "count".into(),
-            ];
+            let columns = vec!["metric".into(), "category".into(), "count".into()];
             let rows: Vec<Vec<String>> = result
                 .metrics
                 .iter()
                 .flat_map(|m| {
-                    m.categories
-                        .iter()
-                        .map(move |c| vec![m.metric.clone(), c.category.clone(), c.count.to_string()])
+                    m.categories.iter().map(move |c| {
+                        vec![m.metric.clone(), c.category.clone(), c.count.to_string()]
+                    })
                 })
                 .collect();
             println!(
@@ -619,7 +595,9 @@ pub fn load_metrics_file(path: &str) -> Result<Vec<MetricDefinition>> {
         if let Some(arr) = obj.get("metrics").and_then(|v| v.as_array()) {
             serde_json::from_value(serde_json::Value::Array(arr.clone()))?
         } else {
-            anyhow::bail!("Metrics file must contain a JSON array or an object with a 'metrics' key");
+            anyhow::bail!(
+                "Metrics file must contain a JSON array or an object with a 'metrics' key"
+            );
         }
     } else {
         anyhow::bail!("Metrics file must contain a JSON array or object");
@@ -657,6 +635,7 @@ pub fn load_metrics_file(path: &str) -> Result<Vec<MetricDefinition>> {
     Ok(metrics)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     metrics_file: String,
     agent_id: Option<String>,
@@ -715,6 +694,7 @@ pub async fn run(
     render_categorical_eval(&result, config)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run_with_executor(
     executor: &dyn QueryExecutor,
     metrics: &[MetricDefinition],

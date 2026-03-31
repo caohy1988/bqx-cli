@@ -309,11 +309,7 @@ fn render_view_create(result: &ViewCreateResult, config: &Config) -> Result<()> 
             }
         }
         OutputFormat::Table => {
-            let columns = vec![
-                "view_name".into(),
-                "event_type".into(),
-                "status".into(),
-            ];
+            let columns = vec!["view_name".into(), "event_type".into(), "status".into()];
             let rows = vec![vec![
                 result.view_name.clone(),
                 result.event_type.clone(),

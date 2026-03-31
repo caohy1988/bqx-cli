@@ -585,10 +585,8 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                     commands::analytics::views::run(prefix, &auth_opts, &config).await
                 }
                 ViewsCommand::Create { event_type, prefix } => {
-                    commands::analytics::views::run_create(
-                        event_type, prefix, &auth_opts, &config,
-                    )
-                    .await
+                    commands::analytics::views::run_create(event_type, prefix, &auth_opts, &config)
+                        .await
                 }
             },
             AnalyticsCommand::CategoricalEval {
@@ -622,7 +620,10 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                 prefix,
             } => {
                 commands::analytics::categorical_views::run(
-                    results_table, prefix, &auth_opts, &config,
+                    results_table,
+                    prefix,
+                    &auth_opts,
+                    &config,
                 )
                 .await
             }

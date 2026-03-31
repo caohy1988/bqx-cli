@@ -4,6 +4,11 @@ use serde_json::json;
 
 use dcx::bigquery::client::{QueryExecutor, QueryRequest, QueryResult, SchemaField, TableSchema};
 use dcx::cli::{EvaluatorType, OutputFormat};
+use dcx::commands::analytics::categorical_eval::{
+    build_list_sessions_query, build_persist_sql, build_session_events_query, classify_session,
+    sessions_from_rows, CategoryDef, Classification, MetricDefinition, SessionCategoricalResult,
+};
+use dcx::commands::analytics::categorical_views::build_categorical_view_sqls;
 use dcx::commands::analytics::distribution::{build_distribution_query, distribution_from_rows};
 use dcx::commands::analytics::doctor::{
     build_columns_query, build_stats_query, columns_from_result, doctor_report_from_rows,
@@ -22,12 +27,6 @@ use dcx::commands::analytics::insights::{
 };
 use dcx::commands::analytics::list_traces::{build_list_traces_query, traces_from_rows};
 use dcx::commands::analytics::views::{build_create_view_sql, is_known_event_type};
-use dcx::commands::analytics::categorical_eval::{
-    build_list_sessions_query, build_persist_sql, build_session_events_query,
-    classify_session, sessions_from_rows,
-    MetricDefinition, CategoryDef, SessionCategoricalResult, Classification,
-};
-use dcx::commands::analytics::categorical_views::build_categorical_view_sqls;
 use dcx::commands::jobs_query::build_query_request;
 use dcx::config::Config;
 
@@ -1886,7 +1885,15 @@ fn build_session_events_query_escapes_session_id() {
 
 #[test]
 fn build_list_sessions_query_escapes_agent_id() {
-    let sql = build_list_sessions_query("proj", "ds", "events", None, Some("bot'; DROP TABLE --"), 10).unwrap();
+    let sql = build_list_sessions_query(
+        "proj",
+        "ds",
+        "events",
+        None,
+        Some("bot'; DROP TABLE --"),
+        10,
+    )
+    .unwrap();
     assert!(sql.contains("bot\\'; DROP TABLE --"));
     assert!(!sql.contains("bot'; DROP TABLE --"));
 }
@@ -1947,9 +1954,8 @@ fn load_metrics_file_rejects_duplicate_names() {
     )
     .unwrap();
 
-    let result = dcx::commands::analytics::categorical_eval::load_metrics_file(
-        path.to_str().unwrap(),
-    );
+    let result =
+        dcx::commands::analytics::categorical_eval::load_metrics_file(path.to_str().unwrap());
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(err.contains("Duplicate metric name 'quality'"));
@@ -1970,9 +1976,8 @@ fn load_metrics_file_accepts_unique_names() {
     )
     .unwrap();
 
-    let result = dcx::commands::analytics::categorical_eval::load_metrics_file(
-        path.to_str().unwrap(),
-    );
+    let result =
+        dcx::commands::analytics::categorical_eval::load_metrics_file(path.to_str().unwrap());
     assert!(result.is_ok());
     assert_eq!(result.unwrap().len(), 2);
     let _ = std::fs::remove_file(&path);
@@ -2027,9 +2032,8 @@ fn load_metrics_file_rejects_empty_categories() {
     )
     .unwrap();
 
-    let result = dcx::commands::analytics::categorical_eval::load_metrics_file(
-        path.to_str().unwrap(),
-    );
+    let result =
+        dcx::commands::analytics::categorical_eval::load_metrics_file(path.to_str().unwrap());
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(err.contains("has no categories"));
@@ -2043,8 +2047,13 @@ fn load_metrics_file_rejects_empty_categories() {
 #[test]
 fn build_create_view_sql_preserves_event_type_case() {
     // SDK passes event_type as-is; dcx should not uppercase it.
-    let (view_name, sql) =
-        dcx::commands::analytics::views::build_create_view_sql("p", "d", "t", "", "My_Custom_Event");
+    let (view_name, sql) = dcx::commands::analytics::views::build_create_view_sql(
+        "p",
+        "d",
+        "t",
+        "",
+        "My_Custom_Event",
+    );
     // view_name still lowercases for the view identifier
     assert_eq!(view_name, "my_custom_event");
     // SQL WHERE clause must use the original case

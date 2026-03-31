@@ -134,12 +134,8 @@ async fn build_categorical_views(
     config: &Config,
 ) -> Result<CategoricalViewsResult> {
     let dataset_id = config.require_dataset_id()?;
-    let views_to_create = build_categorical_view_sqls(
-        &config.project_id,
-        dataset_id,
-        results_table,
-        prefix,
-    );
+    let views_to_create =
+        build_categorical_view_sqls(&config.project_id, dataset_id, results_table, prefix);
 
     let mut views = Vec::new();
     let mut created = 0usize;
