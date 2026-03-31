@@ -93,8 +93,14 @@ if [[ -n "$UPSTREAM_SHA" ]]; then
     sha_arg="--upstream-sha ${UPSTREAM_SHA}"
 fi
 
+sdk_md_arg=""
+if [[ -f "${FIXTURE_DIR}/SDK.md" ]]; then
+    sdk_md_arg="--sdk-md ${FIXTURE_DIR}/SDK.md"
+fi
+
 python3 "${REPO_ROOT}/scripts/parse_sdk_cli.py" \
     --cli-py "${FIXTURE_DIR}/cli.py" \
+    ${sdk_md_arg} \
     --cli-rs "${CLI_RS}" \
     --out-json "${CONTRACT_JSON}" \
     --out-md "${CONTRACT_MD}" \
@@ -107,11 +113,30 @@ echo "  ${CONTRACT_MD}"
 
 # ── Step 4: Check for changes ────────────────────────────────────────
 
-if git -C "${REPO_ROOT}" diff --quiet -- "${CONTRACT_JSON}" "${CONTRACT_MD}" 2>/dev/null; then
+TRACKED_FILES=(
+    "${CONTRACT_JSON}"
+    "${CONTRACT_MD}"
+    "${FIXTURE_DIR}/cli.py"
+    "${FIXTURE_DIR}/SDK.md"
+    "${SHA_FILE}"
+)
+
+has_changes=false
+# Check for diffs in tracked files (covers both staged and unstaged)
+if ! git -C "${REPO_ROOT}" diff --quiet -- "${TRACKED_FILES[@]}" 2>/dev/null; then
+    has_changes=true
+fi
+# Check for new untracked files in the fixture dir
+if git -C "${REPO_ROOT}" ls-files --others --exclude-standard -- "${TRACKED_FILES[@]}" 2>/dev/null | grep -q .; then
+    has_changes=true
+fi
+
+if [[ "$has_changes" == true ]]; then
     echo ""
-    echo "No contract changes detected."
+    echo "Changes detected in contract or upstream cache — review and commit:"
+    git -C "${REPO_ROOT}" diff --stat -- "${TRACKED_FILES[@]}" 2>/dev/null || true
+    git -C "${REPO_ROOT}" ls-files --others --exclude-standard -- "${TRACKED_FILES[@]}" 2>/dev/null || true
 else
     echo ""
-    echo "Contract has changed — review the diff and commit if appropriate."
-    git -C "${REPO_ROOT}" diff --stat -- "${CONTRACT_JSON}" "${CONTRACT_MD}" 2>/dev/null || true
+    echo "No changes detected (contract and upstream cache are up to date)."
 fi

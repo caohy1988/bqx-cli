@@ -1237,15 +1237,31 @@
   },
   "exit_codes": {
     "sdk": {
-      "success": 0,
-      "eval_failure": 1,
-      "infra_error": 2
+      "success": {
+        "code": 0,
+        "meaning": "Success (or evaluation passed with `--exit-code`)"
+      },
+      "eval_failure": {
+        "code": 1,
+        "meaning": "Evaluation failed (only with `--exit-code`)"
+      },
+      "infra_error": {
+        "code": 2,
+        "meaning": "Infrastructure error (connection, auth, bad input)"
+      }
     },
     "dcx": {
-      "success": 0,
-      "eval_failure": 1,
+      "success": {
+        "code": 0,
+        "meaning": "Success"
+      },
+      "eval_failure": {
+        "code": 1,
+        "meaning": "Evaluation failed (with --exit-code)"
+      },
       "infra_error": "not distinguished"
-    }
+    },
+    "source": "SDK.md"
   },
   "intentional_divergences": [
     {

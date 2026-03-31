@@ -217,13 +217,13 @@ edit intentional divergence notes only.
 | `hallucination` | missing | llm-judge not yet in dcx |
 | `sentiment` | missing | llm-judge not yet in dcx |
 
-## Exit Codes
+## Exit Codes (source: SDK.md)
 
 | Meaning | SDK | dcx |
 |---------|-----|-----|
-| Success | 0 | 0 |
-| Eval failure | 1 | 1 |
-| Infra error | 2 | not distinguished |
+| success | 0 — Success (or evaluation passed with `--exit-code`) | 0 — Success |
+| eval_failure | 1 — Evaluation failed (only with `--exit-code`) | 1 — Evaluation failed (with --exit-code) |
+| infra_error | 2 — Infrastructure error (connection, auth, bad input) | not distinguished |
 
 ## Environment Variables
 

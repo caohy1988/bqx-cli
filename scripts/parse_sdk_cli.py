@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Parse upstream BigQuery Agent Analytics SDK cli.py and the dcx Rust
-CLI source, then generate a compatibility contract.
+"""Parse upstream BigQuery Agent Analytics SDK cli.py, SDK.md, and the dcx
+Rust CLI source, then generate a compatibility contract.
 
 Usage:
     python3 scripts/parse_sdk_cli.py \
         --cli-py tests/fixtures/upstream_sdk_latest/cli.py \
+        --sdk-md tests/fixtures/upstream_sdk_latest/SDK.md \
         --cli-rs src/cli.rs \
         --out-json tests/fixtures/analytics_sdk_contract.json \
         --out-md docs/analytics_sdk_contract.md \
@@ -490,6 +491,77 @@ def parse_cli_py(source: str) -> dict:
     }
 
 
+# ── SDK.md extraction ────────────────────────────────────────────────
+
+
+def parse_sdk_md(source: str) -> dict:
+    """Extract structured contract data from SDK.md.
+
+    Currently extracts:
+    - Exit code table from Section 19 (CLI)
+    - Global options table from Section 19
+    """
+    exit_codes: dict[int, str] = {}
+    global_options: list[dict] = []
+
+    lines = source.split("\n")
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # ── Exit codes table
+        if line == "### Exit Codes":
+            i += 1
+            # Skip to table body (past header and separator)
+            while i < len(lines) and not lines[i].strip().startswith("| "):
+                i += 1
+            if i < len(lines):
+                i += 2  # skip header + separator
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                row = lines[i].strip()
+                cells = [c.strip() for c in row.split("|")[1:-1]]
+                if len(cells) >= 2:
+                    try:
+                        code = int(cells[0])
+                        exit_codes[code] = cells[1]
+                    except ValueError:
+                        pass
+                i += 1
+            continue
+
+        # ── Global options table
+        if line == "### Global Options":
+            i += 1
+            # Skip to table body
+            while i < len(lines) and not lines[i].strip().startswith("| "):
+                i += 1
+            if i < len(lines):
+                i += 2  # skip header + separator
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                row = lines[i].strip()
+                cells = [c.strip() for c in row.split("|")[1:-1]]
+                if len(cells) >= 4:
+                    option_name = cells[0].strip("`")
+                    env_var = cells[1] if cells[1] else None
+                    default = cells[2] if cells[2] else None
+                    description = cells[3]
+                    global_options.append({
+                        "option": option_name,
+                        "env": env_var,
+                        "default": default,
+                        "description": description,
+                    })
+                i += 1
+            continue
+
+        i += 1
+
+    return {
+        "exit_codes": exit_codes,
+        "global_options": global_options,
+    }
+
+
 # ── Known intentional divergences ────────────────────────────────────
 
 KNOWN_DIVERGENCES: list[dict[str, str]] = [
@@ -569,6 +641,40 @@ def _resolve_dcx_flag(sdk_flag: str, dcx_flags: dict) -> tuple[str | None, str]:
     return None, "not_found"
 
 
+def _build_exit_codes(sdk_md: dict | None) -> dict:
+    """Build exit code comparison from SDK.md or fall back to defaults."""
+    if sdk_md and sdk_md.get("exit_codes"):
+        sdk_codes = sdk_md["exit_codes"]
+        sdk_exit: dict = {}
+        for code, meaning in sorted(sdk_codes.items()):
+            # Normalize meaning into a machine-friendly key
+            meaning_lower = meaning.lower()
+            if code == 0:
+                sdk_exit["success"] = {"code": 0, "meaning": meaning}
+            elif code == 1:
+                sdk_exit["eval_failure"] = {"code": 1, "meaning": meaning}
+            elif code == 2:
+                sdk_exit["infra_error"] = {"code": 2, "meaning": meaning}
+            else:
+                sdk_exit[f"code_{code}"] = {"code": code, "meaning": meaning}
+    else:
+        sdk_exit = {
+            "success": {"code": 0, "meaning": "Success"},
+            "eval_failure": {"code": 1, "meaning": "Evaluation failed"},
+            "infra_error": {"code": 2, "meaning": "Infrastructure error"},
+        }
+
+    return {
+        "sdk": sdk_exit,
+        "dcx": {
+            "success": {"code": 0, "meaning": "Success"},
+            "eval_failure": {"code": 1, "meaning": "Evaluation failed (with --exit-code)"},
+            "infra_error": "not distinguished",
+        },
+        "source": "SDK.md" if (sdk_md and sdk_md.get("exit_codes")) else "hardcoded fallback",
+    }
+
+
 def _classify_flag(sdk_flag: str, sdk_info: dict, dcx_flags: dict) -> dict:
     """Classify a single SDK flag against dcx, comparing semantics."""
     dcx_match, match_type = _resolve_dcx_flag(sdk_flag, dcx_flags)
@@ -607,7 +713,12 @@ def _classify_flag(sdk_flag: str, sdk_info: dict, dcx_flags: dict) -> dict:
     return {"status": "exact"}
 
 
-def generate_contract(upstream: dict, dcx: dict, upstream_sha: str | None) -> dict:
+def generate_contract(
+    upstream: dict,
+    dcx: dict,
+    upstream_sha: str | None,
+    sdk_md: dict | None = None,
+) -> dict:
     """Generate the full compatibility contract."""
     dcx_commands = dcx["commands"]
     dcx_evaluators = dcx["evaluators"]
@@ -703,10 +814,7 @@ def generate_contract(upstream: dict, dcx: dict, upstream_sha: str | None) -> di
                 }
             ),
         },
-        "exit_codes": {
-            "sdk": {"success": 0, "eval_failure": 1, "infra_error": 2},
-            "dcx": {"success": 0, "eval_failure": 1, "infra_error": "not distinguished"},
-        },
+        "exit_codes": _build_exit_codes(sdk_md),
         "intentional_divergences": KNOWN_DIVERGENCES,
     })
     return contract
@@ -830,16 +938,31 @@ def render_markdown(contract: dict) -> str:
     lines.append("")
 
     # ── Exit codes
-    lines += ["## Exit Codes", ""]
     ec = contract["exit_codes"]
+    ec_source = ec.get("source", "unknown")
+    lines += [f"## Exit Codes (source: {ec_source})", ""]
     lines += [
         "| Meaning | SDK | dcx |",
         "|---------|-----|-----|",
-        f"| Success | {ec['sdk']['success']} | {ec['dcx']['success']} |",
-        f"| Eval failure | {ec['sdk']['eval_failure']} | {ec['dcx']['eval_failure']} |",
-        f"| Infra error | {ec['sdk']['infra_error']} | {ec['dcx']['infra_error']} |",
-        "",
     ]
+    for key in ["success", "eval_failure", "infra_error"]:
+        sdk_val = ec["sdk"].get(key, "—")
+        dcx_val = ec["dcx"].get(key, "—")
+        if isinstance(sdk_val, dict):
+            sdk_str = f"{sdk_val['code']} — {sdk_val['meaning']}"
+        else:
+            sdk_str = str(sdk_val)
+        if isinstance(dcx_val, dict):
+            dcx_str = f"{dcx_val['code']} — {dcx_val['meaning']}"
+        else:
+            dcx_str = str(dcx_val)
+        lines.append(f"| {key} | {sdk_str} | {dcx_str} |")
+    # Include any extra SDK exit codes not in the standard set
+    for key, val in ec["sdk"].items():
+        if key not in ("success", "eval_failure", "infra_error"):
+            if isinstance(val, dict):
+                lines.append(f"| {key} | {val['code']} — {val['meaning']} | — |")
+    lines.append("")
 
     # ── Env vars
     lines += ["## Environment Variables", ""]
@@ -876,31 +999,42 @@ def main() -> None:
         description="Generate analytics SDK compatibility contract"
     )
     parser.add_argument("--cli-py", required=True, help="Path to upstream cli.py")
+    parser.add_argument("--sdk-md", default=None, help="Path to upstream SDK.md")
     parser.add_argument("--cli-rs", required=True, help="Path to dcx src/cli.rs")
     parser.add_argument("--out-json", required=True, help="Output JSON contract path")
     parser.add_argument("--out-md", required=True, help="Output Markdown contract path")
     parser.add_argument("--upstream-sha", default=None, help="Upstream commit SHA")
     args = parser.parse_args()
 
-    # Parse upstream SDK
+    # Parse upstream SDK cli.py
     source = Path(args.cli_py).read_text()
     upstream = parse_cli_py(source)
 
-    print(f"Parsed {len(upstream['commands'])} SDK commands")
+    print(f"Parsed {len(upstream['commands'])} SDK commands from cli.py")
     print(f"  Code evaluators: {upstream['code_evaluators']}")
     print(f"  LLM judges: {upstream['llm_judges']}")
     print(f"  Env vars: {upstream['env_vars']}")
+
+    # Parse upstream SDK.md (optional but recommended)
+    sdk_md: dict | None = None
+    if args.sdk_md and Path(args.sdk_md).exists():
+        sdk_md_source = Path(args.sdk_md).read_text()
+        sdk_md = parse_sdk_md(sdk_md_source)
+        print(f"Parsed SDK.md: {len(sdk_md['exit_codes'])} exit codes, "
+              f"{len(sdk_md['global_options'])} global options")
+    else:
+        print("SDK.md not provided — using hardcoded fallback for exit codes")
 
     # Parse dcx CLI
     rs_source = Path(args.cli_rs).read_text()
     dcx = parse_cli_rs(rs_source)
 
-    print(f"Parsed {len(dcx['commands'])} dcx analytics commands")
+    print(f"Parsed {len(dcx['commands'])} dcx analytics commands from cli.rs")
     print(f"  Evaluators: {dcx['evaluators']}")
     for cmd_name, cmd_info in dcx["commands"].items():
         print(f"  {cmd_name}: {len(cmd_info['flags'])} flags")
 
-    contract = generate_contract(upstream, dcx, args.upstream_sha)
+    contract = generate_contract(upstream, dcx, args.upstream_sha, sdk_md=sdk_md)
 
     # Write JSON
     json_path = Path(args.out_json)
