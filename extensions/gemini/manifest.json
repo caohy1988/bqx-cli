@@ -2,7 +2,7 @@
   "name": "dcx",
   "display_name": "dcx – Agent-Native Data Cloud CLI",
   "description": "Data Cloud CLI optimized for AI agents. Provides query execution, dataset/table/routine/model inspection, agent analytics, and conversational analytics across BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "homepage": "https://github.com/bigquery/dcx",
   "tools": [
     {

@@ -513,30 +513,26 @@ Implementation notes:
 - Each new skill documents when to use direct commands vs CA
 - Skills encode profile requirements, decision rules, and constraints
 
-### Milestone 6: Release Closure and v0.5.0
+### Milestone 6: Release Closure and v0.5.0 — Complete
 
 Deliverables:
 
-- version bump to `0.5.0`
-- release notes for the new command domains
-- validation matrix for each source family
-- final README roadmap update
+- [x] version bump to `0.5.0`
+- [x] release notes for the new command domains
+- [x] validation matrix for each source family
+- [x] final README roadmap update
 
-Detailed tasks:
+Implementation notes:
 
-- bump Cargo, npm, and Gemini versions together
-- update release docs and smoke-install checks
-- verify command examples for each new source family
-- add one consolidated source matrix doc showing:
-  - supported commands
-  - required profile fields
-  - output modes
-  - known limitations
-
-Done when:
-
-- `dcx` can credibly present itself as a direct Data Cloud CLI, not only a
-  CA-oriented CLI
+- Bumped Cargo.toml, all 7 npm package.json files, and Gemini manifest
+  from 0.4.0 → 0.5.0
+- Added v0.5.0 release notes covering direct source commands, schema
+  helpers, Looker content, profile utilities, skill consolidation (39→14),
+  and Gemini manifest expansion (17→28 tools)
+- Created `docs/source-matrix.md` with command coverage, profile
+  requirements, API families, output modes, Discovery sources, and
+  known limitations
+- README Phase 5 roadmap marked complete
 
 ## Testing Strategy
 

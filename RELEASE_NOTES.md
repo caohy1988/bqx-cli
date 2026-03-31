@@ -1,5 +1,92 @@
 # Release Notes
 
+## v0.5.0 — Native Data Cloud Commands (2026-03-30)
+
+### Highlights
+
+`dcx` is now a **direct Data Cloud operations CLI**. In addition to
+Conversational Analytics, users and agents can run first-class,
+source-native commands for Looker, Spanner, AlloyDB, and Cloud SQL
+without dropping to `gcloud` or ad-hoc wrappers.
+
+### New: Direct Source Commands
+
+All generated from bundled Google Discovery documents using the same
+dynamic pipeline as BigQuery:
+
+| Service | Commands |
+|---------|----------|
+| Spanner | `dcx spanner instances list\|get`, `databases list\|get\|get-ddl` |
+| AlloyDB | `dcx alloydb clusters list\|get`, `instances list\|get` |
+| Cloud SQL | `dcx cloudsql instances list\|get`, `databases list\|get` |
+| Looker (admin) | `dcx looker instances list\|get`, `backups list\|get` |
+
+### New: Profile-Aware Schema and Database Helpers
+
+```bash
+dcx spanner schema describe --profile spanner-finance.yaml --format table
+dcx alloydb schema describe --profile alloydb-ops.yaml --format json
+dcx alloydb databases list --profile alloydb-ops.yaml --format text
+dcx cloudsql schema describe --profile cloudsql-app.yaml --format table
+```
+
+These use CA QueryData under the hood, routed by the profile's source type.
+
+### New: Looker Content Commands
+
+Hand-written client for per-instance Looker API:
+
+```bash
+dcx looker explores list --profile looker-sales.yaml --format json
+dcx looker dashboards list --profile looker-sales.yaml --format json
+```
+
+### New: Profile Utilities
+
+```bash
+dcx profiles list --format table
+dcx profiles show --profile my-profile --format json
+dcx profiles validate --profile my-profile --format text
+```
+
+### Skill Consolidation (39 → 14)
+
+The skill layer was redesigned per agent-skills best practices:
+
+| Type | Count | Skills |
+|------|-------|--------|
+| Router | 6 | `dcx-bigquery`, `dcx-analytics`, `dcx-ca`, `dcx-databases`, `dcx-looker`, `dcx-profiles` |
+| API | 5 | `dcx-bigquery-api`, `dcx-spanner-api`, `dcx-alloydb-api`, `dcx-cloudsql-api`, `dcx-looker-admin-api` |
+| Recipe | 3 | `recipe-source-onboarding`, `recipe-debugging`, `recipe-quality-ops` |
+
+Router skills are routing-focused (~1 page each) with command detail in
+`references/` subdirectories. API skills are service-level (one per
+Discovery namespace). Recipes are consolidated workflows.
+
+### Gemini Manifest
+
+Expanded from 17 → 28 tools, adding Spanner, AlloyDB, Cloud SQL, Looker
+admin, and profiles tools.
+
+### Architecture
+
+- `ServiceConfig` abstraction: per-service config for Discovery-driven
+  commands (namespace, allowlist, global param mapping, flatPath preference)
+- Looker hybrid: GCP admin API (Discovery) + per-instance content API
+  (hand-written), unified under `dcx looker`
+- Location normalization: AlloyDB and Looker "US" default → "-" (all locations)
+- Profile-aware helpers validate source type compatibility before auth
+
+### Source Matrix
+
+See `docs/source-matrix.md` for the full cross-source command matrix.
+
+### Test Count
+
+466 tests (was 459 in v0.4.0)
+
+---
+
 ## v0.4.0 — Data Cloud CA (2026-03-23)
 
 ### Highlights
