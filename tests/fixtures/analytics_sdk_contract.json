@@ -1,0 +1,1316 @@
+{
+  "generated": "2026-03-31",
+  "upstream_repo": "haiyuan-eng-google/BigQuery-Agent-Analytics-SDK",
+  "upstream_branch": "main",
+  "upstream_sha": "5bc8876b73841ea20d24b6606fcff39a6e22b419",
+  "commands": [
+    {
+      "sdk_command": "doctor",
+      "dcx_command": "dcx analytics doctor",
+      "status": "present",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "exact"
+        }
+      ],
+      "dcx_extensions": [
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "sdk_command": "get-trace",
+      "dcx_command": "dcx analytics get-trace",
+      "status": "present",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
+        },
+        {
+          "sdk_flag": "--session-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK optional, dcx required"
+        },
+        {
+          "sdk_flag": "--trace-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "exact"
+        }
+      ],
+      "dcx_extensions": [
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "sdk_command": "evaluate",
+      "dcx_command": "dcx analytics evaluate",
+      "status": "present",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
+        },
+        {
+          "sdk_flag": "--evaluator",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "latency",
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK optional, dcx required; SDK default='latency', dcx default=None"
+        },
+        {
+          "sdk_flag": "--threshold",
+          "sdk_type": "optional<float>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK optional, dcx required"
+        },
+        {
+          "sdk_flag": "--criterion",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "correctness",
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--agent-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "exact"
+        },
+        {
+          "sdk_flag": "--last",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK optional, dcx required"
+        },
+        {
+          "sdk_flag": "--limit",
+          "sdk_type": "int",
+          "sdk_required": false,
+          "sdk_default": 100,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--exit-code",
+          "sdk_type": "bool",
+          "sdk_required": false,
+          "sdk_default": false,
+          "sdk_env": null,
+          "status": "exact"
+        },
+        {
+          "sdk_flag": "--strict",
+          "sdk_type": "bool",
+          "sdk_required": false,
+          "sdk_default": false,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--endpoint",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--connection-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "exact"
+        }
+      ],
+      "dcx_extensions": [
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "sdk_command": "insights",
+      "dcx_command": "dcx analytics insights",
+      "status": "present",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
+        },
+        {
+          "sdk_flag": "--agent-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "exact"
+        },
+        {
+          "sdk_flag": "--last",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK optional, dcx required"
+        },
+        {
+          "sdk_flag": "--limit",
+          "sdk_type": "int",
+          "sdk_required": false,
+          "sdk_default": 100,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--max-sessions",
+          "sdk_type": "int",
+          "sdk_required": false,
+          "sdk_default": 50,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "exact"
+        }
+      ],
+      "dcx_extensions": [
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "sdk_command": "drift",
+      "dcx_command": "dcx analytics drift",
+      "status": "present",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
+        },
+        {
+          "sdk_flag": "--golden-dataset",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "exact"
+        },
+        {
+          "sdk_flag": "--agent-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "exact"
+        },
+        {
+          "sdk_flag": "--last",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='7d'"
+        },
+        {
+          "sdk_flag": "--limit",
+          "sdk_type": "int",
+          "sdk_required": false,
+          "sdk_default": 100,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "exact"
+        }
+      ],
+      "dcx_extensions": [
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--min-coverage",
+          "status": "dcx_extension",
+          "type": "float",
+          "global": false
+        },
+        {
+          "flag": "--exit-code",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "sdk_command": "distribution",
+      "dcx_command": "dcx analytics distribution",
+      "status": "present",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
+        },
+        {
+          "sdk_flag": "--agent-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "exact"
+        },
+        {
+          "sdk_flag": "--last",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK optional, dcx required"
+        },
+        {
+          "sdk_flag": "--limit",
+          "sdk_type": "int",
+          "sdk_required": false,
+          "sdk_default": 100,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--mode",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "auto_group_using_semantics",
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--top-k",
+          "sdk_type": "int",
+          "sdk_required": false,
+          "sdk_default": 20,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "exact"
+        }
+      ],
+      "dcx_extensions": [
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "sdk_command": "hitl-metrics",
+      "dcx_command": "dcx analytics hitl-metrics",
+      "status": "present",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
+        },
+        {
+          "sdk_flag": "--agent-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "exact"
+        },
+        {
+          "sdk_flag": "--last",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK optional, dcx required"
+        },
+        {
+          "sdk_flag": "--limit",
+          "sdk_type": "int",
+          "sdk_required": false,
+          "sdk_default": 100,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=100, dcx default='20'"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "exact"
+        }
+      ],
+      "dcx_extensions": [
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "sdk_command": "list-traces",
+      "dcx_command": "dcx analytics list-traces",
+      "status": "present",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=None, dcx default='US'"
+        },
+        {
+          "sdk_flag": "--session-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--agent-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "exact"
+        },
+        {
+          "sdk_flag": "--last",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK optional, dcx required"
+        },
+        {
+          "sdk_flag": "--limit",
+          "sdk_type": "int",
+          "sdk_required": false,
+          "sdk_default": 100,
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default=100, dcx default='20'"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "exact"
+        }
+      ],
+      "dcx_extensions": [
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "sdk_command": "categorical-eval",
+      "dcx_command": null,
+      "status": "missing",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--metrics-file",
+          "sdk_type": "path",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--agent-id",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--last",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--limit",
+          "sdk_type": "int",
+          "sdk_required": false,
+          "sdk_default": 100,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--endpoint",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--include-justification",
+          "sdk_type": "bool",
+          "sdk_required": false,
+          "sdk_default": true,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--persist",
+          "sdk_type": "bool",
+          "sdk_required": false,
+          "sdk_default": false,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--results-table",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--prompt-version",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "missing"
+        }
+      ],
+      "dcx_extensions": [],
+      "args": []
+    },
+    {
+      "sdk_command": "categorical-views",
+      "dcx_command": null,
+      "status": "missing",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--results-table",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "categorical_results",
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--location",
+          "sdk_type": "optional<str>",
+          "sdk_required": false,
+          "sdk_default": null,
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--prefix",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "",
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "missing"
+        }
+      ],
+      "dcx_extensions": [],
+      "args": []
+    },
+    {
+      "sdk_command": "views create-all",
+      "dcx_command": "dcx analytics views create-all",
+      "status": "present",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "semantic_mismatch",
+          "note": "SDK required, dcx optional"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "intentional_divergence",
+          "note": "--table-id -> --table"
+        },
+        {
+          "sdk_flag": "--prefix",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "adk_",
+          "sdk_env": null,
+          "status": "semantic_mismatch",
+          "note": "SDK default='adk_', dcx default=''"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "exact"
+        }
+      ],
+      "dcx_extensions": [
+        {
+          "flag": "--location",
+          "status": "dcx_extension",
+          "type": "string",
+          "global": true
+        },
+        {
+          "flag": "--token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--credentials-file",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "sdk_command": "views create",
+      "dcx_command": null,
+      "status": "missing",
+      "flags": [
+        {
+          "sdk_flag": "--project-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_PROJECT",
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--dataset-id",
+          "sdk_type": "str",
+          "sdk_required": true,
+          "sdk_default": null,
+          "sdk_env": "BQ_AGENT_DATASET",
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--table-id",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "agent_events",
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--prefix",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "adk_",
+          "sdk_env": null,
+          "status": "missing"
+        },
+        {
+          "sdk_flag": "--format",
+          "sdk_type": "str",
+          "sdk_required": false,
+          "sdk_default": "json",
+          "sdk_env": null,
+          "status": "missing"
+        }
+      ],
+      "dcx_extensions": [],
+      "args": [
+        {
+          "name": "event_type",
+          "type": "str",
+          "positional": true,
+          "help": "Event type to create a view for."
+        }
+      ]
+    }
+  ],
+  "code_evaluators": [
+    {
+      "sdk_name": "latency",
+      "dcx_name": "latency",
+      "status": "present"
+    },
+    {
+      "sdk_name": "error_rate",
+      "dcx_name": "error-rate",
+      "status": "present"
+    },
+    {
+      "sdk_name": "turn_count",
+      "dcx_name": null,
+      "status": "missing"
+    },
+    {
+      "sdk_name": "token_efficiency",
+      "dcx_name": null,
+      "status": "missing"
+    },
+    {
+      "sdk_name": "ttft",
+      "dcx_name": null,
+      "status": "missing"
+    },
+    {
+      "sdk_name": "cost",
+      "dcx_name": null,
+      "status": "missing"
+    }
+  ],
+  "llm_judges": [
+    {
+      "sdk_name": "correctness",
+      "status": "missing",
+      "note": "llm-judge not yet in dcx"
+    },
+    {
+      "sdk_name": "hallucination",
+      "status": "missing",
+      "note": "llm-judge not yet in dcx"
+    },
+    {
+      "sdk_name": "sentiment",
+      "status": "missing",
+      "note": "llm-judge not yet in dcx"
+    }
+  ],
+  "env_vars": {
+    "sdk": [
+      "BQ_AGENT_DATASET",
+      "BQ_AGENT_PROJECT"
+    ],
+    "dcx": [
+      "DCX_CREDENTIALS_FILE",
+      "DCX_DATASET",
+      "DCX_LOCATION",
+      "DCX_PROJECT",
+      "DCX_SANITIZE_TEMPLATE",
+      "DCX_TOKEN"
+    ]
+  },
+  "exit_codes": {
+    "sdk": {
+      "success": {
+        "code": 0,
+        "meaning": "Success (or evaluation passed with `--exit-code`)"
+      },
+      "eval_failure": {
+        "code": 1,
+        "meaning": "Evaluation failed (only with `--exit-code`)"
+      },
+      "infra_error": {
+        "code": 2,
+        "meaning": "Infrastructure error (connection, auth, bad input)"
+      }
+    },
+    "dcx": {
+      "success": {
+        "code": 0,
+        "meaning": "Success"
+      },
+      "eval_failure": {
+        "code": 1,
+        "meaning": "Evaluation failed (with --exit-code)"
+      },
+      "infra_error": "not distinguished"
+    },
+    "source": "SDK.md"
+  },
+  "intentional_divergences": [
+    {
+      "item": "--table vs --table-id",
+      "dcx": "--table",
+      "sdk": "--table-id",
+      "reason": "dcx uses shorter flag name; both default to agent_events"
+    },
+    {
+      "item": "--location default",
+      "dcx": "US",
+      "sdk": "None (optional)",
+      "reason": "dcx defaults to US for BigQuery; SDK leaves it to the client library"
+    },
+    {
+      "item": "drift --min-coverage",
+      "dcx": "present (default 0.8)",
+      "sdk": "absent",
+      "reason": "dcx extension for CI gate workflows"
+    },
+    {
+      "item": "drift --exit-code",
+      "dcx": "present",
+      "sdk": "absent",
+      "reason": "dcx extension for CI gate workflows"
+    },
+    {
+      "item": "infrastructure error exit code",
+      "dcx": "not used",
+      "sdk": "exit 2",
+      "reason": "dcx uses generic error handling; SDK distinguishes eval-fail (1) from infra-error (2)"
+    },
+    {
+      "item": "env var prefix",
+      "dcx": "DCX_PROJECT / DCX_DATASET",
+      "sdk": "BQ_AGENT_PROJECT / BQ_AGENT_DATASET",
+      "reason": "dcx uses its own namespace; same semantics"
+    },
+    {
+      "item": "--sanitize flag",
+      "dcx": "present (Model Armor)",
+      "sdk": "absent",
+      "reason": "dcx-only feature for response sanitization"
+    },
+    {
+      "item": "evaluator name spelling",
+      "dcx": "error-rate (kebab-case)",
+      "sdk": "error_rate (snake_case)",
+      "reason": "dcx follows CLI kebab-case convention; may add aliases for SDK names"
+    }
+  ]
+}
