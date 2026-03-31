@@ -8,22 +8,44 @@
 
 Recent signals from Perplexity and the industry trajectory toward coding agents with VM execution environments confirm this direction. Local orchestrators like `Openclaw` demonstrate that the control plane is shifting. This is the same thesis behind Workspace open-sourcing an AI-focused CLI paired with agent skills: [GWS CLI](https://github.com/googleworkspace/cli)
 
-### Why CLI instead of MCP?
+### When CLI vs MCP
 
-Comparison between MCP tools and CLI:
+Both have real use cases.
 
-MCP servers register every operation as a separate tool. Each tool definition is sent to the LLM on every call — a per-turn tax that grows with tool count. A CLI is equivalent to one tool: the agent already has `bash`. Adding data cloud command support via dcx costs zero additional tool definitions.
+MCP is a good fit when the agent does not have `bash`, when tool use must
+go through a tightly controlled function boundary, or when the host
+environment only allows API-style tools.
+
+CLI is a better fit when the agent has a shell or VM and needs to do
+iterative work across many operations. MCP servers register every
+operation as a separate tool. Each tool definition is sent to the LLM on
+every call — a per-turn tax that grows with tool count. A CLI is
+equivalent to one tool: the agent already has `bash`. Adding Data Cloud
+via `dcx` costs zero additional tool definitions.
 
 **Task:** `SELECT status, COUNT(*) FROM traces WHERE agent_id='support_bot' GROUP BY status`
 
-|  | BigQuery OneMCP server | MCP Toolbox for Databases | dcx  CLI |
-| :---- | :---- | :---- | :---- |
-| **Tools registered** | 5 (list/get datasets, tables, execute\_sql) | 9 (+ search\_catalog, forecast, analyze\_contribution, ask\_data\_insights) | 0 extra (uses bash tool which general agent by default have ) |
-| **Tool-def tokens per LLM call** | \~660 | \~1,880 | 0 |
-| **Total tokens for one query** | \~1,570 | \~4,000 | \~460 |
-| **Tool-def overhead in a 10-turn session** | \~13,200 | \~37,500 | 0 |
+| | BigQuery MCP server | MCP Toolbox for Databases | dcx CLI |
+|---|---|---|---|
+| **Tools registered** | 5 (list/get datasets, tables, execute\_sql) | 9 (+ search\_catalog, forecast, analyze\_contribution, ask\_data\_insights) | 0 extra Data Cloud tools (uses bash) |
+| **Tool-def tokens per LLM call** | ~660 | ~1,880 | ~0 additional Data Cloud tool-def tokens |
+| **Total tokens for one query** | ~1,570 | ~4,000 | ~460 |
+| **Tool-def overhead in a 10-turn session** | ~13,200 | ~37,500 | 0 |
 
-Token counts are calculated from the actual JSON tool schemas sent to the LLM. MCP Toolbox pays the highest tax because all 9 tools — including `forecast` and `analyze_contribution` with 5–6 parameters each — are registered even when the agent only needs `execute_sql`. dcx  avoids this entirely: the agent calls `dcx  jobs query --query "..." --format json` through the bash tool it already has.
+Token counts are calculated from the actual JSON tool schemas sent to the
+LLM. MCP Toolbox pays the highest tax because all 9 tools — including
+`forecast` and `analyze_contribution` with 5–6 parameters each — are
+registered even when the agent only needs `execute_sql`. `dcx` does not
+add a separate per-command Data Cloud tool catalog: the agent calls
+`dcx jobs query --query "..." --format json` through the bash tool it
+already has. The shell surface itself is not literally free, but adding
+`dcx` does not introduce the same per-turn tool-definition overhead as
+MCP.
+
+The right long-term model is not CLI-only or MCP-only. It is one shared
+contract with two delivery modes: a CLI-first surface for agents that can
+use `bash`, and API-oriented adapters for environments where shell access
+is not available.
 
 ### Do agents need their own CLI?
 
@@ -85,8 +107,8 @@ Agents consume structured data. When output is human-readable text, every agent 
 |  | `bq` CLI | `dcx`  CLI |
 | :---- | :---- | :---- |
 | **Output** | ASCII tables and mixed text/status lines. No guaranteed schema. | Every command returns structured JSON with a predictable schema. |
-| **Parsing** | Agent must regex-parse table borders, handle wrapped rows, strip status messages. Fragile across `bq` versions. | Agent calls `JSON.parse()` on stdout. Done. |
-| **Example** | `bq query "SELECT ..."` returns a human-formatted table. Agent needs \~30 lines of parsing logic to extract rows, and breaks if column widths change. | `dcx  jobs query --query "SELECT ..." --format json` returns `{"rows": [...], "schema": {...}}`. Zero parsing code. |
+| **Parsing** | Agent must regex-parse table borders, handle wrapped rows, strip status messages. Fragile across `bq` versions. | Agent can parse stdout as JSON, pipe it to `jq`, redirect it to a file, or write code directly against the output. |
+| **Example** | `bq query "SELECT ..."` returns a human-formatted table. Agent needs ~30 lines of parsing logic to extract rows, and breaks if column widths change. | `dcx jobs query --query "SELECT ..." --format json` returns `{"rows": [...], "schema": {...}}`. The agent can parse it directly or compose follow-on shell/code steps in a standard way. |
 
 ### Gap 3 — Extensibility
 
