@@ -239,10 +239,12 @@ fn render_drift(result: &DriftResult, config: &Config) -> Result<()> {
 
 // ── Entry points ──
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     golden_dataset: String,
     last: String,
     agent_id: Option<String>,
+    _limit: u32,
     min_coverage: f64,
     exit_code: bool,
     auth_opts: &AuthOptions,

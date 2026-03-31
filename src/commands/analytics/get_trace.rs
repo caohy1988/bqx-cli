@@ -207,7 +207,22 @@ fn render_trace_output(trace: &TraceResult, config: &Config) -> Result<()> {
 
 // ── Entry points ──
 
-pub async fn run(session_id: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
+/// Resolve session_id from either --session-id or --trace-id.
+fn resolve_id(session_id: Option<String>, trace_id: Option<String>) -> Result<String> {
+    match (session_id, trace_id) {
+        (Some(sid), _) => Ok(sid),
+        (None, Some(tid)) => Ok(tid),
+        (None, None) => anyhow::bail!("Provide --session-id or --trace-id."),
+    }
+}
+
+pub async fn run(
+    session_id: Option<String>,
+    trace_id: Option<String>,
+    auth_opts: &AuthOptions,
+    config: &Config,
+) -> Result<()> {
+    let session_id = resolve_id(session_id, trace_id)?;
     config::validate_session_id(&session_id)?;
     config.require_dataset_id()?;
 

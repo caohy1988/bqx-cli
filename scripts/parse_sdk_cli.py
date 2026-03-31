@@ -631,6 +631,30 @@ KNOWN_DIVERGENCES: list[dict[str, str]] = [
         "sdk": "--include-justification (default True)",
         "reason": "clap bool flags are always false by default; negated flag achieves same semantics",
     },
+    {
+        "item": "evaluate --evaluator=llm-judge",
+        "dcx": "flag accepted but errors at runtime",
+        "sdk": "routes to LLM judge via AI.GENERATE",
+        "reason": "LLM-based evaluation not yet implemented; code evaluators fully supported",
+    },
+    {
+        "item": "evaluate --endpoint / --connection-id",
+        "dcx": "flags accepted but error if provided",
+        "sdk": "configure AI.GENERATE endpoint and connection",
+        "reason": "AI.GENERATE integration planned for a future milestone",
+    },
+    {
+        "item": "distribution --mode / --top-k",
+        "dcx": "flags accepted (defaults used); non-default modes not yet implemented",
+        "sdk": "analysis modes: frequently_asked, frequently_unanswered, auto_group_using_semantics, custom",
+        "reason": "semantic analysis modes require LLM; dcx provides event-type distribution",
+    },
+    {
+        "item": "get-trace --trace-id",
+        "dcx": "treated as alias for --session-id",
+        "sdk": "separate lookup by trace ID",
+        "reason": "dcx events table uses session_id as primary key; trace_id mapped to same query",
+    },
 ]
 
 

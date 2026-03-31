@@ -22,6 +22,7 @@ SELECT
 FROM `{project}.{dataset}.{table}`
 WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), {interval})
 {agent_filter}
+{session_filter}
 GROUP BY session_id, agent
 ORDER BY started_at DESC
 LIMIT {limit}
@@ -56,10 +57,15 @@ pub fn build_list_traces_query(
     table: &str,
     interval_sql: &str,
     agent_id: Option<&str>,
+    session_id: Option<&str>,
     limit: u32,
 ) -> String {
     let agent_filter = match agent_id {
         Some(id) => format!("AND agent = '{id}'"),
+        None => String::new(),
+    };
+    let session_filter = match session_id {
+        Some(id) => format!("AND session_id = '{id}'"),
         None => String::new(),
     };
     LIST_TRACES_SQL
@@ -68,6 +74,7 @@ pub fn build_list_traces_query(
         .replace("{table}", table)
         .replace("{interval}", interval_sql)
         .replace("{agent_filter}", &agent_filter)
+        .replace("{session_filter}", &session_filter)
         .replace("{limit}", &limit.to_string())
 }
 
@@ -112,6 +119,7 @@ async fn build_list_traces(
     executor: &dyn QueryExecutor,
     last: &str,
     agent_id: Option<&str>,
+    session_id: Option<&str>,
     limit: u32,
     config: &Config,
 ) -> Result<ListTracesResult> {
@@ -127,6 +135,7 @@ async fn build_list_traces(
         &config.table,
         &parsed.interval_sql,
         agent_id,
+        session_id,
         limit,
     );
 
@@ -199,6 +208,7 @@ fn render_list_traces(result: &ListTracesResult, config: &Config) -> Result<()> 
 
 pub async fn run(
     last: String,
+    session_id: Option<String>,
     agent_id: Option<String>,
     limit: u32,
     auth_opts: &AuthOptions,
@@ -212,7 +222,15 @@ pub async fn run(
 
     let resolved = auth::resolve(auth_opts).await?;
     let client = BigQueryClient::new(resolved.clone());
-    let result = build_list_traces(&client, &last, agent_id.as_deref(), limit, config).await?;
+    let result = build_list_traces(
+        &client,
+        &last,
+        agent_id.as_deref(),
+        session_id.as_deref(),
+        limit,
+        config,
+    )
+    .await?;
 
     if let Some(ref template) = config.sanitize_template {
         let json_val = serde_json::to_value(&result)?;
@@ -230,10 +248,19 @@ pub async fn run(
 pub async fn run_with_executor(
     executor: &dyn QueryExecutor,
     last: String,
+    session_id: Option<String>,
     agent_id: Option<String>,
     limit: u32,
     config: &Config,
 ) -> Result<()> {
-    let result = build_list_traces(executor, &last, agent_id.as_deref(), limit, config).await?;
+    let result = build_list_traces(
+        executor,
+        &last,
+        agent_id.as_deref(),
+        session_id.as_deref(),
+        limit,
+        config,
+    )
+    .await?;
     render_list_traces(&result, config)
 }

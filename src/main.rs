@@ -531,30 +531,66 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                 last,
                 agent_id,
                 exit_code,
+                criterion,
+                limit,
+                strict,
+                endpoint,
+                connection_id,
             } => {
                 commands::analytics::evaluate::run(
-                    evaluator, threshold, last, agent_id, exit_code, &auth_opts, &config,
+                    evaluator,
+                    threshold,
+                    last,
+                    agent_id,
+                    exit_code,
+                    criterion,
+                    limit,
+                    strict,
+                    endpoint,
+                    connection_id,
+                    &auth_opts,
+                    &config,
                 )
                 .await
             }
-            AnalyticsCommand::GetTrace { session_id } => {
-                commands::analytics::get_trace::run(session_id, &auth_opts, &config).await
+            AnalyticsCommand::GetTrace {
+                session_id,
+                trace_id,
+            } => {
+                commands::analytics::get_trace::run(session_id, trace_id, &auth_opts, &config).await
             }
             AnalyticsCommand::ListTraces {
                 last,
+                session_id,
                 agent_id,
                 limit,
             } => {
-                commands::analytics::list_traces::run(last, agent_id, limit, &auth_opts, &config)
-                    .await
+                commands::analytics::list_traces::run(
+                    last, session_id, agent_id, limit, &auth_opts, &config,
+                )
+                .await
             }
-            AnalyticsCommand::Insights { last, agent_id } => {
-                commands::analytics::insights::run(last, agent_id, &auth_opts, &config).await
+            AnalyticsCommand::Insights {
+                last,
+                agent_id,
+                limit,
+                max_sessions,
+            } => {
+                commands::analytics::insights::run(
+                    last,
+                    agent_id,
+                    limit,
+                    max_sessions,
+                    &auth_opts,
+                    &config,
+                )
+                .await
             }
             AnalyticsCommand::Drift {
                 golden_dataset,
                 last,
                 agent_id,
+                limit,
                 min_coverage,
                 exit_code,
             } => {
@@ -562,6 +598,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                     golden_dataset,
                     last,
                     agent_id,
+                    limit,
                     min_coverage,
                     exit_code,
                     &auth_opts,
@@ -569,8 +606,17 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                 )
                 .await
             }
-            AnalyticsCommand::Distribution { last, agent_id } => {
-                commands::analytics::distribution::run(last, agent_id, &auth_opts, &config).await
+            AnalyticsCommand::Distribution {
+                last,
+                agent_id,
+                limit,
+                mode,
+                top_k,
+            } => {
+                commands::analytics::distribution::run(
+                    last, agent_id, limit, mode, top_k, &auth_opts, &config,
+                )
+                .await
             }
             AnalyticsCommand::HitlMetrics {
                 last,

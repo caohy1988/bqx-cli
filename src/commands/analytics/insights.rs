@@ -426,6 +426,8 @@ fn render_insights(result: &InsightsResult, config: &Config) -> Result<()> {
 pub async fn run(
     last: String,
     agent_id: Option<String>,
+    _limit: u32,
+    _max_sessions: u32,
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
