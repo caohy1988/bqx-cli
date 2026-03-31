@@ -386,18 +386,15 @@ For nested non-BigQuery responses:
 
 Phase 4 added CA-centric multi-source skills.
 
-Phase 5 should add direct command skills such as:
+Phase 5 added direct command skills and then consolidated the entire
+skill layer from 39 down to 14 per agent-skills best-practice guidance:
 
-- `dcx-looker-explores`
-- `dcx-looker-dashboards`
-- `dcx-spanner`
-- `dcx-alloydb`
-- `dcx-cloudsql`
-- `recipe-source-profile-validation`
-- `recipe-cross-source-debugging`
-
-That would take the skill count from 32 total in Phase 4 to roughly 39 total in
-Phase 5, assuming all seven ship and no Phase 4 skills are removed.
+- 6 router skills: `dcx-bigquery`, `dcx-analytics`, `dcx-ca`,
+  `dcx-databases`, `dcx-looker`, `dcx-profiles`
+- 5 API skills: `dcx-bigquery-api`, `dcx-spanner-api`, `dcx-alloydb-api`,
+  `dcx-cloudsql-api`, `dcx-looker-admin-api`
+- 3 recipes: `recipe-source-onboarding`, `recipe-debugging`,
+  `recipe-quality-ops`
 
 These should not repeat product docs. They should encode:
 
@@ -489,30 +486,32 @@ Implementation notes:
 - Code: `src/commands/database_helpers.rs`
 - Tests: `tests/database_helper_command_tests.rs` + unit tests in module
 
-### Milestone 5: Skills, Integrations, and Docs
+### Milestone 5: Skills, Integrations, and Docs — Complete
 
 Deliverables:
 
-- new direct-command skills for non-BigQuery sources
-- Gemini manifest updates for selected Phase 5 tools
-- README and e2e docs updated for direct source commands
-- one-pager adjusted to reflect the broader Data Cloud operations surface
+- [x] New direct-command skills for non-BigQuery sources
+- [x] Gemini manifest updates for selected Phase 5 tools
+- [x] README and e2e docs updated for direct source commands
+- [x] One-pager adjusted to reflect the broader Data Cloud operations surface
 
-Detailed tasks:
+Implementation notes:
 
-- add curated skills for Looker, Spanner, AlloyDB, and Cloud SQL direct usage
-- update existing CA skills to route between CA and direct commands
-- refresh Gemini manifest with a conservative subset of the most stable Phase 5
-  tools
-- update docs with before/after examples that show:
-  - CA question
-  - direct resource inspection
-  - profile validation
-
-Done when:
-
-- agents have a clear skill surface for both conversational and direct command
-  workflows across Data Cloud products
+- Added direct source skills, then consolidated entire skill layer
+  (39 → 14) per agent-skills best-practice guidance:
+  - 6 router skills (one per domain, routing-focused SKILL.md + references/)
+  - 5 API skills (one per Discovery service, generated-style)
+  - 3 consolidated recipes (onboarding, debugging, quality-ops)
+  - Removed 3 personas, 4 analytics leaves, 6 CA leaves, 6 BQ resource
+    leaves, 10 overlapping recipes, and folded dcx-shared into dcx-bigquery
+- Gemini manifest expanded from 17 → 28 tools, adding:
+  - Spanner instances list, databases list, schema describe
+  - AlloyDB clusters list, schema describe
+  - Cloud SQL instances list, schema describe
+  - Looker instances list, explores list
+  - Profiles list, profiles validate
+- Each new skill documents when to use direct commands vs CA
+- Skills encode profile requirements, decision rules, and constraints
 
 ### Milestone 6: Release Closure and v0.5.0
 

@@ -1,7 +1,0 @@
-interface:
-  display_name: "SRE / On-Call Persona"
-  short_description: "Triage agent incidents and run health checks"
-  default_prompt: "Use $persona-sre to guide SRE workflows for monitoring and triaging AI agent issues."
-
-policy:
-  allow_implicit_invocation: true

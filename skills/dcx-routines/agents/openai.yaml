@@ -1,7 +1,0 @@
-interface:
-  display_name: "dcx Routines"
-  short_description: "get/list BigQuery routines via dcx"
-  default_prompt: "Use $dcx-routines to get/list BigQuery routines using the dcx CLI."
-
-policy:
-  allow_implicit_invocation: true

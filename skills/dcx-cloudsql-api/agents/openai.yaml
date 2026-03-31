@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Cloud SQL API"
+  short_description: "Discovery-generated Cloud SQL instance and database commands"
+  default_prompt: "Use $dcx-cloudsql-api for Cloud SQL (sqladmin v1) instance/database listing and metadata."
+
+policy:
+  allow_implicit_invocation: true

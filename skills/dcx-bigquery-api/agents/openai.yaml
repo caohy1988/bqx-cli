@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx BigQuery API"
+  short_description: "Discovery-generated dataset, table, routine, and model commands"
+  default_prompt: "Use $dcx-bigquery-api for BigQuery v2 dataset/table/routine/model get and list operations."
+
+policy:
+  allow_implicit_invocation: true

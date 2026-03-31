@@ -1,0 +1,7 @@
+interface:
+  display_name: "Recipe: Quality Ops"
+  short_description: "CI gates, drift monitoring, error alerting, and quality dashboards"
+  default_prompt: "Use $recipe-quality-ops for CI evaluation gates, drift monitoring, error alerting, and quality dashboards."
+
+policy:
+  allow_implicit_invocation: true

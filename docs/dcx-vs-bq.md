@@ -372,9 +372,9 @@ the same result, for four concrete reasons:
 ### Reason 1: Skills depend on structured output contracts
 
 Each SKILL.md references specific JSON shapes that agents parse
-programmatically. For example, the `dcx-analytics-evaluate` skill tells
-agents to look for `pass_rate`, `sessions[].passed`, and `sessions[].score`
-in the evaluate output.
+programmatically. For example, the `dcx-analytics` skill's
+`references/evaluate.md` tells agents to look for `pass_rate`,
+`sessions[].passed`, and `sessions[].score` in the evaluate output.
 
 `bq` has no guaranteed output schema. Its JSON output changes shape between
 commands and sometimes between versions. A skill that wraps `bq` would need

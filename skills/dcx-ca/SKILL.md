@@ -1,31 +1,37 @@
 ---
 name: dcx-ca
-description: Top-level routing for dcx Conversational Analytics commands. Use when the user wants to ask natural language questions over Data Cloud sources (BigQuery, Looker, AlloyDB, Spanner, Cloud SQL), create data agents, or manage verified queries.
+description: Conversational Analytics — natural language queries over BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL, plus data agent management and verified queries.
 ---
 
 ## When to use this skill
 
-Use when the user asks about:
-- "use dcx to ask questions in natural language"
-- "how do I use conversational analytics"
-- "what CA commands are available"
-- "query my data with plain English"
-- "set up a data agent"
-- "ask questions over Looker / AlloyDB / Spanner / Cloud SQL"
-
-Do not use when the user already knows which specific command they need — use `dcx-ca-ask` or source-specific skills instead.
+Use when the user wants to:
+- Ask natural language questions over any Data Cloud source
+- Create or list data agents (BigQuery)
+- Add verified queries to improve agent accuracy
+- Set up CA profiles for Looker or database sources
+- Understand how CA routes across source types
 
 ## Prerequisites
 
-See **dcx-shared** for authentication and global flags.
+- BigQuery: `--project-id` (or `DCX_PROJECT`)
+- All other sources: `--profile` (YAML file defining source connection)
+- CA uses `--location` (defaults to `US`) but does **not** require `--dataset-id`
 
-CA commands require either:
-- `--project-id` (or `DCX_PROJECT`) for BigQuery
-- `--profile` for all other sources (Looker, AlloyDB, Spanner, Cloud SQL)
+See **dcx-bigquery** for authentication.
 
-CA commands use `--location` (defaults to `US`) but do **not** require `--dataset-id`.
+## Command routing
 
-## Supported data sources
+| User goal | Command |
+|-----------|---------|
+| Ask a natural language question | `dcx ca ask "<question>" [--agent\|--tables\|--profile]` |
+| Create a data agent | `dcx ca create-agent --name=NAME --tables=REFS` |
+| List data agents | `dcx ca list-agents` |
+| Add a verified query | `dcx ca add-verified-query --agent=NAME --question=Q --query=SQL` |
+
+## Source routing
+
+The `--profile` source_type determines which API is called automatically:
 
 | Source | API Family | Access method |
 |--------|-----------|---------------|
@@ -36,93 +42,46 @@ CA commands use `--location` (defaults to `US`) but do **not** require `--datase
 | Spanner | QueryData | `--profile` only |
 | Cloud SQL | QueryData | `--profile` only |
 
-## Command routing
+## Workflows
 
-| User goal | Command | Skill |
-|-----------|---------|-------|
-| Ask a natural language question | `ca ask` | dcx-ca-ask |
-| Create a data agent | `ca create-agent` | dcx-ca-create-agent |
-| List existing data agents | `ca list-agents` | (this skill) |
-| Add a verified query to an agent | `ca add-verified-query` | (this skill) |
-
-## Source-specific skills
-
-| Data source | Skill |
-|-------------|-------|
-| Looker | dcx-ca-looker |
-| AlloyDB | dcx-ca-alloydb |
-| Spanner | dcx-ca-spanner |
-| Database sources (overview) | dcx-ca-database |
-
-## Core workflows
-
-### BigQuery workflow (agents + inline tables)
-
-1. **Create agent** — set up a data agent with table references and instructions
-2. **Ask** — query data using natural language through the agent
-3. **Refine** — add verified queries to improve agent accuracy over time
+### BigQuery (agents + inline tables)
 
 ```bash
-# Create agent
-dcx ca create-agent \
-  --name=agent-analytics \
+dcx ca create-agent --name=agent-analytics \
   --tables=myproject.analytics.agent_events \
   --instructions="You help analyze AI agent performance."
 
-# Ask questions
-dcx ca ask "What is the error rate for support_bot?" \
-  --agent=agent-analytics
+dcx ca ask "What is the error rate for support_bot?" --agent=agent-analytics
 ```
 
-### Profile-based workflow (Looker, databases)
-
-1. **Create profile** — YAML file with source-specific config
-2. **Ask** — `ca ask --profile <name>` routes to the right API automatically
+### Profile-based (Looker, databases)
 
 ```bash
-# Looker
 dcx ca ask --profile sales-looker.yaml "top selling products"
-
-# Spanner
 dcx ca ask --profile finance-spanner.yaml "revenue by region"
-
-# AlloyDB
 dcx ca ask --profile ops-alloydb.yaml "show all tables"
-
-# Cloud SQL
 dcx ca ask --profile app-cloudsql.yaml "active users today"
-```
-
-### List agents
-
-```bash
-dcx ca list-agents --project-id my-proj
-```
-
-### Add verified queries
-
-```bash
-dcx ca add-verified-query \
-  --agent=agent-analytics \
-  --question="What is the error rate for {agent}?" \
-  --query="SELECT SAFE_DIVIDE(COUNTIF(ENDS_WITH(event_type, '_ERROR')), COUNT(DISTINCT session_id)) AS error_rate FROM \`{project}.{dataset}.agent_events\` WHERE agent = @agent AND timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)"
 ```
 
 ## Decision rules
 
-- Use `--agent` when you have a pre-configured BigQuery data agent
+- Use `--agent` for pre-configured BigQuery data agents
 - Use `--tables` for ad-hoc BigQuery queries without an agent
 - Use `--profile` for Looker, AlloyDB, Spanner, Cloud SQL, or BigQuery profiles
 - `--profile` cannot be combined with `--agent` or `--tables`
-- Verified queries improve CA accuracy — add them for frequently asked questions
-- Use `--format text` for interactive exploration; `--format json` for scripts
+- `--agent` and `--tables` are mutually exclusive
+- `--format text` for interactive exploration; `--format json` for scripts
 
 ## Constraints
 
-- CA depends on the Conversational Analytics API (currently in preview)
-- Data agents are project-scoped — they cannot span multiple projects
-- Agent names must be alphanumeric with hyphens, underscores, or dots
-- `--agent` and `--tables` are mutually exclusive
-- Data agent creation (`ca create-agent`) currently only supports BigQuery tables/views
-- Looker and Looker Studio profiles work with `ca ask` but not `ca create-agent`
+- CA API is currently in preview
+- Data agents are project-scoped and support BigQuery only
 - Database sources (AlloyDB, Spanner, Cloud SQL) do not support data agents or visualizations
+- Looker profiles work with `ca ask` but not `ca create-agent`
+
+## References
+
+- `references/ask.md` — ca ask flags, output structure, per-source examples
+- `references/create-agent.md` — agent creation, views, verified queries format
+- `references/looker.md` — Looker profile setup, OAuth, explore format
+- `references/querydata.md` — database CA setup, prerequisites, context sets

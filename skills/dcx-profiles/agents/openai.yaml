@@ -1,0 +1,7 @@
+interface:
+  display_name: "dcx Profiles"
+  short_description: "List, inspect, and validate Data Cloud source profiles"
+  default_prompt: "Use $dcx-profiles to list, inspect, and validate source profiles for CA and direct commands."
+
+policy:
+  allow_implicit_invocation: true

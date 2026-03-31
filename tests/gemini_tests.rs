@@ -16,11 +16,11 @@ fn bundled_manifest_validates() {
 #[test]
 fn manifest_has_expected_tool_count() {
     let manifest = gemini::load_manifest().unwrap();
-    // Phase 4: 17 tools (Phase 3's 16 + ca ask profile).
+    // Phase 5: 28 tools (Phase 4's 17 + 11 Phase 5 tools).
     assert_eq!(
         manifest.tools.len(),
-        17,
-        "Expected 17 tools in Phase 4 manifest, got {}",
+        28,
+        "Expected 28 tools in Phase 5 manifest, got {}",
         manifest.tools.len()
     );
 }

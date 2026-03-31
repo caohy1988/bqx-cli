@@ -1,0 +1,7 @@
+interface:
+  display_name: "Recipe: Debugging"
+  short_description: "Debug agent sessions, cross-source connectivity, and CA failures"
+  default_prompt: "Use $recipe-debugging to troubleshoot agent sessions, connectivity issues, and CA failures across Data Cloud sources."
+
+policy:
+  allow_implicit_invocation: true

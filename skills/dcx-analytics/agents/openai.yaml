@@ -1,7 +1,7 @@
 interface:
   display_name: "dcx Analytics"
-  short_description: "Route to doctor, evaluate, or get-trace"
-  default_prompt: "Use $dcx-analytics to check agent health and find failing sessions in BigQuery."
+  short_description: "Agent health checks, session evaluation, trace debugging, and drift detection"
+  default_prompt: "Use $dcx-analytics for agent analytics workflows — doctor, evaluate, get-trace, drift detection, and event views."
 
 policy:
   allow_implicit_invocation: true

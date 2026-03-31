@@ -393,6 +393,137 @@
         }
       },
       "command": "dcx ca ask {question} --profile {profile} --format {format}"
+    },
+    {
+      "name": "dcx_spanner_instances_list",
+      "description": "List all Spanner instances in a GCP project.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        }
+      },
+      "command": "dcx spanner instances list --project-id {project_id} --format json"
+    },
+    {
+      "name": "dcx_spanner_databases_list",
+      "description": "List all databases in a Spanner instance.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        },
+        "instance_id": {
+          "type": "string",
+          "description": "Spanner instance ID",
+          "required": true
+        }
+      },
+      "command": "dcx spanner databases list --project-id {project_id} --instance-id {instance_id} --format json"
+    },
+    {
+      "name": "dcx_spanner_schema_describe",
+      "description": "Describe all columns in a Spanner database using a source profile.",
+      "parameters": {
+        "profile": {
+          "type": "string",
+          "description": "Path to a Spanner source profile YAML file",
+          "required": true
+        }
+      },
+      "command": "dcx spanner schema describe --profile {profile} --format json"
+    },
+    {
+      "name": "dcx_alloydb_clusters_list",
+      "description": "List all AlloyDB clusters in a GCP project.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        }
+      },
+      "command": "dcx alloydb clusters list --project-id {project_id} --format json"
+    },
+    {
+      "name": "dcx_alloydb_schema_describe",
+      "description": "Describe all columns in an AlloyDB database using a source profile.",
+      "parameters": {
+        "profile": {
+          "type": "string",
+          "description": "Path to an AlloyDB source profile YAML file",
+          "required": true
+        }
+      },
+      "command": "dcx alloydb schema describe --profile {profile} --format json"
+    },
+    {
+      "name": "dcx_cloudsql_instances_list",
+      "description": "List all Cloud SQL instances in a GCP project.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        }
+      },
+      "command": "dcx cloudsql instances list --project-id {project_id} --format json"
+    },
+    {
+      "name": "dcx_cloudsql_schema_describe",
+      "description": "Describe all columns in a Cloud SQL database using a source profile.",
+      "parameters": {
+        "profile": {
+          "type": "string",
+          "description": "Path to a Cloud SQL source profile YAML file",
+          "required": true
+        }
+      },
+      "command": "dcx cloudsql schema describe --profile {profile} --format json"
+    },
+    {
+      "name": "dcx_looker_instances_list",
+      "description": "List all Looker instances in a GCP project.",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "GCP project ID",
+          "required": true
+        }
+      },
+      "command": "dcx looker instances list --project-id {project_id} --format json"
+    },
+    {
+      "name": "dcx_looker_explores_list",
+      "description": "List all explores from a Looker instance using a source profile.",
+      "parameters": {
+        "profile": {
+          "type": "string",
+          "description": "Path to a Looker source profile YAML file",
+          "required": true
+        }
+      },
+      "command": "dcx looker explores list --profile {profile} --format json"
+    },
+    {
+      "name": "dcx_profiles_list",
+      "description": "List all discoverable source profiles with name, source type, and family.",
+      "parameters": {},
+      "command": "dcx profiles list --format json"
+    },
+    {
+      "name": "dcx_profiles_validate",
+      "description": "Validate the structure of a source profile without making network calls.",
+      "parameters": {
+        "profile": {
+          "type": "string",
+          "description": "Profile name or path to a YAML file",
+          "required": true
+        }
+      },
+      "command": "dcx profiles validate --profile {profile} --format json"
     }
   ]
 }
