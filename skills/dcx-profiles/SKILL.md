@@ -52,18 +52,20 @@ and field constraints without making network calls.
 ## Profile discovery order
 
 1. Explicit file path: `--profile path/to/file.yaml`
-2. User config directory: `~/.config/dcx/profiles/`
+2. User config directory: `$XDG_CONFIG_HOME/dcx/profiles/` (or `~/.config/dcx/profiles/` when `XDG_CONFIG_HOME` is unset)
 3. Repo-local fixtures: `deploy/ca/profiles/` (development/test fallback)
+
+User-local profiles shadow repo-local profiles with the same name.
 
 ## Supported source types
 
 | Source Type | Family | Required Fields |
 |------------|--------|----------------|
 | `bigquery` | Chat | `project` |
-| `looker` | Chat | `instance_url`, `explores` |
-| `looker_studio` | Chat | `datasource_id` |
+| `looker` | Chat | `looker_instance_url`, `looker_explores` |
+| `looker_studio` | Chat | `studio_datasource_id` |
 | `spanner` | QueryData | `project`, `instance_id`, `database_id` |
-| `alloydb` | QueryData | `project`, `cluster_id`, `instance_id`, `database_id` |
+| `alloy_db` | QueryData | `project`, `cluster_id`, `instance_id`, `database_id` |
 | `cloud_sql` | QueryData | `project`, `instance_id`, `database_id`, `db_type` |
 
 ## Decision rules
@@ -78,4 +80,4 @@ and field constraints without making network calls.
 
 - `validate` checks structure only — it does not test network connectivity
 - Secrets (OAuth client_secret, tokens) are redacted in `show` output
-- Profile names must be unique across all discovery paths
+- User-local profiles shadow repo-local profiles with the same name

@@ -80,7 +80,7 @@ dcx profiles show --profile my-profile --format json | grep source_type
 
 Ensure the source type matches the command family:
 - `dcx spanner schema describe` requires `source_type: spanner`
-- `dcx alloydb databases list` requires `source_type: alloydb`
+- `dcx alloydb databases list` requires `source_type: alloy_db`
 - `dcx cloudsql schema describe` requires `source_type: cloud_sql`
 - `dcx looker explores list` requires `source_type: looker`
 

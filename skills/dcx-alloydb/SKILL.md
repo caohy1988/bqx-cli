@@ -83,6 +83,6 @@ Both commands use CA QueryData under the hood, routed by the profile.
 ## Constraints
 
 - Read-only: no create, update, or delete operations
-- Schema and database commands require a valid AlloyDB profile with `source_type: alloydb`
+- Schema and database commands require a valid AlloyDB profile with `source_type: alloy_db`
 - AlloyDB uses PostgreSQL dialect (not GoogleSQL)
 - Database listing filters out template databases automatically
