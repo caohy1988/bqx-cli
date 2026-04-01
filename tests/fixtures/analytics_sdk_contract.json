@@ -1362,7 +1362,10 @@
         "code": 1,
         "meaning": "Evaluation failed (with --exit-code)"
       },
-      "infra_error": "not distinguished"
+      "infra_error": {
+        "code": 2,
+        "meaning": "Infrastructure error (connection, auth, bad input)"
+      }
     },
     "source": "SDK.md"
   },
@@ -1393,9 +1396,9 @@
     },
     {
       "item": "infrastructure error exit code",
-      "dcx": "not used",
+      "dcx": "exit 2",
       "sdk": "exit 2",
-      "reason": "dcx uses generic error handling; SDK distinguishes eval-fail (1) from infra-error (2)"
+      "reason": "both use exit 2 for infrastructure errors (connection, auth, bad input)"
     },
     {
       "item": "env var prefix",

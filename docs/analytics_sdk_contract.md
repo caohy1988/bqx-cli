@@ -270,7 +270,7 @@ edit intentional divergence notes only.
 |---------|-----|-----|
 | success | 0 — Success (or evaluation passed with `--exit-code`) | 0 — Success |
 | eval_failure | 1 — Evaluation failed (only with `--exit-code`) | 1 — Evaluation failed (with --exit-code) |
-| infra_error | 2 — Infrastructure error (connection, auth, bad input) | not distinguished |
+| infra_error | 2 — Infrastructure error (connection, auth, bad input) | 2 — Infrastructure error (connection, auth, bad input) |
 
 ## Environment Variables
 
@@ -287,7 +287,7 @@ edit intentional divergence notes only.
 | --location default | US | None (optional) | dcx defaults to US for BigQuery; SDK leaves it to the client library |
 | drift --min-coverage | present (default 0.8) | absent | dcx extension for CI gate workflows |
 | drift --exit-code | present | absent | dcx extension for CI gate workflows |
-| infrastructure error exit code | not used | exit 2 | dcx uses generic error handling; SDK distinguishes eval-fail (1) from infra-error (2) |
+| infrastructure error exit code | exit 2 | exit 2 | both use exit 2 for infrastructure errors (connection, auth, bad input) |
 | env var prefix | DCX_PROJECT / DCX_DATASET | BQ_AGENT_PROJECT / BQ_AGENT_DATASET | dcx uses its own namespace; same semantics |
 | --sanitize flag | present (Model Armor) | absent | dcx-only feature for response sanitization |
 | evaluator name spelling | error-rate (kebab-case) | error_rate (snake_case) | dcx follows CLI kebab-case convention; may add aliases for SDK names |

@@ -591,9 +591,9 @@ KNOWN_DIVERGENCES: list[dict[str, str]] = [
     },
     {
         "item": "infrastructure error exit code",
-        "dcx": "not used",
+        "dcx": "exit 2",
         "sdk": "exit 2",
-        "reason": "dcx uses generic error handling; SDK distinguishes eval-fail (1) from infra-error (2)",
+        "reason": "both use exit 2 for infrastructure errors (connection, auth, bad input)",
     },
     {
         "item": "env var prefix",
@@ -780,7 +780,7 @@ def _build_exit_codes(sdk_md: dict | None) -> dict:
         "dcx": {
             "success": {"code": 0, "meaning": "Success"},
             "eval_failure": {"code": 1, "meaning": "Evaluation failed (with --exit-code)"},
-            "infra_error": "not distinguished",
+            "infra_error": {"code": 2, "meaning": "Infrastructure error (connection, auth, bad input)"},
         },
         "source": "SDK.md" if (sdk_md and sdk_md.get("exit_codes")) else "hardcoded fallback",
     }

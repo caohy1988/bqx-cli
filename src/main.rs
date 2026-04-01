@@ -334,7 +334,7 @@ async fn run_dynamic(
 
     if let Err(e) = result {
         eprintln!("{}", json!({"error": e.to_string()}));
-        std::process::exit(1);
+        std::process::exit(2);
     }
 }
 
@@ -683,10 +683,14 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
     };
 
     if let Err(e) = result {
-        if let Some(BqxError::EvalFailed { exit_code }) = e.downcast_ref::<BqxError>() {
-            std::process::exit(*exit_code);
+        if let Some(bqx_err) = e.downcast_ref::<BqxError>() {
+            if !matches!(bqx_err, BqxError::EvalFailed { .. }) {
+                eprintln!("{}", json!({"error": e.to_string()}));
+            }
+            std::process::exit(bqx_err.exit_code());
         }
+        // Generic errors → exit 2 (infrastructure), matching SDK semantics.
         eprintln!("{}", json!({"error": e.to_string()}));
-        std::process::exit(1);
+        std::process::exit(2);
     }
 }
