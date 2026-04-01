@@ -15,7 +15,9 @@ use dcx::commands::analytics::doctor::{
     find_missing_columns,
 };
 use dcx::commands::analytics::drift::{build_drift_query, drift_from_rows};
-use dcx::commands::analytics::evaluate::{build_evaluate_query, eval_result_from_rows};
+use dcx::commands::analytics::evaluate::{
+    build_evaluate_query, eval_result_from_rows, EvalResult, SessionEval,
+};
 use dcx::commands::analytics::get_trace::{build_trace_query, trace_result_from_rows};
 use dcx::commands::analytics::hitl_metrics::{
     build_hitl_sessions_query, build_hitl_summary_query, hitl_sessions_from_rows,
@@ -2248,4 +2250,381 @@ async fn list_traces_rejects_invalid_session_id() {
         .unwrap_err()
         .to_string()
         .contains("Invalid session_id"));
+}
+
+// ═══════════════════════════════════════════════
+// Milestone D: Output-key regression tests
+// ═══════════════════════════════════════════════
+//
+// These tests verify that JSON output keys match the SDK contract.
+// If a field is renamed or removed, the test will fail — catching
+// accidental output-shape drift.
+
+/// Helper: assert all expected keys exist on a JSON object.
+fn assert_json_keys(val: &serde_json::Value, keys: &[&str], context: &str) {
+    let obj = val
+        .as_object()
+        .unwrap_or_else(|| panic!("{context}: expected JSON object"));
+    for key in keys {
+        assert!(
+            obj.contains_key(*key),
+            "{context}: missing expected key '{key}'"
+        );
+    }
+}
+
+#[test]
+fn output_keys_eval_result() {
+    let result = EvalResult {
+        evaluator: "latency".into(),
+        threshold: 5000.0,
+        time_window: "24h".into(),
+        agent_id: Some("agent_a".into()),
+        total_sessions: 1,
+        passed: 1,
+        failed: 0,
+        pass_rate: 1.0,
+        sessions: vec![SessionEval {
+            session_id: "s1".into(),
+            agent: "agent_a".into(),
+            passed: true,
+            score: 1200.0,
+            no_latency_data: false,
+        }],
+    };
+    let val = serde_json::to_value(&result).unwrap();
+    assert_json_keys(
+        &val,
+        &[
+            "evaluator",
+            "threshold",
+            "time_window",
+            "agent_id",
+            "total_sessions",
+            "passed",
+            "failed",
+            "pass_rate",
+            "sessions",
+        ],
+        "EvalResult",
+    );
+    let session = &val["sessions"][0];
+    assert_json_keys(
+        session,
+        &["session_id", "agent", "passed", "score"],
+        "SessionEval",
+    );
+}
+
+#[test]
+fn output_keys_trace_result() {
+    let result = dcx::commands::analytics::get_trace::TraceResult {
+        session_id: "s1".into(),
+        agent: "agent_a".into(),
+        event_count: 3,
+        started_at: Some("2024-01-01T00:00:00Z".into()),
+        ended_at: Some("2024-01-01T00:01:00Z".into()),
+        has_errors: false,
+        events: vec![dcx::commands::analytics::get_trace::TraceEvent {
+            event_type: "LLM_REQUEST".into(),
+            timestamp: "2024-01-01T00:00:00Z".into(),
+            status: None,
+            error_message: None,
+            latency_ms: None,
+            content: None,
+        }],
+    };
+    let val = serde_json::to_value(&result).unwrap();
+    assert_json_keys(
+        &val,
+        &[
+            "session_id",
+            "agent",
+            "event_count",
+            "started_at",
+            "ended_at",
+            "has_errors",
+            "events",
+        ],
+        "TraceResult",
+    );
+    let event = &val["events"][0];
+    assert_json_keys(event, &["event_type", "timestamp"], "TraceEvent");
+}
+
+#[test]
+fn output_keys_list_traces_result() {
+    let result = dcx::commands::analytics::list_traces::ListTracesResult {
+        traces: vec![dcx::commands::analytics::list_traces::TraceSummary {
+            session_id: "s1".into(),
+            agent: "agent_a".into(),
+            event_count: 10,
+            started_at: Some("2024-01-01T00:00:00Z".into()),
+            ended_at: Some("2024-01-01T00:01:00Z".into()),
+            has_errors: false,
+        }],
+        total: 1,
+        time_window: "24h".into(),
+        agent_id: None,
+    };
+    let val = serde_json::to_value(&result).unwrap();
+    assert_json_keys(
+        &val,
+        &["traces", "total", "time_window"],
+        "ListTracesResult",
+    );
+    let trace = &val["traces"][0];
+    assert_json_keys(
+        trace,
+        &[
+            "session_id",
+            "agent",
+            "event_count",
+            "started_at",
+            "ended_at",
+            "has_errors",
+        ],
+        "TraceSummary",
+    );
+}
+
+#[test]
+fn output_keys_insights_result() {
+    let result = dcx::commands::analytics::insights::InsightsResult {
+        time_window: "24h".into(),
+        agent_id: None,
+        summary: dcx::commands::analytics::insights::InsightsSummary {
+            total_sessions: 10,
+            total_events: 100,
+            total_errors: 5,
+            error_rate: 0.05,
+            sessions_with_errors: 3,
+            session_error_rate: 0.3,
+            avg_events_per_session: 10.0,
+            total_llm_requests: 20,
+            total_tool_calls: 30,
+            peak_latency_ms: Some(1500.0),
+            avg_latency_ms: Some(800.0),
+            earliest_session: Some("2024-01-01T00:00:00Z".into()),
+            latest_session: Some("2024-01-01T01:00:00Z".into()),
+        },
+        top_errors: vec![dcx::commands::analytics::insights::TopError {
+            event_type: "LLM_ERROR".into(),
+            error_message: "timeout".into(),
+            occurrences: 3,
+        }],
+        top_tools: vec![dcx::commands::analytics::insights::TopTool {
+            tool_name: "search".into(),
+            call_count: 15,
+            avg_latency_ms: Some(200.0),
+            max_latency_ms: Some(500.0),
+        }],
+    };
+    let val = serde_json::to_value(&result).unwrap();
+    assert_json_keys(
+        &val,
+        &["time_window", "summary", "top_errors", "top_tools"],
+        "InsightsResult",
+    );
+    let summary = &val["summary"];
+    assert_json_keys(
+        summary,
+        &[
+            "total_sessions",
+            "total_events",
+            "total_errors",
+            "error_rate",
+            "sessions_with_errors",
+            "session_error_rate",
+            "avg_events_per_session",
+            "total_llm_requests",
+            "total_tool_calls",
+            "peak_latency_ms",
+            "avg_latency_ms",
+            "earliest_session",
+            "latest_session",
+        ],
+        "InsightsSummary",
+    );
+    assert_json_keys(
+        &val["top_errors"][0],
+        &["event_type", "error_message", "occurrences"],
+        "TopError",
+    );
+    assert_json_keys(
+        &val["top_tools"][0],
+        &[
+            "tool_name",
+            "call_count",
+            "avg_latency_ms",
+            "max_latency_ms",
+        ],
+        "TopTool",
+    );
+}
+
+#[test]
+fn output_keys_drift_result() {
+    let result = dcx::commands::analytics::drift::DriftResult {
+        golden_dataset: "golden_qs".into(),
+        time_window: "7d".into(),
+        agent_id: None,
+        total_golden: 2,
+        covered: 1,
+        uncovered: 1,
+        coverage: 0.5,
+        min_coverage: 0.8,
+        passed: false,
+        questions: vec![dcx::commands::analytics::drift::DriftQuestion {
+            golden_question: "What is X?".into(),
+            expected_answer: "X is Y".into(),
+            covered: true,
+            session_id: Some("s1".into()),
+            actual_answer: Some("X is Y".into()),
+        }],
+    };
+    let val = serde_json::to_value(&result).unwrap();
+    assert_json_keys(
+        &val,
+        &[
+            "golden_dataset",
+            "time_window",
+            "total_golden",
+            "covered",
+            "uncovered",
+            "coverage",
+            "min_coverage",
+            "passed",
+            "questions",
+        ],
+        "DriftResult",
+    );
+    let q = &val["questions"][0];
+    assert_json_keys(
+        q,
+        &[
+            "golden_question",
+            "expected_answer",
+            "covered",
+            "session_id",
+            "actual_answer",
+        ],
+        "DriftQuestion",
+    );
+}
+
+#[test]
+fn output_keys_distribution_result() {
+    let result = dcx::commands::analytics::distribution::DistributionResult {
+        time_window: "24h".into(),
+        agent_id: None,
+        total_events: 100,
+        event_types: vec![dcx::commands::analytics::distribution::EventDistribution {
+            event_type: "LLM_REQUEST".into(),
+            event_count: 50,
+            session_count: 10,
+            proportion: 0.5,
+        }],
+    };
+    let val = serde_json::to_value(&result).unwrap();
+    assert_json_keys(
+        &val,
+        &["time_window", "total_events", "event_types"],
+        "DistributionResult",
+    );
+    assert_json_keys(
+        &val["event_types"][0],
+        &["event_type", "event_count", "session_count", "proportion"],
+        "EventDistribution",
+    );
+}
+
+// ═══════════════════════════════════════════════
+// Milestone D: Exit-code regression tests
+// ═══════════════════════════════════════════════
+
+#[test]
+fn exit_code_eval_failed_is_1() {
+    let err = dcx::models::BqxError::EvalFailed { exit_code: 1 };
+    assert_eq!(err.exit_code(), 1);
+}
+
+#[test]
+fn exit_code_infra_error_is_2() {
+    let err = dcx::models::BqxError::InfraError {
+        message: "connection refused".into(),
+    };
+    assert_eq!(err.exit_code(), 2);
+}
+
+#[tokio::test]
+async fn evaluate_exit_code_zero_when_passing() {
+    let executor = MockExecutor::new(
+        vec![
+            ("session_id", "STRING"),
+            ("agent", "STRING"),
+            ("max_latency_ms", "FLOAT"),
+            ("avg_latency_ms", "FLOAT"),
+            ("no_latency_data", "BOOLEAN"),
+            ("passed", "BOOLEAN"),
+        ],
+        vec![make_row(vec![
+            ("session_id", json!("s1")),
+            ("agent", json!("agent_a")),
+            ("max_latency_ms", json!("1000")),
+            ("avg_latency_ms", json!("800")),
+            ("no_latency_data", json!("false")),
+            ("passed", json!("true")),
+        ])],
+    );
+    let config = test_config(OutputFormat::Json);
+    // exit_code = true but all sessions pass → should return Ok
+    let result = dcx::commands::analytics::evaluate::run_with_executor(
+        &executor,
+        EvaluatorType::Latency,
+        5000.0,
+        "24h".into(),
+        None,
+        true,
+        100,
+        &config,
+    )
+    .await;
+    assert!(result.is_ok(), "should exit 0 when all sessions pass");
+}
+
+#[tokio::test]
+async fn drift_exit_code_zero_when_passing() {
+    let executor = MockExecutor::new(
+        vec![
+            ("golden_question", "STRING"),
+            ("expected_answer", "STRING"),
+            ("session_id", "STRING"),
+            ("actual_answer", "STRING"),
+            ("covered", "BOOLEAN"),
+        ],
+        vec![make_row(vec![
+            ("golden_question", json!("What is X?")),
+            ("expected_answer", json!("X is Y")),
+            ("session_id", json!("s1")),
+            ("actual_answer", json!("X is Y")),
+            ("covered", json!("true")),
+        ])],
+    );
+    let config = test_config(OutputFormat::Json);
+    // exit_code = true but coverage = 1.0 >= 0.8 → should return Ok
+    let result = dcx::commands::analytics::drift::run_with_executor(
+        &executor,
+        "golden_qs".into(),
+        "7d".into(),
+        None,
+        0.8,
+        true,
+        &config,
+    )
+    .await;
+    assert!(
+        result.is_ok(),
+        "should exit 0 when coverage meets threshold"
+    );
 }
