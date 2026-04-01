@@ -42,6 +42,26 @@ jobs:
       - run: cargo build --release
       - run: cargo test
 
+  contract-check:
+    name: SDK Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Regenerate contract from checked-in fixtures
+        run: |
+          ./scripts/update_analytics_sdk_contract.sh --local
+      - name: Fail if contract is stale
+        run: |
+          if ! git diff --quiet -- docs/analytics_sdk_contract.md tests/fixtures/analytics_sdk_contract.json; then
+            echo "::error::SDK contract is stale. Run './scripts/update_analytics_sdk_contract.sh --local' and commit the result."
+            git diff --stat -- docs/analytics_sdk_contract.md tests/fixtures/analytics_sdk_contract.json
+            exit 1
+          fi
+          echo "Contract is up to date."
+
   version-check:
     name: Version Check
     runs-on: ubuntu-latest
