@@ -330,73 +330,83 @@ or PR CI flaky.
 
 ## Milestones
 
-### Milestone A: Build the dynamic contract generator
+### Milestone A: Build the dynamic contract generator — Complete
 
 Deliverables:
 
-- add `scripts/update_analytics_sdk_contract.sh`
-- add fetched upstream fixtures under `tests/fixtures/upstream_sdk_latest/`
-- generate `docs/analytics_sdk_contract.md`
-- generate `tests/fixtures/analytics_sdk_contract.json`
-- classify every current difference as exact / missing / intentional
+- [x] add `scripts/update_analytics_sdk_contract.sh`
+- [x] add fetched upstream fixtures under `tests/fixtures/upstream_sdk_latest/`
+- [x] generate `docs/analytics_sdk_contract.md`
+- [x] generate `tests/fixtures/analytics_sdk_contract.json`
+- [x] classify every current difference as exact / missing / intentional
 
 Done when:
 
 - every `dcx analytics` command is mapped to an upstream SDK command or marked
-  as `dcx`-specific by generated output
+  as `dcx`-specific by generated output ✓
 
-### Milestone B: Reach CLI command parity
+### Milestone B: Reach CLI command parity — Complete
 
 Deliverables:
 
-- add `dcx analytics views create`
-- add `dcx analytics categorical-eval`
-- add `dcx analytics categorical-views`
+- [x] add `dcx analytics views create`
+- [x] add `dcx analytics categorical-eval`
+- [x] add `dcx analytics categorical-views`
 
 Done when:
 
 - `dcx analytics` matches the current SDK command inventory for stable CLI
-  analytics workflows
+  analytics workflows ✓
 
-### Milestone C: Reach flag and evaluator parity
+### Milestone C: Reach flag and evaluator parity — Complete
 
 Deliverables:
 
-- add missing evaluator values (`ttft`, `cost`, `llm-judge`)
-- support SDK-compatible evaluator spellings
-- add missing flags on `get-trace`, `insights`, `distribution`, and others as
+- [x] add missing evaluator values (`ttft`, `cost`, `llm-judge`)
+- [x] support SDK-compatible evaluator spellings
+- [x] add missing flags on `get-trace`, `insights`, `distribution`, and others as
   required by the contract table
+- [x] implement `LIMIT` in SQL for `evaluate` (6 templates) and `distribution`
+- [x] add runtime warnings for placeholder flags (`--criterion`, `--strict`,
+  `--mode`, `--top-k`, `--trace-id` alias)
+- [x] add `validate_session_id()` for SQL injection prevention on `list-traces`
+- [x] add `FLAG_OVERRIDES` mechanism for accurate contract classification
 
 Done when:
 
-- the compatibility table shows no `missing` items for stable flags/evaluators
+- the compatibility table shows no `missing` items for stable flags/evaluators ✓
 
-### Milestone D: Reach output and exit-code parity
+### Milestone D: Reach output and exit-code parity — Complete
 
 Deliverables:
 
-- align success JSON payloads where practical
-- document any remaining intentional differences
-- add regression tests for output keys and exit-code behavior
+- [x] align success JSON payloads where practical
+- [x] add `BqxError::InfraError` variant with exit code 2 (SDK-compatible)
+- [x] change generic error exit from 1 to 2 in `main.rs`
+- [x] document any remaining intentional differences
+- [x] add 6 output-key regression tests for all major result structs
+- [x] add 4 exit-code regression tests
 
 Done when:
 
 - analytics automation examples from SDK docs can be translated to `dcx`
-  without semantic surprises
+  without semantic surprises ✓
 
-### Milestone E: Automate drift detection
+### Milestone E: Automate drift detection — Complete
 
 Deliverables:
 
-- add a script that refreshes from latest upstream SDK `main`
-- add a scheduled workflow that regenerates the mapping and opens a PR
-- add a CI check that fails when `dcx` no longer matches the checked-in
-  generated contract
-- open a recurring tracking issue or scheduled check
+- [x] add `contract-check` CI job that regenerates the contract from checked-in
+  fixtures and fails if the output differs
+- [x] add a scheduled `sdk-sync` workflow (weekly Monday 09:00 UTC) that
+  fetches the latest upstream SDK, regenerates the contract, and opens a PR
+- [x] configure git identity for bot commits on CI runners
+- [x] ensure `sdk-sync` label is created idempotently before use
+- [x] use `git diff -I` to ignore cosmetic date changes in staleness check
 
 Done when:
 
-- SDK analytics changes produce a visible, reviewable generated delta in `dcx`
+- SDK analytics changes produce a visible, reviewable generated delta in `dcx` ✓
 
 ## Operational Policy
 

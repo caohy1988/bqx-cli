@@ -1,36 +1,63 @@
 # Per-Event-Type Views
 
-Views provide filtered access to `agent_events` without repeating WHERE clauses.
+The `views` command creates BigQuery views that filter `agent_events` by event type.
 
-## Creating views
+## Create all views
 
 ```bash
-# Session start events
-dcx jobs query --project-id PROJECT \
-  --query "CREATE OR REPLACE VIEW \`PROJECT.DATASET.v_session_start\` AS
-    SELECT * FROM \`PROJECT.DATASET.agent_events\` WHERE event_type = 'SESSION_START'" \
-  --format text
-
-# Error events
-dcx jobs query --project-id PROJECT \
-  --query "CREATE OR REPLACE VIEW \`PROJECT.DATASET.v_errors\` AS
-    SELECT * FROM \`PROJECT.DATASET.agent_events\`
-    WHERE event_type LIKE '%_ERROR' OR status = 'ERROR'" \
-  --format text
-
-# Latency events
-dcx jobs query --project-id PROJECT \
-  --query "CREATE OR REPLACE VIEW \`PROJECT.DATASET.v_latency\` AS
-    SELECT * FROM \`PROJECT.DATASET.agent_events\` WHERE latency_ms IS NOT NULL" \
-  --format text
+dcx analytics views create-all \
+  --project-id PROJECT --dataset-id DATASET \
+  [--prefix <prefix>]
 ```
 
-## Querying views
+Creates 18 views, one per standard event type:
+
+| View name | Event type |
+|-----------|-----------|
+| `llm_request` | `LLM_REQUEST` |
+| `llm_response` | `LLM_RESPONSE` |
+| `tool_starting` | `TOOL_STARTING` |
+| `tool_completed` | `TOOL_COMPLETED` |
+| `tool_error` | `TOOL_ERROR` |
+| `tool_call` | `TOOL_CALL` |
+| `tool_response` | `TOOL_RESPONSE` |
+| `agent_run_start` | `AGENT_RUN_START` |
+| `agent_run_end` | `AGENT_RUN_END` |
+| `agent_run_error` | `AGENT_RUN_ERROR` |
+| `invocation_start` | `INVOCATION_START` |
+| `invocation_completed` | `INVOCATION_COMPLETED` |
+| `invocation_error` | `INVOCATION_ERROR` |
+| `human_input_required` | `HUMAN_INPUT_REQUIRED` |
+| `human_input_received` | `HUMAN_INPUT_RECEIVED` |
+| `session_start` | `SESSION_START` |
+| `session_end` | `SESSION_END` |
+| `session_error` | `SESSION_ERROR` |
+
+With `--prefix adk_`, views are named `adk_llm_request`, `adk_tool_completed`, etc.
+
+## Create a single view
 
 ```bash
-dcx jobs query --project-id PROJECT \
-  --query "SELECT session_id, timestamp, error_message
-    FROM \`PROJECT.DATASET.v_errors\` ORDER BY timestamp DESC LIMIT 20" \
+dcx analytics views create <EVENT_TYPE> \
+  --project-id PROJECT --dataset-id DATASET \
+  [--prefix <prefix>]
+```
+
+Creates one view for the specified event type. Custom event types are accepted
+with a warning.
+
+## Examples
+
+```bash
+# Create all 18 views with prefix
+dcx analytics views create-all --project-id my-proj --dataset-id analytics --prefix adk_
+
+# Create a single view
+dcx analytics views create LLM_REQUEST --project-id my-proj --dataset-id analytics
+
+# Query a view
+dcx jobs query --project-id my-proj \
+  --query "SELECT session_id, timestamp FROM \`my-proj.analytics.adk_tool_error\` LIMIT 20" \
   --format table
 ```
 
@@ -44,7 +71,7 @@ Views appear alongside tables with type `VIEW`.
 
 ## Notes
 
-- Prefix view names with `v_` to distinguish from base tables
-- Use `--dry-run` to validate view creation SQL first
+- Use `--prefix` to namespace views and avoid collisions
 - Views are SQL-based filters, not materialized — query cost applies on each read
 - View creation requires `bigquery.tables.create` IAM permission
+- Use `--dry-run` to validate SQL before executing
