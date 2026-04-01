@@ -34,6 +34,7 @@ SELECT
   END AS passed
 FROM session_latency
 ORDER BY max_latency_ms DESC NULLS LAST
+LIMIT {limit}
 "#;
 
 const ERROR_RATE_EVAL_SQL: &str = r#"
@@ -61,6 +62,97 @@ SELECT
   CASE WHEN SAFE_DIVIDE(error_events, total_events) <= {threshold} THEN true ELSE false END AS passed
 FROM session_errors
 ORDER BY error_rate DESC
+LIMIT {limit}
+"#;
+
+const TURN_COUNT_EVAL_SQL: &str = r#"
+WITH session_turns AS (
+  SELECT
+    session_id,
+    agent,
+    COUNTIF(event_type = 'HUMAN_INPUT_RECEIVED') AS turn_count
+  FROM `{project}.{dataset}.{table}`
+  WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), {interval})
+    {agent_filter}
+  GROUP BY session_id, agent
+)
+SELECT
+  session_id,
+  agent,
+  turn_count,
+  CASE WHEN turn_count <= {threshold} THEN true ELSE false END AS passed
+FROM session_turns
+ORDER BY turn_count DESC
+LIMIT {limit}
+"#;
+
+const TOKEN_EFFICIENCY_EVAL_SQL: &str = r#"
+WITH session_tokens AS (
+  SELECT
+    session_id,
+    agent,
+    SUM(CAST(IFNULL(JSON_VALUE(content, '$.total_tokens'), '0') AS INT64)) AS total_tokens
+  FROM `{project}.{dataset}.{table}`
+  WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), {interval})
+    {agent_filter}
+    AND event_type IN ('LLM_REQUEST', 'LLM_RESPONSE')
+  GROUP BY session_id, agent
+)
+SELECT
+  session_id,
+  agent,
+  total_tokens,
+  CASE WHEN total_tokens <= {threshold} THEN true ELSE false END AS passed
+FROM session_tokens
+ORDER BY total_tokens DESC
+LIMIT {limit}
+"#;
+
+const TTFT_EVAL_SQL: &str = r#"
+WITH session_ttft AS (
+  SELECT
+    session_id,
+    agent,
+    TIMESTAMP_DIFF(
+      MIN(IF(event_type = 'LLM_RESPONSE', timestamp, NULL)),
+      MIN(timestamp),
+      MILLISECOND
+    ) AS ttft_ms
+  FROM `{project}.{dataset}.{table}`
+  WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), {interval})
+    {agent_filter}
+  GROUP BY session_id, agent
+  HAVING ttft_ms IS NOT NULL
+)
+SELECT
+  session_id,
+  agent,
+  ttft_ms,
+  CASE WHEN ttft_ms <= {threshold} THEN true ELSE false END AS passed
+FROM session_ttft
+ORDER BY ttft_ms DESC
+LIMIT {limit}
+"#;
+
+const COST_EVAL_SQL: &str = r#"
+WITH session_cost AS (
+  SELECT
+    session_id,
+    agent,
+    SUM(CAST(IFNULL(JSON_VALUE(content, '$.cost_usd'), '0') AS FLOAT64)) AS cost_usd
+  FROM `{project}.{dataset}.{table}`
+  WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), {interval})
+    {agent_filter}
+  GROUP BY session_id, agent
+)
+SELECT
+  session_id,
+  agent,
+  cost_usd,
+  CASE WHEN cost_usd <= {threshold} THEN true ELSE false END AS passed
+FROM session_cost
+ORDER BY cost_usd DESC
+LIMIT {limit}
 "#;
 
 #[derive(Serialize)]
@@ -88,6 +180,7 @@ pub struct SessionEval {
 
 // ── SQL builder ──
 
+#[allow(clippy::too_many_arguments)]
 pub fn build_evaluate_query(
     evaluator: &EvaluatorType,
     project: &str,
@@ -96,6 +189,7 @@ pub fn build_evaluate_query(
     interval_sql: &str,
     threshold: f64,
     agent_id: Option<&str>,
+    limit: u32,
 ) -> String {
     let agent_filter = match agent_id {
         Some(id) => format!("AND agent = '{id}'"),
@@ -105,6 +199,11 @@ pub fn build_evaluate_query(
     let sql_template = match evaluator {
         EvaluatorType::Latency => LATENCY_EVAL_SQL,
         EvaluatorType::ErrorRate => ERROR_RATE_EVAL_SQL,
+        EvaluatorType::TurnCount => TURN_COUNT_EVAL_SQL,
+        EvaluatorType::TokenEfficiency => TOKEN_EFFICIENCY_EVAL_SQL,
+        EvaluatorType::Ttft => TTFT_EVAL_SQL,
+        EvaluatorType::Cost => COST_EVAL_SQL,
+        EvaluatorType::LlmJudge => unreachable!("LLM judge validated before SQL build"),
     };
 
     sql_template
@@ -114,6 +213,7 @@ pub fn build_evaluate_query(
         .replace("{interval}", interval_sql)
         .replace("{threshold}", &threshold.to_string())
         .replace("{agent_filter}", &agent_filter)
+        .replace("{limit}", &limit.to_string())
 }
 
 // ── Result mapper ──
@@ -128,24 +228,33 @@ pub fn eval_result_from_rows(
     let evaluator_name = match evaluator {
         EvaluatorType::Latency => "latency",
         EvaluatorType::ErrorRate => "error_rate",
+        EvaluatorType::TurnCount => "turn_count",
+        EvaluatorType::TokenEfficiency => "token_efficiency",
+        EvaluatorType::Ttft => "ttft",
+        EvaluatorType::Cost => "cost",
+        EvaluatorType::LlmJudge => "llm-judge",
     };
 
     let sessions: Vec<SessionEval> = result
         .rows
         .iter()
         .map(|row| {
-            let score = match evaluator {
-                EvaluatorType::Latency => row
-                    .get("max_latency_ms")
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| s.parse::<f64>().ok())
-                    .unwrap_or(0.0),
-                EvaluatorType::ErrorRate => row
-                    .get("error_rate")
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| s.parse::<f64>().ok())
-                    .unwrap_or(0.0),
+            let score_key = match evaluator {
+                EvaluatorType::Latency => "max_latency_ms",
+                EvaluatorType::ErrorRate => "error_rate",
+                EvaluatorType::TurnCount => "turn_count",
+                EvaluatorType::TokenEfficiency => "total_tokens",
+                EvaluatorType::Ttft => "ttft_ms",
+                EvaluatorType::Cost => "cost_usd",
+                EvaluatorType::LlmJudge => "score",
             };
+            let score = row
+                .get(score_key)
+                .and_then(|v| {
+                    v.as_f64()
+                        .or_else(|| v.as_str().and_then(|s| s.parse::<f64>().ok()))
+                })
+                .unwrap_or(0.0);
             let passed = row
                 .get("passed")
                 .and_then(|v| v.as_str())
@@ -205,6 +314,7 @@ async fn build_eval_result(
     threshold: f64,
     last: &str,
     agent_id: Option<&str>,
+    limit: u32,
     config: &Config,
 ) -> Result<EvalResult> {
     if let Some(id) = agent_id {
@@ -222,6 +332,7 @@ async fn build_eval_result(
         &duration.interval_sql,
         threshold,
         agent_id,
+        limit,
     );
 
     let result = executor
@@ -257,15 +368,48 @@ fn render_eval(eval_result: &EvalResult, format: &OutputFormat) -> Result<()> {
 
 // ── Entry points ──
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     evaluator: EvaluatorType,
     threshold: f64,
     last: String,
     agent_id: Option<String>,
     exit_code: bool,
+    criterion: String,
+    limit: u32,
+    strict: bool,
+    endpoint: Option<String>,
+    connection_id: Option<String>,
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
+    if matches!(evaluator, EvaluatorType::LlmJudge) {
+        anyhow::bail!(
+            "--evaluator=llm-judge is not yet supported. LLM-based evaluation \
+             (AI.GENERATE) is planned for a future milestone. Use a code evaluator \
+             (latency, error-rate, turn-count, token-efficiency, ttft, cost)."
+        );
+    }
+    if endpoint.is_some() || connection_id.is_some() {
+        anyhow::bail!(
+            "--endpoint and --connection-id are not yet supported. \
+             LLM-based evaluation (AI.GENERATE) is planned for a future milestone."
+        );
+    }
+    if criterion != "correctness" {
+        eprintln!(
+            "Warning: --criterion={criterion} is accepted for CLI compatibility \
+             but has no effect on code-based evaluators. It will apply once \
+             llm-judge is implemented."
+        );
+    }
+    if strict {
+        eprintln!(
+            "Warning: --strict is accepted for CLI compatibility but has no \
+             effect on code-based evaluators. It will apply once llm-judge \
+             is implemented."
+        );
+    }
     if let Some(ref id) = agent_id {
         config::validate_agent_id(id)?;
     }
@@ -280,6 +424,7 @@ pub async fn run(
         threshold,
         &last,
         agent_id.as_deref(),
+        limit,
         config,
     )
     .await?;
@@ -309,6 +454,7 @@ pub async fn run(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run_with_executor(
     executor: &dyn QueryExecutor,
     evaluator: EvaluatorType,
@@ -316,6 +462,7 @@ pub async fn run_with_executor(
     last: String,
     agent_id: Option<String>,
     exit_code: bool,
+    limit: u32,
     config: &Config,
 ) -> Result<()> {
     let eval_result = build_eval_result(
@@ -324,6 +471,7 @@ pub async fn run_with_executor(
         threshold,
         &last,
         agent_id.as_deref(),
+        limit,
         config,
     )
     .await?;

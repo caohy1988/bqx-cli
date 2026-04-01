@@ -154,6 +154,7 @@ fn build_evaluate_latency_query() {
         "INTERVAL 24 HOUR",
         5000.0,
         None,
+        100,
     );
     assert!(sql.contains("proj.ds.events"));
     assert!(sql.contains("INTERVAL 24 HOUR"));
@@ -173,6 +174,7 @@ fn build_evaluate_error_rate_with_agent() {
         "INTERVAL 7 DAY",
         0.1,
         Some("sales_agent"),
+        100,
     );
     assert!(sql.contains("error_rate"));
     assert!(sql.contains("AND agent = 'sales_agent'"));
@@ -674,6 +676,7 @@ async fn evaluate_latency_json_output() {
         "24h".into(),
         None,
         false,
+        100,
         &config,
     )
     .await;
@@ -708,6 +711,7 @@ async fn evaluate_with_exit_code_on_failure() {
         "24h".into(),
         None,
         true, // exit_code = true
+        100,
         &config,
     )
     .await;
@@ -728,6 +732,7 @@ async fn evaluate_rejects_invalid_agent_id() {
         "24h".into(),
         Some("bad agent!".into()),
         false,
+        100,
         &config,
     )
     .await;
@@ -746,6 +751,7 @@ async fn evaluate_rejects_invalid_duration() {
         "bad_duration".into(),
         None,
         false,
+        100,
         &config,
     )
     .await;
@@ -759,7 +765,7 @@ async fn evaluate_rejects_invalid_duration() {
 
 #[test]
 fn build_list_traces_query_basic() {
-    let sql = build_list_traces_query("proj", "ds", "events", "INTERVAL 24 HOUR", None, 20);
+    let sql = build_list_traces_query("proj", "ds", "events", "INTERVAL 24 HOUR", None, None, 20);
     assert!(sql.contains("proj.ds.events"));
     assert!(sql.contains("INTERVAL 24 HOUR"));
     assert!(sql.contains("LIMIT 20"));
@@ -774,6 +780,7 @@ fn build_list_traces_query_with_agent_filter() {
         "events",
         "INTERVAL 7 DAY",
         Some("support_bot"),
+        None,
         10,
     );
     assert!(sql.contains("AND agent = 'support_bot'"));
@@ -854,6 +861,7 @@ async fn list_traces_json_output() {
         &executor,
         "24h".into(),
         None,
+        None,
         20,
         &config,
     )
@@ -885,6 +893,7 @@ async fn list_traces_text_output() {
     let result = dcx::commands::analytics::list_traces::run_with_executor(
         &executor,
         "7d".into(),
+        None,
         Some("test_agent".into()),
         10,
         &config,
@@ -900,6 +909,7 @@ async fn list_traces_rejects_invalid_agent_id() {
     let result = dcx::commands::analytics::list_traces::run_with_executor(
         &executor,
         "24h".into(),
+        None,
         Some("bad agent!".into()),
         20,
         &config,
@@ -916,6 +926,7 @@ async fn list_traces_rejects_invalid_duration() {
     let result = dcx::commands::analytics::list_traces::run_with_executor(
         &executor,
         "bad_duration".into(),
+        None,
         None,
         20,
         &config,
@@ -1355,7 +1366,7 @@ fn drift_from_rows_coverage_not_inflated_by_duplicates() {
 
 #[test]
 fn build_distribution_query_basic() {
-    let sql = build_distribution_query("proj", "ds", "events", "INTERVAL 24 HOUR", None);
+    let sql = build_distribution_query("proj", "ds", "events", "INTERVAL 24 HOUR", None, 100);
     assert!(sql.contains("proj.ds.events"));
     assert!(sql.contains("event_type"));
     assert!(sql.contains("proportion"));
@@ -1410,6 +1421,7 @@ async fn distribution_json_output() {
         &executor,
         "24h".into(),
         None,
+        100,
         &config,
     )
     .await;
@@ -1537,6 +1549,7 @@ async fn distribution_rejects_invalid_agent_id() {
         &executor,
         "24h".into(),
         Some("bad agent!".into()),
+        100,
         &config,
     )
     .await;
@@ -2068,4 +2081,171 @@ fn is_known_event_type_case_insensitive() {
     assert!(is_known_event_type("Llm_Request"));
     // Unknown types
     assert!(!is_known_event_type("CUSTOM_THING"));
+}
+
+// ═══════════════════════════════════════════════
+// Milestone C: New evaluator SQL builders
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_evaluate_query_turn_count() {
+    let sql = build_evaluate_query(
+        &EvaluatorType::TurnCount,
+        "proj",
+        "ds",
+        "events",
+        "INTERVAL 7 DAY",
+        10.0,
+        None,
+        100,
+    );
+    assert!(sql.contains("turn_count"));
+    assert!(sql.contains("HUMAN_INPUT_RECEIVED"));
+    assert!(sql.contains("10"));
+}
+
+#[test]
+fn build_evaluate_query_token_efficiency() {
+    let sql = build_evaluate_query(
+        &EvaluatorType::TokenEfficiency,
+        "proj",
+        "ds",
+        "events",
+        "INTERVAL 7 DAY",
+        5000.0,
+        None,
+        100,
+    );
+    assert!(sql.contains("total_tokens"));
+    assert!(sql.contains("5000"));
+}
+
+#[test]
+fn build_evaluate_query_ttft() {
+    let sql = build_evaluate_query(
+        &EvaluatorType::Ttft,
+        "proj",
+        "ds",
+        "events",
+        "INTERVAL 7 DAY",
+        500.0,
+        None,
+        100,
+    );
+    assert!(sql.contains("ttft_ms"));
+    assert!(sql.contains("LLM_RESPONSE"));
+    assert!(sql.contains("500"));
+}
+
+#[test]
+fn build_evaluate_query_cost() {
+    let sql = build_evaluate_query(
+        &EvaluatorType::Cost,
+        "proj",
+        "ds",
+        "events",
+        "INTERVAL 7 DAY",
+        1.5,
+        None,
+        100,
+    );
+    assert!(sql.contains("cost_usd"));
+    assert!(sql.contains("1.5"));
+}
+
+// ═══════════════════════════════════════════════
+// Milestone C: evaluate --limit applies LIMIT to SQL
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_evaluate_query_applies_limit() {
+    let sql = build_evaluate_query(
+        &EvaluatorType::Latency,
+        "proj",
+        "ds",
+        "events",
+        "INTERVAL 24 HOUR",
+        5000.0,
+        None,
+        42,
+    );
+    assert!(sql.contains("LIMIT 42"));
+}
+
+#[test]
+fn build_distribution_query_applies_limit() {
+    let sql = build_distribution_query("proj", "ds", "events", "INTERVAL 24 HOUR", None, 25);
+    assert!(sql.contains("LIMIT 25"));
+}
+
+// ═══════════════════════════════════════════════
+// Milestone C: evaluate rejects llm-judge
+// ═══════════════════════════════════════════════
+
+#[tokio::test]
+async fn evaluate_rejects_llm_judge() {
+    let config = test_config(OutputFormat::Json);
+    let auth_opts = dcx::auth::AuthOptions {
+        token: Some("fake".into()),
+        credentials_file: None,
+    };
+    let result = dcx::commands::analytics::evaluate::run(
+        EvaluatorType::LlmJudge,
+        0.5,
+        "7d".into(),
+        None,
+        false,
+        "correctness".into(),
+        100,
+        false,
+        None,
+        None,
+        &auth_opts,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("llm-judge is not yet supported"));
+}
+
+// ═══════════════════════════════════════════════
+// Milestone C: list-traces with session_id filter
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_list_traces_query_with_session_filter() {
+    let sql = build_list_traces_query(
+        "proj",
+        "ds",
+        "events",
+        "INTERVAL 7 DAY",
+        None,
+        Some("sess-42"),
+        100,
+    );
+    assert!(sql.contains("AND session_id = 'sess-42'"));
+    assert!(sql.contains("LIMIT 100"));
+}
+
+#[tokio::test]
+async fn list_traces_rejects_invalid_session_id() {
+    let executor = MockExecutor::empty(vec![("session_id", "STRING")]);
+    let config = test_config(OutputFormat::Json);
+    let result = dcx::commands::analytics::list_traces::run_with_executor(
+        &executor,
+        "24h".into(),
+        Some("bad/session".into()),
+        None,
+        100,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("Invalid session_id"));
 }

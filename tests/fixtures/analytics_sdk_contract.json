@@ -122,8 +122,7 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "semantic_mismatch",
-          "note": "SDK optional, dcx required"
+          "status": "exact"
         },
         {
           "sdk_flag": "--trace-id",
@@ -131,7 +130,8 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "treated as alias for --session-id; warns at runtime"
         },
         {
           "sdk_flag": "--format",
@@ -229,7 +229,8 @@
           "sdk_required": false,
           "sdk_default": "correctness",
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (LLM-judge only)"
         },
         {
           "sdk_flag": "--agent-id",
@@ -254,7 +255,8 @@
           "sdk_required": false,
           "sdk_default": 100,
           "sdk_env": null,
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK default=100, dcx default='100'"
         },
         {
           "sdk_flag": "--exit-code",
@@ -270,7 +272,8 @@
           "sdk_required": false,
           "sdk_default": false,
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (LLM-judge only)"
         },
         {
           "sdk_flag": "--endpoint",
@@ -278,7 +281,8 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported)"
         },
         {
           "sdk_flag": "--connection-id",
@@ -286,7 +290,8 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported)"
         },
         {
           "sdk_flag": "--format",
@@ -383,7 +388,8 @@
           "sdk_required": false,
           "sdk_default": 100,
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (aggregate query)"
         },
         {
           "sdk_flag": "--max-sessions",
@@ -391,7 +397,8 @@
           "sdk_required": false,
           "sdk_default": 50,
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (aggregate query)"
         },
         {
           "sdk_flag": "--format",
@@ -496,7 +503,8 @@
           "sdk_required": false,
           "sdk_default": 100,
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (coverage requires all golden questions)"
         },
         {
           "sdk_flag": "--format",
@@ -605,7 +613,8 @@
           "sdk_required": false,
           "sdk_default": 100,
           "sdk_env": null,
-          "status": "missing"
+          "status": "semantic_mismatch",
+          "note": "SDK default=100, dcx default='100'"
         },
         {
           "sdk_flag": "--mode",
@@ -613,7 +622,8 @@
           "sdk_required": false,
           "sdk_default": "auto_group_using_semantics",
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns when non-default value provided"
         },
         {
           "sdk_flag": "--top-k",
@@ -621,7 +631,8 @@
           "sdk_required": false,
           "sdk_default": 20,
           "sdk_env": null,
-          "status": "missing"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns when non-default value provided"
         },
         {
           "sdk_flag": "--format",
@@ -719,7 +730,7 @@
           "sdk_default": 100,
           "sdk_env": null,
           "status": "semantic_mismatch",
-          "note": "SDK default=100, dcx default='20'"
+          "note": "SDK default=100, dcx default='100'"
         },
         {
           "sdk_flag": "--format",
@@ -799,7 +810,7 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "missing"
+          "status": "exact"
         },
         {
           "sdk_flag": "--agent-id",
@@ -825,7 +836,7 @@
           "sdk_default": 100,
           "sdk_env": null,
           "status": "semantic_mismatch",
-          "note": "SDK default=100, dcx default='20'"
+          "note": "SDK default=100, dcx default='100'"
         },
         {
           "sdk_flag": "--format",
@@ -1277,23 +1288,23 @@
     },
     {
       "sdk_name": "turn_count",
-      "dcx_name": null,
-      "status": "missing"
+      "dcx_name": "turn-count",
+      "status": "present"
     },
     {
       "sdk_name": "token_efficiency",
-      "dcx_name": null,
-      "status": "missing"
+      "dcx_name": "token-efficiency",
+      "status": "present"
     },
     {
       "sdk_name": "ttft",
-      "dcx_name": null,
-      "status": "missing"
+      "dcx_name": "ttft",
+      "status": "present"
     },
     {
       "sdk_name": "cost",
-      "dcx_name": null,
-      "status": "missing"
+      "dcx_name": "cost",
+      "status": "present"
     }
   ],
   "llm_judges": [
@@ -1421,6 +1432,54 @@
       "dcx": "--no-include-justification (negated flag, justification on by default)",
       "sdk": "--include-justification (default True)",
       "reason": "clap bool flags are always false by default; negated flag achieves same semantics"
+    },
+    {
+      "item": "evaluate --evaluator=llm-judge",
+      "dcx": "flag accepted but errors at runtime",
+      "sdk": "routes to LLM judge via AI.GENERATE",
+      "reason": "LLM-based evaluation not yet implemented; code evaluators fully supported"
+    },
+    {
+      "item": "evaluate --endpoint / --connection-id",
+      "dcx": "flags accepted but error if provided",
+      "sdk": "configure AI.GENERATE endpoint and connection",
+      "reason": "AI.GENERATE integration planned for a future milestone"
+    },
+    {
+      "item": "distribution --mode / --top-k",
+      "dcx": "flags accepted (defaults used); non-default modes not yet implemented",
+      "sdk": "analysis modes: frequently_asked, frequently_unanswered, auto_group_using_semantics, custom",
+      "reason": "semantic analysis modes require LLM; dcx provides event-type distribution"
+    },
+    {
+      "item": "get-trace --trace-id",
+      "dcx": "treated as alias for --session-id",
+      "sdk": "separate lookup by trace ID",
+      "reason": "dcx events table uses session_id as primary key; trace_id mapped to same query"
+    },
+    {
+      "item": "evaluate --criterion / --strict",
+      "dcx": "flags accepted; warns when non-default values are provided",
+      "sdk": "configures LLM-judge evaluation criterion and strictness",
+      "reason": "only applies to llm-judge evaluator, which is not yet implemented"
+    },
+    {
+      "item": "distribution --mode / --top-k (runtime)",
+      "dcx": "flags accepted; warns when non-default values are provided",
+      "sdk": "controls semantic grouping mode and top-k selection",
+      "reason": "semantic analysis modes require LLM; dcx provides event-type distribution with LIMIT"
+    },
+    {
+      "item": "insights --limit / --max-sessions",
+      "dcx": "flags accepted; warns at runtime (aggregate query)",
+      "sdk": "limits events or sessions queried",
+      "reason": "insights is an aggregate query; limiting would produce incomplete aggregates"
+    },
+    {
+      "item": "drift --limit",
+      "dcx": "flag accepted; warns at runtime",
+      "sdk": "limits events queried",
+      "reason": "coverage calculation requires evaluating all golden questions"
     }
   ]
 }

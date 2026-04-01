@@ -18,6 +18,7 @@ WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), {interval})
   {agent_filter}
 GROUP BY event_type
 ORDER BY event_count DESC
+LIMIT {limit}
 "#;
 
 #[derive(Serialize)]
@@ -45,6 +46,7 @@ pub fn build_distribution_query(
     table: &str,
     interval_sql: &str,
     agent_id: Option<&str>,
+    limit: u32,
 ) -> String {
     let agent_filter = match agent_id {
         Some(id) => format!("AND agent = '{id}'"),
@@ -56,6 +58,7 @@ pub fn build_distribution_query(
         .replace("{table}", table)
         .replace("{interval}", interval_sql)
         .replace("{agent_filter}", &agent_filter)
+        .replace("{limit}", &limit.to_string())
 }
 
 // ── Result mapper ──
@@ -101,6 +104,7 @@ async fn build_distribution(
     executor: &dyn QueryExecutor,
     last: &str,
     agent_id: Option<&str>,
+    limit: u32,
     config: &Config,
 ) -> Result<DistributionResult> {
     if let Some(id) = agent_id {
@@ -115,6 +119,7 @@ async fn build_distribution(
         &config.table,
         &parsed.interval_sql,
         agent_id,
+        limit,
     );
 
     let result = executor
@@ -187,9 +192,24 @@ fn render_distribution(result: &DistributionResult, config: &Config) -> Result<(
 pub async fn run(
     last: String,
     agent_id: Option<String>,
+    limit: u32,
+    mode: String,
+    top_k: u32,
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
+    if mode != "auto_group_using_semantics" {
+        eprintln!(
+            "Warning: --mode={mode} is accepted for CLI compatibility but only \
+             the default mode (auto_group_using_semantics) is currently implemented."
+        );
+    }
+    if top_k != 20 {
+        eprintln!(
+            "Warning: --top-k={top_k} is accepted for CLI compatibility but has \
+             no effect until non-default --mode values are implemented."
+        );
+    }
     if let Some(ref id) = agent_id {
         config::validate_agent_id(id)?;
     }
@@ -198,7 +218,7 @@ pub async fn run(
 
     let resolved = auth::resolve(auth_opts).await?;
     let client = BigQueryClient::new(resolved.clone());
-    let result = build_distribution(&client, &last, agent_id.as_deref(), config).await?;
+    let result = build_distribution(&client, &last, agent_id.as_deref(), limit, config).await?;
 
     if let Some(ref template) = config.sanitize_template {
         let json_val = serde_json::to_value(&result)?;
@@ -217,8 +237,9 @@ pub async fn run_with_executor(
     executor: &dyn QueryExecutor,
     last: String,
     agent_id: Option<String>,
+    limit: u32,
     config: &Config,
 ) -> Result<()> {
-    let result = build_distribution(executor, &last, agent_id.as_deref(), config).await?;
+    let result = build_distribution(executor, &last, agent_id.as_deref(), limit, config).await?;
     render_distribution(&result, config)
 }

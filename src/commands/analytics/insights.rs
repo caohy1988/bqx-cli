@@ -426,9 +426,23 @@ fn render_insights(result: &InsightsResult, config: &Config) -> Result<()> {
 pub async fn run(
     last: String,
     agent_id: Option<String>,
+    limit: u32,
+    max_sessions: u32,
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
+    if limit != 100 {
+        eprintln!(
+            "Warning: --limit={limit} is accepted for CLI compatibility but has \
+             no effect on the aggregate insights query."
+        );
+    }
+    if max_sessions != 50 {
+        eprintln!(
+            "Warning: --max-sessions={max_sessions} is accepted for CLI \
+             compatibility but has no effect on the aggregate insights query."
+        );
+    }
     if let Some(ref id) = agent_id {
         config::validate_agent_id(id)?;
     }

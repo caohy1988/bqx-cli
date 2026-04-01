@@ -206,13 +206,37 @@ pub enum AnalyticsCommand {
         /// Return exit code 1 on evaluation failure
         #[arg(long)]
         exit_code: bool,
+
+        /// LLM judge criterion (correctness, hallucination, sentiment)
+        #[arg(long, default_value = "correctness")]
+        criterion: String,
+
+        /// Maximum number of sessions to evaluate
+        #[arg(long, default_value = "100")]
+        limit: u32,
+
+        /// Fail sessions with unparseable judge output
+        #[arg(long)]
+        strict: bool,
+
+        /// AI.GENERATE endpoint for LLM judge
+        #[arg(long)]
+        endpoint: Option<String>,
+
+        /// BQ connection ID for AI.GENERATE
+        #[arg(long)]
+        connection_id: Option<String>,
     },
 
     /// Retrieve a session trace
     GetTrace {
         /// Session ID to retrieve
         #[arg(long)]
-        session_id: String,
+        session_id: Option<String>,
+
+        /// Trace ID to retrieve
+        #[arg(long)]
+        trace_id: Option<String>,
     },
 
     /// List recent traces matching filter criteria
@@ -221,12 +245,16 @@ pub enum AnalyticsCommand {
         #[arg(long)]
         last: String,
 
+        /// Filter by session ID
+        #[arg(long)]
+        session_id: Option<String>,
+
         /// Filter by agent name
         #[arg(long)]
         agent_id: Option<String>,
 
         /// Maximum number of traces to return
-        #[arg(long, default_value = "20")]
+        #[arg(long, default_value = "100")]
         limit: u32,
     },
 
@@ -239,6 +267,14 @@ pub enum AnalyticsCommand {
         /// Filter by agent name
         #[arg(long)]
         agent_id: Option<String>,
+
+        /// Maximum number of sessions to analyze
+        #[arg(long, default_value = "100")]
+        limit: u32,
+
+        /// Max sessions for insights pipeline
+        #[arg(long, default_value = "50")]
+        max_sessions: u32,
     },
 
     /// Run drift detection against a golden question set
@@ -254,6 +290,10 @@ pub enum AnalyticsCommand {
         /// Filter by agent name
         #[arg(long)]
         agent_id: Option<String>,
+
+        /// Maximum number of sessions
+        #[arg(long, default_value = "100")]
+        limit: u32,
 
         /// Minimum coverage threshold (0.0-1.0)
         #[arg(long, default_value = "0.8")]
@@ -273,6 +313,18 @@ pub enum AnalyticsCommand {
         /// Filter by agent name
         #[arg(long)]
         agent_id: Option<String>,
+
+        /// Maximum number of sessions
+        #[arg(long, default_value = "100")]
+        limit: u32,
+
+        /// Analysis mode
+        #[arg(long, default_value = "auto_group_using_semantics")]
+        mode: String,
+
+        /// Top items per category
+        #[arg(long, default_value = "20")]
+        top_k: u32,
     },
 
     /// Show human-in-the-loop interaction metrics
@@ -286,7 +338,7 @@ pub enum AnalyticsCommand {
         agent_id: Option<String>,
 
         /// Maximum number of sessions to return
-        #[arg(long, default_value = "20")]
+        #[arg(long, default_value = "100")]
         limit: u32,
     },
 
@@ -450,4 +502,9 @@ pub enum OutputFormat {
 pub enum EvaluatorType {
     Latency,
     ErrorRate,
+    TurnCount,
+    TokenEfficiency,
+    Ttft,
+    Cost,
+    LlmJudge,
 }

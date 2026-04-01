@@ -15,7 +15,7 @@ edit intentional divergence notes only.
 | Matched in dcx | 12 |
 | Missing from dcx | 0 |
 | Code evaluators (SDK) | 6 |
-| Code evaluators in dcx | 2 |
+| Code evaluators in dcx | 6 |
 | LLM judges (SDK) | 3 |
 | LLM judges in dcx | 0 |
 
@@ -51,7 +51,7 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
-### `get-trace` (1 exact, 4 semantic mismatch, 1 divergent, 1 missing, 3 dcx-only)
+### `get-trace` (2 exact, 3 semantic mismatch, 2 divergent, 3 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -59,14 +59,14 @@ edit intentional divergence notes only.
 | `--dataset-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
 | `--table-id` | str | no | intentional_divergence | --table-id -> --table |
 | `--location` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='US' |
-| `--session-id` | optional<str> | no | semantic_mismatch | SDK optional, dcx required |
-| `--trace-id` | optional<str> | no | missing |  |
+| `--session-id` | optional<str> | no | exact |  |
+| `--trace-id` | optional<str> | no | intentional_divergence | treated as alias for --session-id; warns at runtime |
 | `--format` | str | no | exact |  |
 | `--token` | optional<string> | — | dcx_extension (global) | |
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
-### `evaluate` (3 exact, 6 semantic mismatch, 1 divergent, 5 missing, 3 dcx-only)
+### `evaluate` (3 exact, 7 semantic mismatch, 5 divergent, 3 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -76,20 +76,20 @@ edit intentional divergence notes only.
 | `--location` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='US' |
 | `--evaluator` | str | no | semantic_mismatch | SDK optional, dcx required; SDK default='latency', dcx default=None |
 | `--threshold` | optional<float> | no | semantic_mismatch | SDK optional, dcx required |
-| `--criterion` | str | no | missing |  |
+| `--criterion` | str | no | intentional_divergence | accepted for CLI parity; warns at runtime (LLM-judge only) |
 | `--agent-id` | optional<str> | no | exact |  |
 | `--last` | optional<str> | no | semantic_mismatch | SDK optional, dcx required |
-| `--limit` | int | no | missing |  |
+| `--limit` | int | no | semantic_mismatch | SDK default=100, dcx default='100' |
 | `--exit-code` | bool | no | exact |  |
-| `--strict` | bool | no | missing |  |
-| `--endpoint` | optional<str> | no | missing |  |
-| `--connection-id` | optional<str> | no | missing |  |
+| `--strict` | bool | no | intentional_divergence | accepted for CLI parity; warns at runtime (LLM-judge only) |
+| `--endpoint` | optional<str> | no | intentional_divergence | accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported) |
+| `--connection-id` | optional<str> | no | intentional_divergence | accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported) |
 | `--format` | str | no | exact |  |
 | `--token` | optional<string> | — | dcx_extension (global) | |
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
-### `insights` (2 exact, 4 semantic mismatch, 1 divergent, 2 missing, 3 dcx-only)
+### `insights` (2 exact, 4 semantic mismatch, 3 divergent, 3 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -99,14 +99,14 @@ edit intentional divergence notes only.
 | `--location` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='US' |
 | `--agent-id` | optional<str> | no | exact |  |
 | `--last` | optional<str> | no | semantic_mismatch | SDK optional, dcx required |
-| `--limit` | int | no | missing |  |
-| `--max-sessions` | int | no | missing |  |
+| `--limit` | int | no | intentional_divergence | accepted for CLI parity; warns at runtime (aggregate query) |
+| `--max-sessions` | int | no | intentional_divergence | accepted for CLI parity; warns at runtime (aggregate query) |
 | `--format` | str | no | exact |  |
 | `--token` | optional<string> | — | dcx_extension (global) | |
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
-### `drift` (3 exact, 4 semantic mismatch, 1 divergent, 1 missing, 5 dcx-only)
+### `drift` (3 exact, 4 semantic mismatch, 2 divergent, 5 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -117,7 +117,7 @@ edit intentional divergence notes only.
 | `--golden-dataset` | str | yes | exact |  |
 | `--agent-id` | optional<str> | no | exact |  |
 | `--last` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='7d' |
-| `--limit` | int | no | missing |  |
+| `--limit` | int | no | intentional_divergence | accepted for CLI parity; warns at runtime (coverage requires all golden questions) |
 | `--format` | str | no | exact |  |
 | `--token` | optional<string> | — | dcx_extension (global) | |
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
@@ -125,7 +125,7 @@ edit intentional divergence notes only.
 | `--min-coverage` | float | — | dcx_extension (local) | |
 | `--exit-code` | bool | — | dcx_extension (local) | |
 
-### `distribution` (2 exact, 4 semantic mismatch, 1 divergent, 3 missing, 3 dcx-only)
+### `distribution` (2 exact, 5 semantic mismatch, 3 divergent, 3 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -135,9 +135,9 @@ edit intentional divergence notes only.
 | `--location` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='US' |
 | `--agent-id` | optional<str> | no | exact |  |
 | `--last` | optional<str> | no | semantic_mismatch | SDK optional, dcx required |
-| `--limit` | int | no | missing |  |
-| `--mode` | str | no | missing |  |
-| `--top-k` | int | no | missing |  |
+| `--limit` | int | no | semantic_mismatch | SDK default=100, dcx default='100' |
+| `--mode` | str | no | intentional_divergence | accepted for CLI parity; warns when non-default value provided |
+| `--top-k` | int | no | intentional_divergence | accepted for CLI parity; warns when non-default value provided |
 | `--format` | str | no | exact |  |
 | `--token` | optional<string> | — | dcx_extension (global) | |
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
@@ -153,13 +153,13 @@ edit intentional divergence notes only.
 | `--location` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='US' |
 | `--agent-id` | optional<str> | no | exact |  |
 | `--last` | optional<str> | no | semantic_mismatch | SDK optional, dcx required |
-| `--limit` | int | no | semantic_mismatch | SDK default=100, dcx default='20' |
+| `--limit` | int | no | semantic_mismatch | SDK default=100, dcx default='100' |
 | `--format` | str | no | exact |  |
 | `--token` | optional<string> | — | dcx_extension (global) | |
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
-### `list-traces` (2 exact, 5 semantic mismatch, 1 divergent, 1 missing, 3 dcx-only)
+### `list-traces` (3 exact, 5 semantic mismatch, 1 divergent, 3 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -167,10 +167,10 @@ edit intentional divergence notes only.
 | `--dataset-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
 | `--table-id` | str | no | intentional_divergence | --table-id -> --table |
 | `--location` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='US' |
-| `--session-id` | optional<str> | no | missing |  |
+| `--session-id` | optional<str> | no | exact |  |
 | `--agent-id` | optional<str> | no | exact |  |
 | `--last` | optional<str> | no | semantic_mismatch | SDK optional, dcx required |
-| `--limit` | int | no | semantic_mismatch | SDK default=100, dcx default='20' |
+| `--limit` | int | no | semantic_mismatch | SDK default=100, dcx default='100' |
 | `--format` | str | no | exact |  |
 | `--token` | optional<string> | — | dcx_extension (global) | |
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
@@ -251,10 +251,10 @@ edit intentional divergence notes only.
 |----------|----------|--------|
 | `latency` | `latency` | present |
 | `error_rate` | `error-rate` | present |
-| `turn_count` | `—` | missing |
-| `token_efficiency` | `—` | missing |
-| `ttft` | `—` | missing |
-| `cost` | `—` | missing |
+| `turn_count` | `turn-count` | present |
+| `token_efficiency` | `token-efficiency` | present |
+| `ttft` | `ttft` | present |
+| `cost` | `cost` | present |
 
 ### LLM Judges
 
@@ -294,3 +294,11 @@ edit intentional divergence notes only.
 | categorical-eval --endpoint | flag accepted but errors if provided | routes to AI.GENERATE for LLM-based classification | dcx uses heuristic-based classification; LLM-judge integration planned for Milestone C |
 | categorical-views view set | summary, timeline, by_agent, latest_per_session | CategoricalViewManager.create_all_views() (internal) | SDK view manager source is not public; dcx provides equivalent dashboarding views |
 | categorical-eval --include-justification / --no-include-justification | --no-include-justification (negated flag, justification on by default) | --include-justification (default True) | clap bool flags are always false by default; negated flag achieves same semantics |
+| evaluate --evaluator=llm-judge | flag accepted but errors at runtime | routes to LLM judge via AI.GENERATE | LLM-based evaluation not yet implemented; code evaluators fully supported |
+| evaluate --endpoint / --connection-id | flags accepted but error if provided | configure AI.GENERATE endpoint and connection | AI.GENERATE integration planned for a future milestone |
+| distribution --mode / --top-k | flags accepted (defaults used); non-default modes not yet implemented | analysis modes: frequently_asked, frequently_unanswered, auto_group_using_semantics, custom | semantic analysis modes require LLM; dcx provides event-type distribution |
+| get-trace --trace-id | treated as alias for --session-id | separate lookup by trace ID | dcx events table uses session_id as primary key; trace_id mapped to same query |
+| evaluate --criterion / --strict | flags accepted; warns when non-default values are provided | configures LLM-judge evaluation criterion and strictness | only applies to llm-judge evaluator, which is not yet implemented |
+| distribution --mode / --top-k (runtime) | flags accepted; warns when non-default values are provided | controls semantic grouping mode and top-k selection | semantic analysis modes require LLM; dcx provides event-type distribution with LIMIT |
+| insights --limit / --max-sessions | flags accepted; warns at runtime (aggregate query) | limits events or sessions queried | insights is an aggregate query; limiting would produce incomplete aggregates |
+| drift --limit | flag accepted; warns at runtime | limits events queried | coverage calculation requires evaluating all golden questions |

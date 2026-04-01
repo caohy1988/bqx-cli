@@ -274,6 +274,7 @@ fn snapshot_sql_evaluate_latency() {
         "INTERVAL 24 HOUR",
         5000.0,
         None,
+        100,
     );
     insta::assert_snapshot!("sql_evaluate_latency", sql);
 }
@@ -288,6 +289,7 @@ fn snapshot_sql_evaluate_error_rate_with_agent() {
         "INTERVAL 7 DAY",
         0.1,
         Some("sales_agent"),
+        100,
     );
     insta::assert_snapshot!("sql_evaluate_error_rate_with_agent", sql);
 }
