@@ -1,6 +1,5 @@
 ---
 source: tests/snapshot_tests.rs
-assertion_line: 298
 expression: sql
 ---
 
@@ -28,3 +27,4 @@ SELECT
   CASE WHEN SAFE_DIVIDE(error_events, total_events) <= 0.1 THEN true ELSE false END AS passed
 FROM session_errors
 ORDER BY error_rate DESC
+LIMIT 100

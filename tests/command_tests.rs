@@ -154,6 +154,7 @@ fn build_evaluate_latency_query() {
         "INTERVAL 24 HOUR",
         5000.0,
         None,
+        100,
     );
     assert!(sql.contains("proj.ds.events"));
     assert!(sql.contains("INTERVAL 24 HOUR"));
@@ -173,6 +174,7 @@ fn build_evaluate_error_rate_with_agent() {
         "INTERVAL 7 DAY",
         0.1,
         Some("sales_agent"),
+        100,
     );
     assert!(sql.contains("error_rate"));
     assert!(sql.contains("AND agent = 'sales_agent'"));
@@ -674,6 +676,7 @@ async fn evaluate_latency_json_output() {
         "24h".into(),
         None,
         false,
+        100,
         &config,
     )
     .await;
@@ -708,6 +711,7 @@ async fn evaluate_with_exit_code_on_failure() {
         "24h".into(),
         None,
         true, // exit_code = true
+        100,
         &config,
     )
     .await;
@@ -728,6 +732,7 @@ async fn evaluate_rejects_invalid_agent_id() {
         "24h".into(),
         Some("bad agent!".into()),
         false,
+        100,
         &config,
     )
     .await;
@@ -746,6 +751,7 @@ async fn evaluate_rejects_invalid_duration() {
         "bad_duration".into(),
         None,
         false,
+        100,
         &config,
     )
     .await;
@@ -1360,7 +1366,7 @@ fn drift_from_rows_coverage_not_inflated_by_duplicates() {
 
 #[test]
 fn build_distribution_query_basic() {
-    let sql = build_distribution_query("proj", "ds", "events", "INTERVAL 24 HOUR", None);
+    let sql = build_distribution_query("proj", "ds", "events", "INTERVAL 24 HOUR", None, 100);
     assert!(sql.contains("proj.ds.events"));
     assert!(sql.contains("event_type"));
     assert!(sql.contains("proportion"));
@@ -1415,6 +1421,7 @@ async fn distribution_json_output() {
         &executor,
         "24h".into(),
         None,
+        100,
         &config,
     )
     .await;
@@ -1542,6 +1549,7 @@ async fn distribution_rejects_invalid_agent_id() {
         &executor,
         "24h".into(),
         Some("bad agent!".into()),
+        100,
         &config,
     )
     .await;
@@ -2089,6 +2097,7 @@ fn build_evaluate_query_turn_count() {
         "INTERVAL 7 DAY",
         10.0,
         None,
+        100,
     );
     assert!(sql.contains("turn_count"));
     assert!(sql.contains("HUMAN_INPUT_RECEIVED"));
@@ -2105,6 +2114,7 @@ fn build_evaluate_query_token_efficiency() {
         "INTERVAL 7 DAY",
         5000.0,
         None,
+        100,
     );
     assert!(sql.contains("total_tokens"));
     assert!(sql.contains("5000"));
@@ -2120,6 +2130,7 @@ fn build_evaluate_query_ttft() {
         "INTERVAL 7 DAY",
         500.0,
         None,
+        100,
     );
     assert!(sql.contains("ttft_ms"));
     assert!(sql.contains("LLM_RESPONSE"));
@@ -2136,9 +2147,35 @@ fn build_evaluate_query_cost() {
         "INTERVAL 7 DAY",
         1.5,
         None,
+        100,
     );
     assert!(sql.contains("cost_usd"));
     assert!(sql.contains("1.5"));
+}
+
+// ═══════════════════════════════════════════════
+// Milestone C: evaluate --limit applies LIMIT to SQL
+// ═══════════════════════════════════════════════
+
+#[test]
+fn build_evaluate_query_applies_limit() {
+    let sql = build_evaluate_query(
+        &EvaluatorType::Latency,
+        "proj",
+        "ds",
+        "events",
+        "INTERVAL 24 HOUR",
+        5000.0,
+        None,
+        42,
+    );
+    assert!(sql.contains("LIMIT 42"));
+}
+
+#[test]
+fn build_distribution_query_applies_limit() {
+    let sql = build_distribution_query("proj", "ds", "events", "INTERVAL 24 HOUR", None, 25);
+    assert!(sql.contains("LIMIT 25"));
 }
 
 // ═══════════════════════════════════════════════

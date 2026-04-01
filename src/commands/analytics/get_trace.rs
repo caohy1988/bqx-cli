@@ -208,10 +208,21 @@ fn render_trace_output(trace: &TraceResult, config: &Config) -> Result<()> {
 // ── Entry points ──
 
 /// Resolve session_id from either --session-id or --trace-id.
+///
+/// Note: --trace-id is currently treated as an alias for --session-id.
+/// The upstream SDK distinguishes get_session_trace(session_id) from
+/// get_trace(trace_id); dcx does not yet implement a separate trace-id
+/// lookup path.
 fn resolve_id(session_id: Option<String>, trace_id: Option<String>) -> Result<String> {
     match (session_id, trace_id) {
         (Some(sid), _) => Ok(sid),
-        (None, Some(tid)) => Ok(tid),
+        (None, Some(tid)) => {
+            eprintln!(
+                "Warning: --trace-id is currently treated as an alias for --session-id. \
+                 A dedicated trace-id lookup is planned for a future release."
+            );
+            Ok(tid)
+        }
         (None, None) => anyhow::bail!("Provide --session-id or --trace-id."),
     }
 }

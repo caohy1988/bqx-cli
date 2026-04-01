@@ -244,12 +244,19 @@ pub async fn run(
     golden_dataset: String,
     last: String,
     agent_id: Option<String>,
-    _limit: u32,
+    limit: u32,
     min_coverage: f64,
     exit_code: bool,
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
+    if limit != 100 {
+        eprintln!(
+            "Warning: --limit={limit} is accepted for CLI compatibility but has \
+             no effect on the drift coverage query (all golden questions are always \
+             evaluated)."
+        );
+    }
     if let Some(ref id) = agent_id {
         config::validate_agent_id(id)?;
     }
