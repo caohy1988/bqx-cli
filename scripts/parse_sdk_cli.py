@@ -721,6 +721,18 @@ FLAG_OVERRIDES: dict[tuple[str, str], dict] = {
         "status": "intentional_divergence",
         "note": "accepted for CLI parity; warns at runtime (coverage requires all golden questions)",
     },
+    ("get-trace", "--trace-id"): {
+        "status": "intentional_divergence",
+        "note": "treated as alias for --session-id; warns at runtime",
+    },
+    ("evaluate", "--endpoint"): {
+        "status": "intentional_divergence",
+        "note": "accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported)",
+    },
+    ("evaluate", "--connection-id"): {
+        "status": "intentional_divergence",
+        "note": "accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported)",
+    },
 }
 
 

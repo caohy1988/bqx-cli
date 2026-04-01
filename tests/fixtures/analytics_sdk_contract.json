@@ -130,7 +130,8 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "exact"
+          "status": "intentional_divergence",
+          "note": "treated as alias for --session-id; warns at runtime"
         },
         {
           "sdk_flag": "--format",
@@ -280,7 +281,8 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "exact"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported)"
         },
         {
           "sdk_flag": "--connection-id",
@@ -288,7 +290,8 @@
           "sdk_required": false,
           "sdk_default": null,
           "sdk_env": null,
-          "status": "exact"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported)"
         },
         {
           "sdk_flag": "--format",

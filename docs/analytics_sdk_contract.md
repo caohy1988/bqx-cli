@@ -51,7 +51,7 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
-### `get-trace` (3 exact, 3 semantic mismatch, 1 divergent, 3 dcx-only)
+### `get-trace` (2 exact, 3 semantic mismatch, 2 divergent, 3 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -60,13 +60,13 @@ edit intentional divergence notes only.
 | `--table-id` | str | no | intentional_divergence | --table-id -> --table |
 | `--location` | optional<str> | no | semantic_mismatch | SDK default=None, dcx default='US' |
 | `--session-id` | optional<str> | no | exact |  |
-| `--trace-id` | optional<str> | no | exact |  |
+| `--trace-id` | optional<str> | no | intentional_divergence | treated as alias for --session-id; warns at runtime |
 | `--format` | str | no | exact |  |
 | `--token` | optional<string> | — | dcx_extension (global) | |
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 
-### `evaluate` (5 exact, 7 semantic mismatch, 3 divergent, 3 dcx-only)
+### `evaluate` (3 exact, 7 semantic mismatch, 5 divergent, 3 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -82,8 +82,8 @@ edit intentional divergence notes only.
 | `--limit` | int | no | semantic_mismatch | SDK default=100, dcx default='100' |
 | `--exit-code` | bool | no | exact |  |
 | `--strict` | bool | no | intentional_divergence | accepted for CLI parity; warns at runtime (LLM-judge only) |
-| `--endpoint` | optional<str> | no | exact |  |
-| `--connection-id` | optional<str> | no | exact |  |
+| `--endpoint` | optional<str> | no | intentional_divergence | accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported) |
+| `--connection-id` | optional<str> | no | intentional_divergence | accepted for CLI parity; errors at runtime (AI.GENERATE not yet supported) |
 | `--format` | str | no | exact |  |
 | `--token` | optional<string> | — | dcx_extension (global) | |
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
