@@ -390,14 +390,15 @@ When a skill tells an agent "run `dcx analytics evaluate --exit-code`", the
 agent needs to know:
 - Exit code 0 = all sessions passed
 - Exit code 1 = evaluation failure (sessions exceeded threshold)
+- Exit code 2 = infrastructure error (connection, auth, bad input)
 - All errors emit `{"error":"<message>"}` JSON on stderr
 
 `bq` returns exit code 1 for all errors (auth failure, query syntax error,
 permission denied) with free-text stderr. An agent wrapping `bq` cannot
 distinguish "the evaluation found failures" from "the query was malformed."
-`dcx` separates eval failure (exit 1 via `--exit-code`) from other errors
-(exit 1 with JSON error message), and always uses JSON-formatted stderr
-so agents can parse errors without regex.
+`dcx` uses distinct exit codes: eval failure (exit 1 via `--exit-code`) vs
+infrastructure errors (exit 2), matching the upstream SDK semantics. It
+always uses JSON-formatted stderr so agents can parse errors without regex.
 
 Note: the current error contract is a JSON string envelope, not structured
 error objects with typed codes. Richer error typing is a future improvement.
@@ -434,8 +435,8 @@ targets), making it installable in any CI environment in seconds.
 auth configuration.
 
 **Status:** npm distribution available (Phase 1). `npx dcx --help` works on
-macOS, Linux, and Windows. 32 skills shipped (Phase 2-4), with 4 generated
-from Discovery API metadata and 28 curated.
+macOS, Linux, and Windows. 14 consolidated skills shipped (Phase 5), with 5
+generated from Discovery API metadata and 9 curated.
 
 ### Phase roadmap for deeper integration
 
@@ -444,7 +445,8 @@ from Discovery API metadata and 28 curated.
 | Phase 1 (complete) | `evaluate`, `get-trace`, `doctor`, npm distribution, 5 core skills | `bq` has no analytics commands or skill format |
 | Phase 2 (complete) | Dynamic BigQuery API commands from Discovery Document, `generate-skills`, 19 skills, `--sanitize` (Model Armor), Gemini extension manifest | `bq` commands are static Python; cannot generate skills from API metadata |
 | Phase 3 (complete) | Conversational Analytics (`dcx ca ask`), natural language → SQL for BigQuery, 26 skills | `bq` has no CA integration; requires a new command domain |
-| Phase 4 (in progress) | Multi-source CA (Looker, AlloyDB, Spanner, Cloud SQL), source profiles, 32 skills | `bq` is BigQuery-only; cannot span Data Cloud sources |
+| Phase 4 (complete) | Multi-source CA (Looker, AlloyDB, Spanner, Cloud SQL), source profiles | `bq` is BigQuery-only; cannot span Data Cloud sources |
+| Phase 5 (complete) | Native Data Cloud commands, SDK alignment (all 12 SDK commands, 6 evaluators, exit-code parity, drift automation), 14 consolidated skills, 513 tests | `bq` has no analytics SDK, no skill format, no drift detection |
 
 Each phase increases the gap between what `dcx` can do natively and what
 would need to be shimmed on top of `bq`.

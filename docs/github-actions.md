@@ -90,7 +90,37 @@ jobs:
             --threshold 0.05 \
             --last 1h \
             --exit-code
+
+      - name: Check TTFT compliance
+        run: |
+          dcx analytics evaluate \
+            --project-id "${{ vars.DCX_PROJECT }}" \
+            --dataset-id "${{ vars.DCX_DATASET }}" \
+            --evaluator ttft \
+            --threshold 3000 \
+            --last 1h \
+            --exit-code
+
+      - name: Check drift coverage
+        run: |
+          dcx analytics drift \
+            --project-id "${{ vars.DCX_PROJECT }}" \
+            --dataset-id "${{ vars.DCX_DATASET }}" \
+            --golden-dataset golden_questions \
+            --min-coverage 0.8 \
+            --exit-code
 ```
+
+### Available evaluators
+
+| Evaluator | Threshold unit | What it checks |
+|---|---|---|
+| `latency` | milliseconds | Max session latency |
+| `error-rate` | ratio (0–1) | Session error ratio |
+| `turn-count` | count | Human turns per session |
+| `token-efficiency` | count | Total tokens per session |
+| `ttft` | milliseconds | Time-to-first-token |
+| `cost` | USD | Session cost |
 
 ### Required configuration
 
@@ -106,7 +136,8 @@ jobs:
 | Exit code | Meaning |
 |---|---|
 | 0 | All sessions passed the threshold |
-| 1 | One or more sessions failed the threshold |
+| 1 | One or more sessions failed the threshold (evaluation failure) |
+| 2 | Infrastructure error (connection, auth, bad input) |
 
 ### Deployment gate pattern
 

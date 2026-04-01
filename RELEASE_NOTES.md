@@ -1,6 +1,6 @@
 # Release Notes
 
-## v0.5.0 — Native Data Cloud Commands (2026-03-30)
+## v0.5.0 — Native Data Cloud Commands + SDK Alignment (2026-03-30)
 
 ### Highlights
 
@@ -8,6 +8,13 @@
 Conversational Analytics, users and agents can run first-class,
 source-native commands for Looker, Spanner, AlloyDB, and Cloud SQL
 without dropping to `gcloud` or ad-hoc wrappers.
+
+**Analytics SDK alignment milestones A–E are complete.** All 12 SDK
+CLI commands are present, all 6 code evaluators implemented, and exit
+codes match SDK semantics. Remaining intentional divergences (e.g.
+`llm-judge` not yet functional, warning-only flags) are documented in
+the generated compatibility contract. Automated drift detection ensures
+the two surfaces do not silently diverge.
 
 ### New: Direct Source Commands
 
@@ -81,9 +88,27 @@ admin, and profiles tools.
 
 See `docs/source-matrix.md` for the full cross-source command matrix.
 
+### New: Analytics SDK Alignment (Milestones A–E)
+
+All 12 SDK CLI commands present; remaining intentional divergences documented:
+
+- **Contract generator** — `scripts/parse_sdk_cli.py` parses upstream
+  `cli.py` and `SDK.md`, generates `analytics_sdk_contract.json` and
+  `analytics_sdk_contract.md` with per-command/flag parity status
+- **Command parity** — all 12 SDK CLI commands present (`views create`,
+  `categorical-eval`, `categorical-views` added)
+- **Flag/evaluator parity** — all 6 code evaluators (latency, error-rate,
+  turn-count, token-efficiency, ttft, cost), `--limit` in SQL, runtime
+  warnings for placeholder flags (`--criterion`, `--strict`, `--mode`,
+  `--top-k`), session-id validation against SQL injection
+- **Output/exit-code parity** — exit codes match SDK (0=success, 1=eval
+  failure, 2=infra error), output-key regression tests for all result structs
+- **Drift automation** — CI `contract-check` job detects stale contracts,
+  weekly `sdk-sync` workflow fetches upstream changes and opens PRs
+
 ### Test Count
 
-466 tests (was 459 in v0.4.0)
+513 tests (was 459 in v0.4.0)
 
 ---
 

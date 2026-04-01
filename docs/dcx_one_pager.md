@@ -143,10 +143,12 @@ With `bq`, the agent invents the workflow. With `dcx` , the workflow is part of 
 
 This is not a proposal. I have already built and shipped a working prototype.
 
-The prototype is at v0.3.0 with 347 tests, 26 agent skills, and release binaries for 6 platforms (macOS, Linux, Windows — x64 and ARM64). It covers three command domains:
+The prototype is at v0.5.0 with 513 tests, 14 consolidated agent skills, and release binaries for 6 platforms (macOS, Linux, Windows — x64 and ARM64). It covers five command domains:
 
-- **Dynamic Data Cloud API** — datasets, tables, routines, models, generated from the Discovery document  
-- **Agent Analytics** — doctor, evaluate, drift, insights, distribution, traces, HITL metrics, views  
-- **Conversational Analytics** — `ca ask`, `ca create-agent`, `ca add-verified-query`, `ca list-agents`
+- **Dynamic Data Cloud API** — BigQuery (datasets, tables, routines, models), Spanner, AlloyDB, Cloud SQL, Looker — all generated from bundled Discovery documents
+- **Agent Analytics** — 12 commands aligned with the upstream BigQuery Agent Analytics SDK: doctor, evaluate (6 evaluators), get-trace, list-traces, insights, drift, distribution, hitl-metrics, views, categorical-eval, categorical-views
+- **Conversational Analytics** — `ca ask` (6 data sources: BigQuery, Looker, Looker Studio, AlloyDB, Spanner, Cloud SQL), `ca create-agent`, `ca add-verified-query`, `ca list-agents`
+- **Looker Content** — explores and dashboards via per-instance Looker API
+- **Profile Utilities** — list, show, validate source profiles
 
-I agree with the feedback that a CA CLI tool should not be restricted to BigQuery— it should support all CA agent data sources including Looker and external databases. dcx  is a natural place to prototype this broader CA CLI surface and validate the interaction model before expanding to other sources. This is already supported in the latest version dcx cli prototype. 
+The CLI now includes full SDK alignment with automated drift detection: a CI contract-check job ensures the SDK contract stays current, and a weekly sync workflow opens PRs when the upstream SDK changes.

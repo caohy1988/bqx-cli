@@ -296,15 +296,26 @@ dcx looker dashboards get --profile=sales-looker --dashboard-id=42
 
 Wraps the BigQuery Agent Analytics SDK. Commands are compiled into the
 binary (not dynamically generated) since they don't come from a Discovery
-Document.
+Document. All 12 SDK CLI commands are present. Remaining differences
+(e.g. `--trace-id` as alias, `llm-judge` not yet functional, warning-only
+flags like `--criterion`/`--strict`) are documented as intentional
+divergences in the generated compatibility contract.
+
+**Exit codes:** 0 = success, 1 = evaluation failure (`--exit-code`),
+2 = infrastructure error. Matches the upstream SDK semantics.
 
 ```bash
-# Evaluate agent performance
+# Evaluate agent performance (6 evaluators available)
 dcx analytics evaluate \
   --evaluator=latency \
   --threshold=5000 \
   --agent-id=support_bot \
-  --last=1h
+  --last=1h \
+  --limit=100
+
+# Other evaluators: error-rate, turn-count, token-efficiency, ttft, cost
+dcx analytics evaluate --evaluator=ttft --threshold=3000 --last=24h --exit-code
+dcx analytics evaluate --evaluator=cost --threshold=1.0 --last=7d
 
 # Retrieve a session trace
 dcx analytics get-trace --session-id=sess-001
@@ -312,25 +323,35 @@ dcx analytics get-trace --session-id=sess-001
 # Health check
 dcx analytics doctor
 
-# Drift detection
+# Drift detection against a golden question set
 dcx analytics drift \
   --golden-dataset=golden_questions \
   --agent-id=support_bot \
-  --last=7d
-
-# LLM-as-judge evaluation
-dcx analytics evaluate \
-  --evaluator=llm-judge \
-  --criterion=correctness \
-  --threshold=0.7 \
-  --last=24h \
+  --last=7d \
+  --min-coverage=0.8 \
   --exit-code
 
 # Create event-type views
 dcx analytics views create-all --prefix=adk_
+dcx analytics views create LLM_REQUEST --prefix=adk_
 
 # Generate insights report
 dcx analytics insights --agent-id=support_bot --last=24h
+
+# Event distribution analysis
+dcx analytics distribution --last=24h --limit=50
+
+# List recent traces
+dcx analytics list-traces --last=7d --agent-id=support_bot
+
+# HITL metrics
+dcx analytics hitl-metrics --last=24h
+
+# Categorical (LLM-based) evaluation
+dcx analytics categorical-eval --metrics-file=./metrics.json --last=24h
+
+# Categorical dashboard views
+dcx analytics categorical-views --results-table=categorical_results
 ```
 
 #### Domain 3: `dcx ca <command>` — Conversational Analytics (static)
@@ -536,14 +557,17 @@ dcx analytics <command> [flags]
 | Command | Description |
 |---------|-------------|
 | `doctor` | Run diagnostic health check on BigQuery table and configuration |
-| `evaluate` | Run code-based or LLM evaluation over agent session traces |
+| `evaluate` | Run code-based evaluation over agent sessions (6 evaluators) |
 | `get-trace` | Retrieve and display a single session trace |
 | `list-traces` | List recent traces matching filter criteria |
 | `insights` | Generate comprehensive agent insights report |
 | `drift` | Run drift detection against a golden question set |
-| `distribution` | Analyze question distribution patterns |
+| `distribution` | Analyze event distribution patterns |
 | `hitl-metrics` | Show human-in-the-loop interaction metrics |
-| `views` | Create per-event-type BigQuery views (18 event types) |
+| `views create-all` | Create all 18 per-event-type BigQuery views |
+| `views create` | Create a single per-event-type BigQuery view |
+| `categorical-eval` | Run categorical (LLM-based) evaluation over traces |
+| `categorical-views` | Create dashboard views over categorical eval results |
 
 ## References
 
@@ -565,7 +589,7 @@ Detailed command docs are in the `references/` subdirectory:
 | `--last TEXT` | Time window: `1h`, `24h`, `7d`, `30d` |
 | `--agent-id TEXT` | Filter by agent name |
 | `--format TEXT` | Output: `json` (default), `table`, `text` |
-| `--exit-code` | Return exit code 1 on evaluation failure |
+| `--exit-code` | Return exit code 1 on evaluation failure (exit 2 for infra errors) |
 ```
 
 #### Example: Router Skill `dcx-analytics/SKILL.md` (abridged)
@@ -1015,21 +1039,39 @@ and databases. They validate profile/source type compatibility before
 auth, and support `json`, `table`, and `text` output formats.
 Implementation: `src/commands/database_helpers.rs`.
 
+**SDK alignment (Milestones A–E):** All 12 SDK CLI commands are present in
+`dcx analytics`. All 6 code evaluators are implemented. Exit codes match SDK
+semantics (0=success, 1=eval failure, 2=infra error). Remaining intentional
+divergences (e.g. `llm-judge` not yet functional, `--trace-id` as alias,
+warning-only flags) are documented in the generated compatibility contract.
+A CI contract-check job detects stale contracts, and a weekly sync workflow
+opens PRs when the upstream SDK changes. See
+[docs/analytics_sdk_alignment_plan.md](docs/analytics_sdk_alignment_plan.md)
+for the full plan and [docs/analytics_sdk_contract.md](docs/analytics_sdk_contract.md)
+for the generated contract with per-flag parity status.
+
 **Exit criteria:** `dcx` supports direct, structured, non-CA commands for
 Looker, Spanner, AlloyDB, and Cloud SQL in addition to the existing BigQuery
-command surface.
+command surface. Analytics SDK alignment is complete with automated drift
+detection.
 
 See [PHASE5_PLAN.md](PHASE5_PLAN.md) for the full plan.
 
 ### Testing Strategy
 
+513 tests across 15 test binaries:
+
 - **Unit tests:** Core parsing, auth resolution, output formatting
-- **Integration tests:** Golden-file tests comparing CLI output against
-  expected JSON/table snapshots
+- **Integration tests:** Golden-file / snapshot tests comparing CLI output
+  against expected JSON/table snapshots
 - **API mocking:** Record/replay via [`wiremock`](https://crates.io/crates/wiremock)
   for BigQuery API calls; no live GCP dependency in CI
+- **Contract tests:** Output-key regression tests for all analytics result
+  structs, exit-code assertions matching SDK semantics
 - **End-to-end:** Optional `--live` test suite against a dedicated GCP
   project for pre-release validation
+- **SDK contract CI:** `contract-check` job regenerates the SDK compatibility
+  contract from checked-in fixtures and fails if results differ
 
 ---
 

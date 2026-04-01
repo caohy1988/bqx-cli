@@ -36,7 +36,31 @@ dcx analytics evaluate \
   --project-id PROJECT --dataset-id DATASET --format json
 ```
 
-### Step 3: Capture results as artifacts
+### Step 3: Add TTFT and cost gates
+
+```bash
+dcx analytics evaluate \
+  --evaluator ttft --threshold 3000 --last 1h \
+  --exit-code \
+  --project-id PROJECT --dataset-id DATASET --format json
+
+dcx analytics evaluate \
+  --evaluator cost --threshold 1.0 --last 1h \
+  --exit-code \
+  --project-id PROJECT --dataset-id DATASET --format json
+```
+
+### Step 4: Add drift coverage gate
+
+```bash
+dcx analytics drift \
+  --golden-dataset golden_questions \
+  --min-coverage 0.8 \
+  --exit-code \
+  --project-id PROJECT --dataset-id DATASET
+```
+
+### Step 5: Capture results as artifacts
 
 ```bash
 dcx analytics evaluate --evaluator latency --threshold 3000 --last 1h \
