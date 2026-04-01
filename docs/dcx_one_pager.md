@@ -143,7 +143,7 @@ With `bq`, the agent invents the workflow. With `dcx` , the workflow is part of 
 
 This is not a proposal. I have already built and shipped a working prototype.
 
-The prototype is at v0.5.0 with 526 tests, 14 consolidated agent skills, and release binaries for 6 platforms (macOS, Linux, Windows — x64 and ARM64). It covers five command domains:
+The prototype is at v0.5.0 with 513 tests, 14 consolidated agent skills, and release binaries for 6 platforms (macOS, Linux, Windows — x64 and ARM64). It covers five command domains:
 
 - **Dynamic Data Cloud API** — BigQuery (datasets, tables, routines, models), Spanner, AlloyDB, Cloud SQL, Looker — all generated from bundled Discovery documents
 - **Agent Analytics** — 12 commands aligned with the upstream BigQuery Agent Analytics SDK: doctor, evaluate (6 evaluators), get-trace, list-traces, insights, drift, distribution, hitl-metrics, views, categorical-eval, categorical-views

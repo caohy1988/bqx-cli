@@ -446,7 +446,7 @@ generated from Discovery API metadata and 9 curated.
 | Phase 2 (complete) | Dynamic BigQuery API commands from Discovery Document, `generate-skills`, 19 skills, `--sanitize` (Model Armor), Gemini extension manifest | `bq` commands are static Python; cannot generate skills from API metadata |
 | Phase 3 (complete) | Conversational Analytics (`dcx ca ask`), natural language → SQL for BigQuery, 26 skills | `bq` has no CA integration; requires a new command domain |
 | Phase 4 (complete) | Multi-source CA (Looker, AlloyDB, Spanner, Cloud SQL), source profiles | `bq` is BigQuery-only; cannot span Data Cloud sources |
-| Phase 5 (complete) | Native Data Cloud commands, SDK alignment (all 12 SDK commands, 6 evaluators, exit-code parity, drift automation), 14 consolidated skills, 526 tests | `bq` has no analytics SDK, no skill format, no drift detection |
+| Phase 5 (complete) | Native Data Cloud commands, SDK alignment (all 12 SDK commands, 6 evaluators, exit-code parity, drift automation), 14 consolidated skills, 513 tests | `bq` has no analytics SDK, no skill format, no drift detection |
 
 Each phase increases the gap between what `dcx` can do natively and what
 would need to be shimmed on top of `bq`.

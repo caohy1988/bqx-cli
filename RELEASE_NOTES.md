@@ -9,10 +9,12 @@ Conversational Analytics, users and agents can run first-class,
 source-native commands for Looker, Spanner, AlloyDB, and Cloud SQL
 without dropping to `gcloud` or ad-hoc wrappers.
 
-**Analytics SDK alignment is now complete.** All 5 milestones
-(A–E) of the SDK alignment plan have been implemented, ensuring
-`dcx analytics` tracks the upstream BigQuery Agent Analytics SDK
-as the authoritative product contract.
+**Analytics SDK alignment milestones A–E are complete.** All 12 SDK
+CLI commands are present, all 6 code evaluators implemented, and exit
+codes match SDK semantics. Remaining intentional divergences (e.g.
+`llm-judge` not yet functional, warning-only flags) are documented in
+the generated compatibility contract. Automated drift detection ensures
+the two surfaces do not silently diverge.
 
 ### New: Direct Source Commands
 
@@ -88,7 +90,7 @@ See `docs/source-matrix.md` for the full cross-source command matrix.
 
 ### New: Analytics SDK Alignment (Milestones A–E)
 
-Full parity with the upstream BigQuery Agent Analytics SDK:
+All 12 SDK CLI commands present; remaining intentional divergences documented:
 
 - **Contract generator** — `scripts/parse_sdk_cli.py` parses upstream
   `cli.py` and `SDK.md`, generates `analytics_sdk_contract.json` and
@@ -106,7 +108,7 @@ Full parity with the upstream BigQuery Agent Analytics SDK:
 
 ### Test Count
 
-526 tests (was 459 in v0.4.0)
+513 tests (was 459 in v0.4.0)
 
 ---
 

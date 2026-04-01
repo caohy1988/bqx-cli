@@ -296,8 +296,10 @@ dcx looker dashboards get --profile=sales-looker --dashboard-id=42
 
 Wraps the BigQuery Agent Analytics SDK. Commands are compiled into the
 binary (not dynamically generated) since they don't come from a Discovery
-Document. All 12 SDK CLI commands are supported with full flag, evaluator,
-output, and exit-code parity.
+Document. All 12 SDK CLI commands are present. Remaining differences
+(e.g. `--trace-id` as alias, `llm-judge` not yet functional, warning-only
+flags like `--criterion`/`--strict`) are documented as intentional
+divergences in the generated compatibility contract.
 
 **Exit codes:** 0 = success, 1 = evaluation failure (`--exit-code`),
 2 = infrastructure error. Matches the upstream SDK semantics.
@@ -1037,14 +1039,16 @@ and databases. They validate profile/source type compatibility before
 auth, and support `json`, `table`, and `text` output formats.
 Implementation: `src/commands/database_helpers.rs`.
 
-**SDK alignment (Milestones A–E):** `dcx analytics` is now fully aligned
-with the upstream BigQuery Agent Analytics SDK. All 12 SDK CLI commands are
-present. All 6 code evaluators implemented. Exit codes match SDK semantics
-(0=success, 1=eval failure, 2=infra error). A CI contract-check job detects
-stale contracts, and a weekly sync workflow opens PRs when the upstream SDK
-changes. See [docs/analytics_sdk_alignment_plan.md](docs/analytics_sdk_alignment_plan.md)
+**SDK alignment (Milestones A–E):** All 12 SDK CLI commands are present in
+`dcx analytics`. All 6 code evaluators are implemented. Exit codes match SDK
+semantics (0=success, 1=eval failure, 2=infra error). Remaining intentional
+divergences (e.g. `llm-judge` not yet functional, `--trace-id` as alias,
+warning-only flags) are documented in the generated compatibility contract.
+A CI contract-check job detects stale contracts, and a weekly sync workflow
+opens PRs when the upstream SDK changes. See
+[docs/analytics_sdk_alignment_plan.md](docs/analytics_sdk_alignment_plan.md)
 for the full plan and [docs/analytics_sdk_contract.md](docs/analytics_sdk_contract.md)
-for the generated compatibility contract.
+for the generated contract with per-flag parity status.
 
 **Exit criteria:** `dcx` supports direct, structured, non-CA commands for
 Looker, Spanner, AlloyDB, and Cloud SQL in addition to the existing BigQuery
@@ -1055,9 +1059,9 @@ See [PHASE5_PLAN.md](PHASE5_PLAN.md) for the full plan.
 
 ### Testing Strategy
 
-526 tests across 15 test binaries:
+513 tests across 15 test binaries:
 
-- **Unit tests:** Core parsing, auth resolution, output formatting (170 tests)
+- **Unit tests:** Core parsing, auth resolution, output formatting
 - **Integration tests:** Golden-file / snapshot tests comparing CLI output
   against expected JSON/table snapshots
 - **API mocking:** Record/replay via [`wiremock`](https://crates.io/crates/wiremock)
