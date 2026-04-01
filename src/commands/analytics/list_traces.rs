@@ -126,6 +126,9 @@ async fn build_list_traces(
     if let Some(id) = agent_id {
         config::validate_agent_id(id)?;
     }
+    if let Some(id) = session_id {
+        config::validate_session_id(id)?;
+    }
     let parsed = config::parse_duration(last)?;
     let dataset_id = config.require_dataset_id()?;
 
@@ -216,6 +219,9 @@ pub async fn run(
 ) -> Result<()> {
     if let Some(ref id) = agent_id {
         config::validate_agent_id(id)?;
+    }
+    if let Some(ref id) = session_id {
+        config::validate_session_id(id)?;
     }
     config::parse_duration(&last)?;
     config.require_dataset_id()?;

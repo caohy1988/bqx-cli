@@ -228,7 +228,8 @@
           "sdk_required": false,
           "sdk_default": "correctness",
           "sdk_env": null,
-          "status": "exact"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (LLM-judge only)"
         },
         {
           "sdk_flag": "--agent-id",
@@ -270,7 +271,8 @@
           "sdk_required": false,
           "sdk_default": false,
           "sdk_env": null,
-          "status": "exact"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (LLM-judge only)"
         },
         {
           "sdk_flag": "--endpoint",
@@ -383,8 +385,8 @@
           "sdk_required": false,
           "sdk_default": 100,
           "sdk_env": null,
-          "status": "semantic_mismatch",
-          "note": "SDK default=100, dcx default='100'"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (aggregate query)"
         },
         {
           "sdk_flag": "--max-sessions",
@@ -392,8 +394,8 @@
           "sdk_required": false,
           "sdk_default": 50,
           "sdk_env": null,
-          "status": "semantic_mismatch",
-          "note": "SDK default=50, dcx default='50'"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (aggregate query)"
         },
         {
           "sdk_flag": "--format",
@@ -498,8 +500,8 @@
           "sdk_required": false,
           "sdk_default": 100,
           "sdk_env": null,
-          "status": "semantic_mismatch",
-          "note": "SDK default=100, dcx default='100'"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns at runtime (coverage requires all golden questions)"
         },
         {
           "sdk_flag": "--format",
@@ -617,7 +619,8 @@
           "sdk_required": false,
           "sdk_default": "auto_group_using_semantics",
           "sdk_env": null,
-          "status": "exact"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns when non-default value provided"
         },
         {
           "sdk_flag": "--top-k",
@@ -625,8 +628,8 @@
           "sdk_required": false,
           "sdk_default": 20,
           "sdk_env": null,
-          "status": "semantic_mismatch",
-          "note": "SDK default=20, dcx default='20'"
+          "status": "intentional_divergence",
+          "note": "accepted for CLI parity; warns when non-default value provided"
         },
         {
           "sdk_flag": "--format",
@@ -1450,6 +1453,30 @@
       "dcx": "treated as alias for --session-id",
       "sdk": "separate lookup by trace ID",
       "reason": "dcx events table uses session_id as primary key; trace_id mapped to same query"
+    },
+    {
+      "item": "evaluate --criterion / --strict",
+      "dcx": "flags accepted; warns when non-default values are provided",
+      "sdk": "configures LLM-judge evaluation criterion and strictness",
+      "reason": "only applies to llm-judge evaluator, which is not yet implemented"
+    },
+    {
+      "item": "distribution --mode / --top-k (runtime)",
+      "dcx": "flags accepted; warns when non-default values are provided",
+      "sdk": "controls semantic grouping mode and top-k selection",
+      "reason": "semantic analysis modes require LLM; dcx provides event-type distribution with LIMIT"
+    },
+    {
+      "item": "insights --limit / --max-sessions",
+      "dcx": "flags accepted; warns at runtime (aggregate query)",
+      "sdk": "limits events or sessions queried",
+      "reason": "insights is an aggregate query; limiting would produce incomplete aggregates"
+    },
+    {
+      "item": "drift --limit",
+      "dcx": "flag accepted; warns at runtime",
+      "sdk": "limits events queried",
+      "reason": "coverage calculation requires evaluating all golden questions"
     }
   ]
 }

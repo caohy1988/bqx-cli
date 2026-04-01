@@ -2229,3 +2229,23 @@ fn build_list_traces_query_with_session_filter() {
     assert!(sql.contains("AND session_id = 'sess-42'"));
     assert!(sql.contains("LIMIT 100"));
 }
+
+#[tokio::test]
+async fn list_traces_rejects_invalid_session_id() {
+    let executor = MockExecutor::empty(vec![("session_id", "STRING")]);
+    let config = test_config(OutputFormat::Json);
+    let result = dcx::commands::analytics::list_traces::run_with_executor(
+        &executor,
+        "24h".into(),
+        Some("bad/session".into()),
+        None,
+        100,
+        &config,
+    )
+    .await;
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("Invalid session_id"));
+}

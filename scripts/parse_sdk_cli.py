@@ -655,6 +655,30 @@ KNOWN_DIVERGENCES: list[dict[str, str]] = [
         "sdk": "separate lookup by trace ID",
         "reason": "dcx events table uses session_id as primary key; trace_id mapped to same query",
     },
+    {
+        "item": "evaluate --criterion / --strict",
+        "dcx": "flags accepted; warns when non-default values are provided",
+        "sdk": "configures LLM-judge evaluation criterion and strictness",
+        "reason": "only applies to llm-judge evaluator, which is not yet implemented",
+    },
+    {
+        "item": "distribution --mode / --top-k (runtime)",
+        "dcx": "flags accepted; warns when non-default values are provided",
+        "sdk": "controls semantic grouping mode and top-k selection",
+        "reason": "semantic analysis modes require LLM; dcx provides event-type distribution with LIMIT",
+    },
+    {
+        "item": "insights --limit / --max-sessions",
+        "dcx": "flags accepted; warns at runtime (aggregate query)",
+        "sdk": "limits events or sessions queried",
+        "reason": "insights is an aggregate query; limiting would produce incomplete aggregates",
+    },
+    {
+        "item": "drift --limit",
+        "dcx": "flag accepted; warns at runtime",
+        "sdk": "limits events queried",
+        "reason": "coverage calculation requires evaluating all golden questions",
+    },
 ]
 
 
@@ -664,6 +688,39 @@ KNOWN_DIVERGENCES: list[dict[str, str]] = [
 # Canonical flag name mapping: SDK name -> dcx name (where they differ)
 FLAG_RENAMES = {
     "--table-id": "--table",
+}
+
+# Flags that are present in dcx but only as placeholders (accepted, warned at
+# runtime).  Maps (command, flag) -> override dict merged into the classification.
+FLAG_OVERRIDES: dict[tuple[str, str], dict] = {
+    ("evaluate", "--criterion"): {
+        "status": "intentional_divergence",
+        "note": "accepted for CLI parity; warns at runtime (LLM-judge only)",
+    },
+    ("evaluate", "--strict"): {
+        "status": "intentional_divergence",
+        "note": "accepted for CLI parity; warns at runtime (LLM-judge only)",
+    },
+    ("distribution", "--mode"): {
+        "status": "intentional_divergence",
+        "note": "accepted for CLI parity; warns when non-default value provided",
+    },
+    ("distribution", "--top-k"): {
+        "status": "intentional_divergence",
+        "note": "accepted for CLI parity; warns when non-default value provided",
+    },
+    ("insights", "--limit"): {
+        "status": "intentional_divergence",
+        "note": "accepted for CLI parity; warns at runtime (aggregate query)",
+    },
+    ("insights", "--max-sessions"): {
+        "status": "intentional_divergence",
+        "note": "accepted for CLI parity; warns at runtime (aggregate query)",
+    },
+    ("drift", "--limit"): {
+        "status": "intentional_divergence",
+        "note": "accepted for CLI parity; warns at runtime (coverage requires all golden questions)",
+    },
 }
 
 
@@ -717,8 +774,15 @@ def _build_exit_codes(sdk_md: dict | None) -> dict:
     }
 
 
-def _classify_flag(sdk_flag: str, sdk_info: dict, dcx_flags: dict) -> dict:
+def _classify_flag(
+    sdk_flag: str, sdk_info: dict, dcx_flags: dict, command_name: str = "",
+) -> dict:
     """Classify a single SDK flag against dcx, comparing semantics."""
+    # Check for manual overrides first (placeholder / warning-only flags).
+    override = FLAG_OVERRIDES.get((command_name, sdk_flag))
+    if override is not None:
+        return dict(override)
+
     dcx_match, match_type = _resolve_dcx_flag(sdk_flag, dcx_flags)
 
     if match_type == "not_found":
@@ -779,7 +843,7 @@ def generate_contract(
 
         flag_map = []
         for flag_name, flag_info in sdk_cmd.get("flags", {}).items():
-            fc = _classify_flag(flag_name, flag_info, dcx_flags)
+            fc = _classify_flag(flag_name, flag_info, dcx_flags, sdk_name)
             flag_map.append({
                 "sdk_flag": flag_name,
                 "sdk_type": flag_info.get("type", "unknown"),
