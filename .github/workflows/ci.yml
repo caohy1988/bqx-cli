@@ -55,7 +55,8 @@ jobs:
           ./scripts/update_analytics_sdk_contract.sh --local
       - name: Fail if contract is stale
         run: |
-          if ! git diff --quiet -- docs/analytics_sdk_contract.md tests/fixtures/analytics_sdk_contract.json; then
+          # Ignore the "generated" date line — it changes daily and is cosmetic.
+          if ! git diff --quiet -I '"generated":' -I '^Generated:' -- docs/analytics_sdk_contract.md tests/fixtures/analytics_sdk_contract.json; then
             echo "::error::SDK contract is stale. Run './scripts/update_analytics_sdk_contract.sh --local' and commit the result."
             git diff --stat -- docs/analytics_sdk_contract.md tests/fixtures/analytics_sdk_contract.json
             exit 1
