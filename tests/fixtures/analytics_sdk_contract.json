@@ -2,6 +2,7 @@
   "generated": "2026-03-31",
   "upstream_repo": "haiyuan-eng-google/BigQuery-Agent-Analytics-SDK",
   "upstream_branch": "main",
+  "upstream_sha": "5bc8876b73841ea20d24b6606fcff39a6e22b419",
   "commands": [
     {
       "sdk_command": "doctor",
