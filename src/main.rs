@@ -5,8 +5,8 @@ use dcx::auth;
 use dcx::bigquery::discovery::{self, DiscoverySource};
 use dcx::bigquery::dynamic::{clap_tree, executor, model, service};
 use dcx::cli::{
-    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, OutputFormat,
-    ProfilesCommand, ShellType, ViewsCommand,
+    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, MetaCommand,
+    OutputFormat, ProfilesCommand, ShellType, ViewsCommand,
 };
 use dcx::commands;
 use dcx::config::{self, Config};
@@ -21,6 +21,7 @@ const STATIC_COMMANDS: &[&str] = &[
     "generate-skills",
     "completions",
     "profiles",
+    "meta",
 ];
 
 /// A loaded service with its generated commands and base URL.
@@ -428,6 +429,53 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         return;
     }
 
+    // meta commands don't need project/dataset config
+    if let Command::Meta { ref command } = cli.command {
+        // Build the full augmented command tree (static + dynamic + namespace helpers).
+        let mut app = Cli::command();
+        for svc in services {
+            let global_params = svc.config.global_param_names();
+            let dynamic_clap = clap_tree::build_dynamic_commands(
+                &svc.commands,
+                &global_params,
+                svc.config.service_label,
+            );
+            if svc.config.namespace.is_empty() {
+                for sub in dynamic_clap {
+                    if !STATIC_COMMANDS.contains(&sub.get_name()) {
+                        app = app.subcommand(sub);
+                    }
+                }
+            } else {
+                let ns_cmd = clap::Command::new(svc.config.namespace)
+                    .about(format!(
+                        "{} operations (generated from API)",
+                        svc.config.service_label
+                    ))
+                    .subcommand_required(true)
+                    .arg_required_else_help(true)
+                    .subcommands(dynamic_clap);
+                let ns_cmd = commands::database_helpers::augment_namespace_command(
+                    svc.config.namespace,
+                    ns_cmd,
+                );
+                app = app.subcommand(ns_cmd);
+            }
+        }
+
+        let result = match command {
+            MetaCommand::Commands => commands::meta::run_commands(&app, &cli.format),
+            MetaCommand::Describe { path } => {
+                commands::meta::run_describe(&app, path, &cli.format)
+            }
+        };
+        if let Err(e) = result {
+            eprintln!("{}", json!({"error": e.to_string()}));
+            std::process::exit(1);
+        }
+        return;
+    }
+
     // ca ask --profile bypasses Config::from_cli() because the profile
     // supplies its own project/location — no --project-id required.
     if let Command::Ca {
@@ -677,7 +725,8 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         Command::Auth { .. }
         | Command::GenerateSkills { .. }
         | Command::Completions { .. }
-        | Command::Profiles { .. } => {
+        | Command::Profiles { .. }
+        | Command::Meta { .. } => {
             unreachable!()
         }
     };

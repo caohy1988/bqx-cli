@@ -83,6 +83,11 @@ pub enum Command {
         #[command(subcommand)]
         command: ProfilesCommand,
     },
+    /// Machine-readable command contract introspection
+    Meta {
+        #[command(subcommand)]
+        command: MetaCommand,
+    },
 }
 
 #[derive(Clone, ValueEnum)]
@@ -90,6 +95,18 @@ pub enum ShellType {
     Bash,
     Zsh,
     Fish,
+}
+
+#[derive(Subcommand)]
+pub enum MetaCommand {
+    /// List all commands with domain and synopsis
+    Commands,
+    /// Describe a single command's full contract
+    Describe {
+        /// Command path segments (e.g., analytics evaluate)
+        #[arg(required = true)]
+        path: Vec<String>,
+    },
 }
 
 #[derive(Subcommand)]
