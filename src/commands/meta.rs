@@ -34,8 +34,18 @@ pub struct CommandContract {
     synopsis: String,
     flags: Vec<FlagContract>,
     global_flags: Vec<FlagContract>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    constraints: Vec<FlagConstraint>,
     output: OutputContract,
     exit_codes: BTreeMap<String, String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct FlagConstraint {
+    #[serde(rename = "type")]
+    constraint_type: &'static str,
+    flags: Vec<String>,
+    description: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -132,6 +142,19 @@ fn print_describe_text(c: &CommandContract) {
         println!("  Global flags:");
         for f in &c.global_flags {
             print_flag(f);
+        }
+        println!();
+    }
+
+    if !c.constraints.is_empty() {
+        println!("  Constraints:");
+        for con in &c.constraints {
+            println!(
+                "    [{}] {} — {}",
+                con.constraint_type,
+                con.flags.join(", "),
+                con.description
+            );
         }
         println!();
     }
@@ -235,6 +258,7 @@ fn extract_contract(
         synopsis,
         flags,
         global_flags: relevant_globals,
+        constraints: behavior.constraints,
         output: OutputContract {
             formats: behavior
                 .formats
@@ -373,6 +397,8 @@ struct RuntimeBehavior {
     exit_codes: BTreeMap<String, String>,
     /// Which global flag names this command actually reads.
     relevant_globals: &'static [&'static str],
+    /// Flag relationship constraints (mutual exclusion, one-of-required).
+    constraints: Vec<FlagConstraint>,
 }
 
 fn exit_codes(entries: &[(&str, &str)]) -> BTreeMap<String, String> {
@@ -394,17 +420,23 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             formats: vec![],
             exit_codes: exit_codes(&[("0", "success")]),
             relevant_globals: &[],
+            constraints: vec![],
         },
 
-        // ── auth: no structured output, early return with exit 1 ────
+        // ── auth status: always exits 0 (reports status to stderr) ──
+        "auth" if second == "status" => RuntimeBehavior {
+            formats: vec![],
+            exit_codes: exit_codes(&[("0", "success")]),
+            relevant_globals: AUTH_GLOBALS,
+            constraints: vec![],
+        },
+
+        // ── auth login/logout: no structured output, exit 0/1 ───────
         "auth" => RuntimeBehavior {
             formats: vec![],
             exit_codes: exit_codes(&[("0", "success"), ("1", "error")]),
-            relevant_globals: if second == "status" {
-                AUTH_GLOBALS
-            } else {
-                &[]
-            },
+            relevant_globals: &[],
+            constraints: vec![],
         },
 
         // ── utility / admin: format-only, early return with exit 1 ──
@@ -412,6 +444,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             formats: vec!["json", "table", "text"],
             exit_codes: exit_codes(&[("0", "success"), ("1", "error")]),
             relevant_globals: &["--format"],
+            constraints: vec![],
         },
 
         // ── analytics evaluate / drift: SDK-aligned exit codes ──────
@@ -423,6 +456,40 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
                 ("2", "infrastructure error"),
             ]),
             relevant_globals: DATA_GLOBALS,
+            constraints: vec![],
+        },
+
+        // ── analytics get-trace: one-of-required constraint ─────────
+        "analytics" if second == "get-trace" => RuntimeBehavior {
+            formats: vec!["json", "table", "text"],
+            exit_codes: exit_codes(&[
+                ("0", "success"),
+                ("1", "error"),
+                ("2", "infrastructure error"),
+            ]),
+            relevant_globals: DATA_GLOBALS,
+            constraints: vec![FlagConstraint {
+                constraint_type: "one_of_required",
+                flags: vec!["--session-id".into(), "--trace-id".into()],
+                description: "Provide --session-id or --trace-id".into(),
+            }],
+        },
+
+        // ── ca ask: --profile is mutually exclusive with --agent/--tables
+        "ca" if second == "ask" => RuntimeBehavior {
+            formats: vec!["json", "table", "text"],
+            exit_codes: exit_codes(&[
+                ("0", "success"),
+                ("1", "error"),
+                ("2", "infrastructure error"),
+            ]),
+            relevant_globals: DATA_GLOBALS,
+            constraints: vec![FlagConstraint {
+                constraint_type: "mutually_exclusive",
+                flags: vec!["--profile".into(), "--agent".into(), "--tables".into()],
+                description: "--profile cannot be combined with --agent or --tables"
+                    .into(),
+            }],
         },
 
         // ── namespace helpers: profile-based, early return exit 1 ───
@@ -430,10 +497,11 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             formats: vec!["json", "table", "text"],
             exit_codes: exit_codes(&[("0", "success"), ("1", "error")]),
             relevant_globals: HELPER_GLOBALS,
+            constraints: vec![],
         },
 
         // ── all other data commands: general handler, exit 0/1/2 ────
-        // Includes: jobs, ca, analytics (non-evaluate/drift), dynamic
+        // Includes: jobs, ca (non-ask), analytics (non-evaluate/drift/get-trace), dynamic
         _ => RuntimeBehavior {
             formats: vec!["json", "table", "text"],
             exit_codes: exit_codes(&[
@@ -442,6 +510,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
                 ("2", "infrastructure error"),
             ]),
             relevant_globals: DATA_GLOBALS,
+            constraints: vec![],
         },
     }
 }
@@ -498,31 +567,6 @@ mod tests {
                     .help("Bearer token"),
             )
             .subcommand(
-                clap::Command::new("analytics").subcommand(
-                    clap::Command::new("evaluate")
-                        .about("Evaluate agent sessions against a threshold")
-                        .arg(
-                            clap::Arg::new("evaluator")
-                                .long("evaluator")
-                                .required(true)
-                                .value_parser(["latency", "error-rate"])
-                                .help("Evaluator type"),
-                        )
-                        .arg(
-                            clap::Arg::new("threshold")
-                                .long("threshold")
-                                .required(true)
-                                .help("Pass/fail threshold"),
-                        )
-                        .arg(
-                            clap::Arg::new("exit-code")
-                                .long("exit-code")
-                                .action(clap::ArgAction::SetTrue)
-                                .help("Return exit code 1 on failure"),
-                        ),
-                ),
-            )
-            .subcommand(
                 clap::Command::new("datasets").subcommand(
                     clap::Command::new("list").about("Lists all datasets in the specified project"),
                 ),
@@ -541,6 +585,52 @@ mod tests {
                 clap::Command::new("profiles").subcommand(
                     clap::Command::new("list").about("List all discoverable profiles"),
                 ),
+            )
+            .subcommand(
+                clap::Command::new("ca").subcommand(
+                    clap::Command::new("ask")
+                        .about("Ask a natural language question via Conversational Analytics")
+                        .arg(clap::Arg::new("question").required(true))
+                        .arg(clap::Arg::new("profile").long("profile"))
+                        .arg(clap::Arg::new("agent").long("agent"))
+                        .arg(
+                            clap::Arg::new("tables")
+                                .long("tables")
+                                .value_delimiter(','),
+                        ),
+                ),
+            )
+            .subcommand(
+                clap::Command::new("analytics")
+                    .subcommand(
+                        clap::Command::new("evaluate")
+                            .about("Evaluate agent sessions against a threshold")
+                            .arg(
+                                clap::Arg::new("evaluator")
+                                    .long("evaluator")
+                                    .required(true)
+                                    .value_parser(["latency", "error-rate"])
+                                    .help("Evaluator type"),
+                            )
+                            .arg(
+                                clap::Arg::new("threshold")
+                                    .long("threshold")
+                                    .required(true)
+                                    .help("Pass/fail threshold"),
+                            )
+                            .arg(
+                                clap::Arg::new("exit-code")
+                                    .long("exit-code")
+                                    .action(clap::ArgAction::SetTrue)
+                                    .help("Return exit code 1 on failure"),
+                            ),
+                    )
+                    .subcommand(
+                        clap::Command::new("get-trace")
+                            .about("Retrieve a session trace")
+                            .arg(clap::Arg::new("session-id").long("session-id"))
+                            .arg(clap::Arg::new("trace-id").long("trace-id")),
+                    ),
             )
     }
 
@@ -621,6 +711,29 @@ mod tests {
             login.global_flags.is_empty(),
             "auth login should have no global flags"
         );
+        assert!(login.exit_codes.contains_key("1"), "auth login can exit 1");
+    }
+
+    #[test]
+    fn auth_status_always_exits_zero() {
+        let app = sample_app();
+        // Add auth status to the sample app
+        let app = app.mut_subcommand("auth", |auth| {
+            auth.subcommand(clap::Command::new("status").about("Show current authentication status"))
+        });
+        let contracts = collect_all(&app);
+        let status = contracts
+            .iter()
+            .find(|c| c.command == "dcx auth status")
+            .unwrap();
+        assert!(
+            status.exit_codes.get("1").is_none(),
+            "auth status always returns Ok — should not advertise exit 1"
+        );
+        assert_eq!(status.exit_codes.get("0").unwrap(), "success");
+        // auth status reads --token and --credentials-file
+        let global_names: Vec<&str> = status.global_flags.iter().map(|f| f.name.as_str()).collect();
+        assert!(global_names.contains(&"--token"));
     }
 
     #[test]
@@ -739,5 +852,45 @@ mod tests {
         assert!(is_namespace_helper(&["alloydb", "databases", "list"]));
         assert!(!is_namespace_helper(&["spanner", "instances", "list"]));
         assert!(!is_namespace_helper(&["datasets", "list"]));
+    }
+
+    #[test]
+    fn ca_ask_has_mutual_exclusion_constraint() {
+        let app = sample_app();
+        let contracts = collect_all(&app);
+        let ask = contracts
+            .iter()
+            .find(|c| c.command == "dcx ca ask")
+            .unwrap();
+        assert_eq!(ask.constraints.len(), 1);
+        assert_eq!(ask.constraints[0].constraint_type, "mutually_exclusive");
+        assert!(ask.constraints[0].flags.contains(&"--profile".to_string()));
+        assert!(ask.constraints[0].flags.contains(&"--agent".to_string()));
+        assert!(ask.constraints[0].flags.contains(&"--tables".to_string()));
+    }
+
+    #[test]
+    fn analytics_get_trace_has_one_of_required_constraint() {
+        let app = sample_app();
+        let contracts = collect_all(&app);
+        let trace = contracts
+            .iter()
+            .find(|c| c.command == "dcx analytics get-trace")
+            .unwrap();
+        assert_eq!(trace.constraints.len(), 1);
+        assert_eq!(trace.constraints[0].constraint_type, "one_of_required");
+        assert!(trace.constraints[0].flags.contains(&"--session-id".to_string()));
+        assert!(trace.constraints[0].flags.contains(&"--trace-id".to_string()));
+    }
+
+    #[test]
+    fn unconstrained_commands_have_no_constraints() {
+        let app = sample_app();
+        let contracts = collect_all(&app);
+        let ds = contracts
+            .iter()
+            .find(|c| c.command == "dcx datasets list")
+            .unwrap();
+        assert!(ds.constraints.is_empty());
     }
 }
