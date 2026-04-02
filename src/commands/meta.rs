@@ -237,10 +237,7 @@ fn extract_contract(
 ) -> CommandContract {
     let command = format!("dcx {}", path.join(" "));
     let domain = infer_domain(path);
-    let synopsis = cmd
-        .get_about()
-        .map(|s| s.to_string())
-        .unwrap_or_default();
+    let synopsis = cmd.get_about().map(|s| s.to_string()).unwrap_or_default();
     let flags = extract_flags(cmd);
     let behavior = runtime_behavior(path);
 
@@ -260,11 +257,7 @@ fn extract_contract(
         global_flags: relevant_globals,
         constraints: behavior.constraints,
         output: OutputContract {
-            formats: behavior
-                .formats
-                .iter()
-                .map(|s| s.to_string())
-                .collect(),
+            formats: behavior.formats.iter().map(|s| s.to_string()).collect(),
         },
         exit_codes: behavior.exit_codes,
     }
@@ -487,8 +480,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             constraints: vec![FlagConstraint {
                 constraint_type: "mutually_exclusive",
                 flags: vec!["--profile".into(), "--agent".into(), "--tables".into()],
-                description: "--profile cannot be combined with --agent or --tables"
-                    .into(),
+                description: "--profile cannot be combined with --agent or --tables".into(),
             }],
         },
 
@@ -566,11 +558,9 @@ mod tests {
                     .env("DCX_TOKEN")
                     .help("Bearer token"),
             )
-            .subcommand(
-                clap::Command::new("datasets").subcommand(
-                    clap::Command::new("list").about("Lists all datasets in the specified project"),
-                ),
-            )
+            .subcommand(clap::Command::new("datasets").subcommand(
+                clap::Command::new("list").about("Lists all datasets in the specified project"),
+            ))
             .subcommand(
                 clap::Command::new("completions")
                     .about("Generate shell completion scripts")
@@ -582,9 +572,8 @@ mod tests {
                 ),
             )
             .subcommand(
-                clap::Command::new("profiles").subcommand(
-                    clap::Command::new("list").about("List all discoverable profiles"),
-                ),
+                clap::Command::new("profiles")
+                    .subcommand(clap::Command::new("list").about("List all discoverable profiles")),
             )
             .subcommand(
                 clap::Command::new("ca").subcommand(
@@ -593,11 +582,7 @@ mod tests {
                         .arg(clap::Arg::new("question").required(true))
                         .arg(clap::Arg::new("profile").long("profile"))
                         .arg(clap::Arg::new("agent").long("agent"))
-                        .arg(
-                            clap::Arg::new("tables")
-                                .long("tables")
-                                .value_delimiter(','),
-                        ),
+                        .arg(clap::Arg::new("tables").long("tables").value_delimiter(',')),
                 ),
             )
             .subcommand(
@@ -692,7 +677,7 @@ mod tests {
             comp.global_flags.is_empty(),
             "completions should have no global flags"
         );
-        assert!(comp.exit_codes.get("2").is_none());
+        assert!(!comp.exit_codes.contains_key("2"));
     }
 
     #[test]
@@ -719,7 +704,9 @@ mod tests {
         let app = sample_app();
         // Add auth status to the sample app
         let app = app.mut_subcommand("auth", |auth| {
-            auth.subcommand(clap::Command::new("status").about("Show current authentication status"))
+            auth.subcommand(
+                clap::Command::new("status").about("Show current authentication status"),
+            )
         });
         let contracts = collect_all(&app);
         let status = contracts
@@ -727,12 +714,16 @@ mod tests {
             .find(|c| c.command == "dcx auth status")
             .unwrap();
         assert!(
-            status.exit_codes.get("1").is_none(),
+            !status.exit_codes.contains_key("1"),
             "auth status always returns Ok — should not advertise exit 1"
         );
         assert_eq!(status.exit_codes.get("0").unwrap(), "success");
         // auth status reads --token and --credentials-file
-        let global_names: Vec<&str> = status.global_flags.iter().map(|f| f.name.as_str()).collect();
+        let global_names: Vec<&str> = status
+            .global_flags
+            .iter()
+            .map(|f| f.name.as_str())
+            .collect();
         assert!(global_names.contains(&"--token"));
     }
 
@@ -745,7 +736,10 @@ mod tests {
             .find(|c| c.command == "dcx profiles list")
             .unwrap();
         let global_names: Vec<&str> = prof.global_flags.iter().map(|f| f.name.as_str()).collect();
-        assert!(global_names.contains(&"--format"), "profiles should use --format");
+        assert!(
+            global_names.contains(&"--format"),
+            "profiles should use --format"
+        );
         assert!(
             !global_names.contains(&"--project-id"),
             "profiles should not include --project-id"
@@ -754,7 +748,7 @@ mod tests {
             !global_names.contains(&"--token"),
             "profiles should not include --token"
         );
-        assert!(prof.exit_codes.get("2").is_none());
+        assert!(!prof.exit_codes.contains_key("2"));
     }
 
     #[test]
@@ -879,8 +873,12 @@ mod tests {
             .unwrap();
         assert_eq!(trace.constraints.len(), 1);
         assert_eq!(trace.constraints[0].constraint_type, "one_of_required");
-        assert!(trace.constraints[0].flags.contains(&"--session-id".to_string()));
-        assert!(trace.constraints[0].flags.contains(&"--trace-id".to_string()));
+        assert!(trace.constraints[0]
+            .flags
+            .contains(&"--session-id".to_string()));
+        assert!(trace.constraints[0]
+            .flags
+            .contains(&"--trace-id".to_string()));
     }
 
     #[test]
