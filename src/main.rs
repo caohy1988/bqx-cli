@@ -5,8 +5,8 @@ use dcx::auth;
 use dcx::bigquery::discovery::{self, DiscoverySource};
 use dcx::bigquery::dynamic::{clap_tree, executor, model, service};
 use dcx::cli::{
-    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, MetaCommand,
-    OutputFormat, ProfilesCommand, ShellType, ViewsCommand,
+    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, MetaCommand, OutputFormat,
+    ProfilesCommand, ShellType, ViewsCommand,
 };
 use dcx::commands;
 use dcx::config::{self, Config};
@@ -465,9 +465,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
 
         let result = match command {
             MetaCommand::Commands => commands::meta::run_commands(&app, &cli.format),
-            MetaCommand::Describe { path } => {
-                commands::meta::run_describe(&app, path, &cli.format)
-            }
+            MetaCommand::Describe { path } => commands::meta::run_describe(&app, path, &cli.format),
         };
         if let Err(e) = result {
             eprintln!("{}", json!({"error": e.to_string()}));
