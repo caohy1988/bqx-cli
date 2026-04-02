@@ -1057,6 +1057,25 @@ detection.
 
 See [PHASE5_PLAN.md](PHASE5_PLAN.md) for the full plan.
 
+### Phase 6: Agent Contract Hardening and Bridge Layer (v0.6) — Proposed
+
+- [ ] Add `dcx meta commands` / `dcx meta describe ...` as a machine-readable
+  command contract
+- [ ] Standardize typed JSON errors, warnings, and pagination wrappers
+- [ ] Harden unattended execution: preflight validation, auth/profile checks,
+  broader dry-run / explain support
+- [ ] Generate skills and Gemini tool metadata from the shared command contract
+- [ ] Add task-level agent evals measuring success, retries, and parse failures
+- [ ] Optionally expose the same contract through `dcx mcp serve` for
+  non-shell runtimes
+
+**Exit criteria:** `dcx` describes its own commands and output schemas,
+integrations consume generated metadata instead of hand-copied flag docs,
+and task-level agent evals show that agents can use the CLI reliably across
+shell and non-shell runtimes.
+
+See [PHASE6_PLAN.md](PHASE6_PLAN.md) for the full plan.
+
 ### Testing Strategy
 
 513 tests across 15 test binaries:
