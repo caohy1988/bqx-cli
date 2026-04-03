@@ -77,11 +77,13 @@ impl ErrorEnvelope {
         self
     }
 
-    /// Inspect the message for API error status codes and set `retryable`
-    /// for transient failures (HTTP 408, 429, 500, 502, 503, 504).
+    /// Inspect the message for API error status codes and transport-level
+    /// failures, and set `retryable` for transient errors agents should retry.
     pub fn detect_retryable(mut self) -> Self {
         if let Some(code) = extract_http_status(&self.message) {
             self.retryable = matches!(code, 408 | 429 | 500 | 502 | 503 | 504);
+        } else {
+            self.retryable = is_transient_transport_error(&self.message);
         }
         self
     }
@@ -109,6 +111,25 @@ impl From<&BqxError> for ErrorEnvelope {
             }
         }
     }
+}
+
+/// Common transport-level error substrings that indicate transient failures.
+const TRANSIENT_PATTERNS: &[&str] = &[
+    "error sending request",
+    "connection refused",
+    "connection reset",
+    "connection closed",
+    "timed out",
+    "timeout",
+    "dns error",
+    "broken pipe",
+    "reset by peer",
+];
+
+/// Check whether an error message indicates a transient transport failure.
+fn is_transient_transport_error(msg: &str) -> bool {
+    let lower = msg.to_lowercase();
+    TRANSIENT_PATTERNS.iter().any(|p| lower.contains(p))
 }
 
 /// Extract HTTP status code from error messages matching "API error NNN:".
@@ -209,9 +230,29 @@ mod tests {
     }
 
     #[test]
+    fn detect_retryable_transport_errors() {
+        let cases = [
+            "error sending request for url (https://bigquery.googleapis.com/...): connection reset",
+            "connection refused",
+            "operation timed out",
+            "dns error: failed to lookup address",
+            "connection reset by peer",
+            "broken pipe",
+        ];
+        for msg in cases {
+            let env = ErrorEnvelope::new(ErrorCode::InfraError, msg, 2).detect_retryable();
+            assert!(env.retryable, "should be retryable: {msg}");
+        }
+    }
+
+    #[test]
     fn detect_retryable_no_match() {
-        let env =
-            ErrorEnvelope::new(ErrorCode::InfraError, "connection refused", 2).detect_retryable();
+        let env = ErrorEnvelope::new(
+            ErrorCode::InvalidConfig,
+            "--project-id or DCX_PROJECT is required",
+            1,
+        )
+        .detect_retryable();
         assert!(!env.retryable);
     }
 
