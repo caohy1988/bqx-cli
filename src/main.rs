@@ -1,5 +1,4 @@
 use clap::{CommandFactory, FromArgMatches};
-use serde_json::json;
 
 use dcx::auth;
 use dcx::bigquery::discovery::{self, DiscoverySource};
@@ -10,7 +9,7 @@ use dcx::cli::{
 };
 use dcx::commands;
 use dcx::config::{self, Config};
-use dcx::models::BqxError;
+use dcx::models::{BqxError, ErrorCode, ErrorEnvelope};
 
 /// Names of static (derive-based) top-level subcommands.
 const STATIC_COMMANDS: &[&str] = &[
@@ -87,15 +86,17 @@ async fn main() {
                 let (group_name, group_matches) = match sub_matches.subcommand() {
                     Some(pair) => pair,
                     None => {
-                        eprintln!("{}", json!({"error": "No subcommand provided"}));
-                        std::process::exit(1);
+                        ErrorEnvelope::new(ErrorCode::MissingArgument, "No subcommand provided", 1)
+                            .with_hint("Run with --help to see available commands.")
+                            .emit_and_exit();
                     }
                 };
                 let (action_name, action_matches) = match group_matches.subcommand() {
                     Some(pair) => pair,
                     None => {
-                        eprintln!("{}", json!({"error": "No subcommand provided"}));
-                        std::process::exit(1);
+                        ErrorEnvelope::new(ErrorCode::MissingArgument, "No subcommand provided", 1)
+                            .with_hint("Run with --help to see available commands.")
+                            .emit_and_exit();
                     }
                 };
                 if let Some(result) = commands::database_helpers::try_run_namespace_helper(
@@ -108,8 +109,9 @@ async fn main() {
                 .await
                 {
                     if let Err(e) = result {
-                        eprintln!("{}", json!({"error": e.to_string()}));
-                        std::process::exit(1);
+                        ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 2)
+                            .detect_retryable()
+                            .emit_and_exit();
                     }
                     return;
                 }
@@ -124,8 +126,9 @@ async fn main() {
                 let (action_name, action_matches) = match sub_matches.subcommand() {
                     Some(pair) => pair,
                     None => {
-                        eprintln!("{}", json!({"error": "No subcommand provided"}));
-                        std::process::exit(1);
+                        ErrorEnvelope::new(ErrorCode::MissingArgument, "No subcommand provided", 1)
+                            .with_hint("Run with --help to see available commands.")
+                            .emit_and_exit();
                     }
                 };
                 run_dynamic(bq_svc, sub_name, action_name, action_matches, &matches).await;
@@ -138,8 +141,7 @@ async fn main() {
     let cli = match Cli::from_arg_matches(&matches) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
+            ErrorEnvelope::new(ErrorCode::InvalidConfig, e.to_string(), 1).emit_and_exit();
         }
     };
 
@@ -213,11 +215,12 @@ async fn run_dynamic(
     let cmd = match clap_tree::find_command(&svc.commands, group_name, action_name) {
         Some(c) => c,
         None => {
-            eprintln!(
-                "{}",
-                json!({"error": format!("Unknown command: {group_name} {action_name}")})
-            );
-            std::process::exit(1);
+            ErrorEnvelope::new(
+                ErrorCode::UnknownCommand,
+                format!("Unknown command: {group_name} {action_name}"),
+                1,
+            )
+            .emit_and_exit();
         }
     };
 
@@ -225,11 +228,13 @@ async fn run_dynamic(
     let project_id = match root_matches.get_one::<String>("project_id") {
         Some(p) => p.clone(),
         None => {
-            eprintln!(
-                "{}",
-                json!({"error": "--project-id or DCX_PROJECT is required"})
-            );
-            std::process::exit(1);
+            ErrorEnvelope::new(
+                ErrorCode::MissingArgument,
+                "--project-id or DCX_PROJECT is required",
+                1,
+            )
+            .with_hint("Set DCX_PROJECT or pass --project-id.")
+            .emit_and_exit();
         }
     };
 
@@ -279,19 +284,22 @@ async fn run_dynamic(
             args.entry("datasetId".to_string())
                 .or_insert_with(|| dataset_id.clone());
         } else if needs_dataset_id && !args.contains_key("datasetId") {
-            eprintln!(
-                "{}",
-                json!({"error": "--dataset-id or DCX_DATASET is required for this command"})
-            );
-            std::process::exit(1);
+            ErrorEnvelope::new(
+                ErrorCode::MissingArgument,
+                "--dataset-id or DCX_DATASET is required for this command",
+                1,
+            )
+            .with_hint("Set DCX_DATASET or pass --dataset-id.")
+            .emit_and_exit();
         }
     }
 
     // Validate identifiers in all path parameters before any network call.
     // The wildcard "-" is allowed (e.g., AlloyDB location = all regions).
     if let Err(e) = config::validate_identifier(&project_id, "project-id") {
-        eprintln!("{}", json!({"error": e.to_string()}));
-        std::process::exit(1);
+        ErrorEnvelope::new(ErrorCode::InvalidIdentifier, e.to_string(), 1)
+            .with_hint("Use alphanumeric characters, hyphens, or underscores.")
+            .emit_and_exit();
     }
     for gen_arg in &cmd.args {
         let is_path = cmd
@@ -309,8 +317,9 @@ async fn run_dynamic(
         if let Some(value) = args.get(&gen_arg.api_name) {
             if value != "-" {
                 if let Err(e) = config::validate_identifier(value, &gen_arg.flag_name) {
-                    eprintln!("{}", json!({"error": e.to_string()}));
-                    std::process::exit(1);
+                    ErrorEnvelope::new(ErrorCode::InvalidIdentifier, e.to_string(), 1)
+                        .with_hint("Use alphanumeric characters, hyphens, or underscores.")
+                        .emit_and_exit();
                 }
             }
         }
@@ -334,8 +343,9 @@ async fn run_dynamic(
     .await;
 
     if let Err(e) = result {
-        eprintln!("{}", json!({"error": e.to_string()}));
-        std::process::exit(2);
+        ErrorEnvelope::new(ErrorCode::ApiError, e.to_string(), 2)
+            .detect_retryable()
+            .emit_and_exit();
     }
 }
 
@@ -352,8 +362,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
             AuthCommand::Status => auth::login::run_status(&auth_opts).await,
         };
         if let Err(e) = result {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
+            ErrorEnvelope::new(ErrorCode::AuthError, e.to_string(), 1).emit_and_exit();
         }
         return;
     }
@@ -366,8 +375,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
     {
         let result = commands::generate_skills::run(output_dir, filter, &cli.format);
         if let Err(e) = result {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
+            ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 1).emit_and_exit();
         }
         return;
     }
@@ -423,8 +431,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
             }
         };
         if let Err(e) = result {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
+            ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 1).emit_and_exit();
         }
         return;
     }
@@ -468,8 +475,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
             MetaCommand::Describe { path } => commands::meta::run_describe(&app, path, &cli.format),
         };
         if let Err(e) = result {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
+            ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 1).emit_and_exit();
         }
         return;
     }
@@ -487,11 +493,12 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
     } = cli.command
     {
         if agent.is_some() || tables.is_some() {
-            eprintln!(
-                "{}",
-                json!({"error": "--profile cannot be combined with --agent or --tables"})
-            );
-            std::process::exit(1);
+            ErrorEnvelope::new(
+                ErrorCode::InvalidConfig,
+                "--profile cannot be combined with --agent or --tables",
+                1,
+            )
+            .emit_and_exit();
         }
         let auth_opts = auth::AuthOptions {
             token: cli.token.clone(),
@@ -506,8 +513,9 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         )
         .await;
         if let Err(e) = result {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
+            ErrorEnvelope::new(ErrorCode::ApiError, e.to_string(), 2)
+                .detect_retryable()
+                .emit_and_exit();
         }
         return;
     }
@@ -515,8 +523,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
     let config = match Config::from_cli(&cli) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("{}", json!({"error": e.to_string()}));
-            std::process::exit(1);
+            ErrorEnvelope::new(ErrorCode::InvalidConfig, e.to_string(), 1).emit_and_exit();
         }
     };
 
@@ -731,13 +738,15 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
 
     if let Err(e) = result {
         if let Some(bqx_err) = e.downcast_ref::<BqxError>() {
+            let envelope = ErrorEnvelope::from(bqx_err);
             if !matches!(bqx_err, BqxError::EvalFailed { .. }) {
-                eprintln!("{}", json!({"error": e.to_string()}));
+                envelope.emit();
             }
-            std::process::exit(bqx_err.exit_code());
+            std::process::exit(envelope.exit_code);
         }
         // Generic errors → exit 2 (infrastructure), matching SDK semantics.
-        eprintln!("{}", json!({"error": e.to_string()}));
-        std::process::exit(2);
+        ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 2)
+            .detect_retryable()
+            .emit_and_exit();
     }
 }
