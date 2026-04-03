@@ -45,6 +45,9 @@ pub async fn execute(
         .map(|(api_name, _)| *api_name)
         .collect();
 
+    // Check whether this method supports pagination (defines pageToken param).
+    let supports_pagination = cmd.method.parameters.iter().any(|p| p.name == "pageToken");
+
     let mut request = request_builder::build_request(
         base_url,
         &cmd.method,
@@ -53,11 +56,13 @@ pub async fn execute(
         &project_id_params,
     )?;
 
-    // Inject page token as query param if provided.
+    // Inject page token as query param only for methods that define it.
     if let Some(token) = page_token {
-        request
-            .query_params
-            .push(("pageToken".to_string(), token.to_string()));
+        if supports_pagination {
+            request
+                .query_params
+                .push(("pageToken".to_string(), token.to_string()));
+        }
     }
 
     if dry_run {
@@ -76,7 +81,7 @@ pub async fn execute(
         body
     };
 
-    render_response(&body, format, config.service_label)
+    render_response(&body, format, config.service_label, supports_pagination)
 }
 
 fn render_dry_run(request: &DynamicRequest, format: &OutputFormat) -> Result<()> {
@@ -156,12 +161,19 @@ fn render_response(
     body: &serde_json::Value,
     format: &OutputFormat,
     service_label: &str,
+    is_list: bool,
 ) -> Result<()> {
     match format {
         OutputFormat::Json => {
             // Normalize list responses into a stable pagination wrapper.
-            if let Some(normalized) = normalize_list_response(body, service_label) {
-                println!("{}", serde_json::to_string_pretty(&normalized)?);
+            // Only apply to methods that actually support pagination to avoid
+            // misclassifying get responses that contain top-level arrays.
+            if is_list {
+                if let Some(normalized) = normalize_list_response(body, service_label) {
+                    println!("{}", serde_json::to_string_pretty(&normalized)?);
+                } else {
+                    println!("{}", serde_json::to_string_pretty(body)?);
+                }
             } else {
                 println!("{}", serde_json::to_string_pretty(body)?);
             }

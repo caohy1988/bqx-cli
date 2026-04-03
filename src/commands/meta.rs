@@ -375,7 +375,6 @@ const DATA_GLOBALS: &[&str] = &[
     "--token",
     "--credentials-file",
     "--sanitize",
-    "--page-token",
 ];
 
 /// Global flags relevant to namespace helpers (profile-based, no project/dataset).
