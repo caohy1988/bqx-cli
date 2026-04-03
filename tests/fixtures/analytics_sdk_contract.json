@@ -1,5 +1,5 @@
 {
-  "generated": "2026-03-31",
+  "generated": "2026-04-03",
   "upstream_repo": "haiyuan-eng-google/BigQuery-Agent-Analytics-SDK",
   "upstream_branch": "main",
   "upstream_sha": "5bc8876b73841ea20d24b6606fcff39a6e22b419",
@@ -69,6 +69,12 @@
         },
         {
           "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
@@ -158,6 +164,12 @@
         },
         {
           "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
@@ -321,6 +333,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
         }
       ],
       "args": []
@@ -428,6 +446,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
         }
       ],
       "args": []
@@ -531,6 +555,12 @@
         },
         {
           "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
@@ -662,6 +692,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
         }
       ],
       "args": []
@@ -757,6 +793,12 @@
         },
         {
           "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
@@ -863,6 +905,12 @@
         },
         {
           "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
@@ -1013,6 +1061,12 @@
           "global": true
         },
         {
+          "flag": "--page-token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
           "flag": "--no-include-justification",
           "status": "dcx_extension",
           "type": "bool",
@@ -1102,6 +1156,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
         }
       ],
       "args": []
@@ -1180,6 +1240,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-token",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
         }
       ],
       "args": []
@@ -1255,6 +1321,12 @@
         },
         {
           "flag": "--sanitize",
+          "status": "dcx_extension",
+          "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
