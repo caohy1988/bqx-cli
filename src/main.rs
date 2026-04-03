@@ -109,7 +109,9 @@ async fn main() {
                 .await
                 {
                     if let Err(e) = result {
-                        ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 1).emit_and_exit();
+                        ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 2)
+                            .detect_retryable()
+                            .emit_and_exit();
                     }
                     return;
                 }
@@ -341,7 +343,9 @@ async fn run_dynamic(
     .await;
 
     if let Err(e) = result {
-        ErrorEnvelope::new(ErrorCode::ApiError, e.to_string(), 2).emit_and_exit();
+        ErrorEnvelope::new(ErrorCode::ApiError, e.to_string(), 2)
+            .detect_retryable()
+            .emit_and_exit();
     }
 }
 
@@ -509,7 +513,9 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         )
         .await;
         if let Err(e) = result {
-            ErrorEnvelope::new(ErrorCode::ApiError, e.to_string(), 1).emit_and_exit();
+            ErrorEnvelope::new(ErrorCode::ApiError, e.to_string(), 2)
+                .detect_retryable()
+                .emit_and_exit();
         }
         return;
     }
@@ -739,6 +745,8 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
             std::process::exit(envelope.exit_code);
         }
         // Generic errors → exit 2 (infrastructure), matching SDK semantics.
-        ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 2).emit_and_exit();
+        ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 2)
+            .detect_retryable()
+            .emit_and_exit();
     }
 }

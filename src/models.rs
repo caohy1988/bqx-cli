@@ -77,6 +77,15 @@ impl ErrorEnvelope {
         self
     }
 
+    /// Inspect the message for API error status codes and set `retryable`
+    /// for transient failures (HTTP 408, 429, 500, 502, 503, 504).
+    pub fn detect_retryable(mut self) -> Self {
+        if let Some(code) = extract_http_status(&self.message) {
+            self.retryable = matches!(code, 408 | 429 | 500 | 502 | 503 | 504);
+        }
+        self
+    }
+
     /// Emit the envelope to stderr and exit.
     pub fn emit_and_exit(self) -> ! {
         eprintln!("{}", json!({"error": self}));
@@ -96,10 +105,19 @@ impl From<&BqxError> for ErrorEnvelope {
                 ErrorEnvelope::new(ErrorCode::EvalFailed, "Evaluation failed", *exit_code)
             }
             BqxError::InfraError { message } => {
-                ErrorEnvelope::new(ErrorCode::InfraError, message.clone(), 2)
+                ErrorEnvelope::new(ErrorCode::InfraError, message.clone(), 2).detect_retryable()
             }
         }
     }
+}
+
+/// Extract HTTP status code from error messages matching "API error NNN:".
+fn extract_http_status(msg: &str) -> Option<u16> {
+    let marker = "API error ";
+    let start = msg.find(marker)? + marker.len();
+    let rest = &msg[start..];
+    let end = rest.find(|c: char| !c.is_ascii_digit())?;
+    rest[..end].parse().ok()
 }
 
 #[cfg(test)]
@@ -146,5 +164,76 @@ mod tests {
         let env = ErrorEnvelope::from(&infra);
         assert_eq!(env.exit_code, 2);
         assert_eq!(env.message, "connection refused");
+    }
+
+    #[test]
+    fn detect_retryable_on_transient_errors() {
+        let env = ErrorEnvelope::new(
+            ErrorCode::ApiError,
+            "BigQuery API error 503: Service Unavailable",
+            2,
+        )
+        .detect_retryable();
+        assert!(env.retryable);
+
+        let env = ErrorEnvelope::new(
+            ErrorCode::ApiError,
+            "CA API error 429 Too Many Requests: rate limited",
+            2,
+        )
+        .detect_retryable();
+        assert!(env.retryable);
+
+        let env = ErrorEnvelope::new(
+            ErrorCode::ApiError,
+            "Spanner API error 500: Internal Server Error",
+            2,
+        )
+        .detect_retryable();
+        assert!(env.retryable);
+    }
+
+    #[test]
+    fn detect_retryable_not_on_client_errors() {
+        let env = ErrorEnvelope::new(
+            ErrorCode::ApiError,
+            "BigQuery API error 401: Unauthorized",
+            2,
+        )
+        .detect_retryable();
+        assert!(!env.retryable);
+
+        let env = ErrorEnvelope::new(ErrorCode::ApiError, "BigQuery API error 404: Not Found", 2)
+            .detect_retryable();
+        assert!(!env.retryable);
+    }
+
+    #[test]
+    fn detect_retryable_no_match() {
+        let env =
+            ErrorEnvelope::new(ErrorCode::InfraError, "connection refused", 2).detect_retryable();
+        assert!(!env.retryable);
+    }
+
+    #[test]
+    fn extract_http_status_parses_codes() {
+        assert_eq!(
+            extract_http_status("BigQuery API error 503: Service Unavailable"),
+            Some(503)
+        );
+        assert_eq!(
+            extract_http_status("CA API error 429 Too Many Requests: rate limited"),
+            Some(429)
+        );
+        assert_eq!(extract_http_status("connection refused"), None);
+    }
+
+    #[test]
+    fn infra_error_bqx_detects_retryable() {
+        let infra = BqxError::InfraError {
+            message: "BigQuery API error 503: Service Unavailable".into(),
+        };
+        let env = ErrorEnvelope::from(&infra);
+        assert!(env.retryable);
     }
 }

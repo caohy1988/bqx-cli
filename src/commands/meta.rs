@@ -484,10 +484,10 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             }],
         },
 
-        // ── namespace helpers: profile-based, early return exit 1 ───
+        // ── namespace helpers: profile-based, exit 0/2 ─────────────
         _ if is_namespace_helper(path) => RuntimeBehavior {
             formats: vec!["json", "table", "text"],
-            exit_codes: exit_codes(&[("0", "success"), ("1", "error")]),
+            exit_codes: exit_codes(&[("0", "success"), ("2", "infrastructure error")]),
             relevant_globals: HELPER_GLOBALS,
             constraints: vec![],
         },
