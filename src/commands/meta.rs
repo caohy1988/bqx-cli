@@ -377,6 +377,19 @@ const DATA_GLOBALS: &[&str] = &[
     "--sanitize",
 ];
 
+/// DATA_GLOBALS + --page-token for dynamic list commands that support pagination.
+const PAGINATED_DATA_GLOBALS: &[&str] = &[
+    "--project-id",
+    "--dataset-id",
+    "--location",
+    "--table",
+    "--format",
+    "--token",
+    "--credentials-file",
+    "--sanitize",
+    "--page-token",
+];
+
 /// Global flags relevant to namespace helpers (profile-based, no project/dataset).
 const HELPER_GLOBALS: &[&str] = &["--format", "--token", "--credentials-file", "--sanitize"];
 
@@ -494,16 +507,25 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
 
         // ── all other data commands: general handler, exit 0/1/2 ────
         // Includes: jobs, ca (non-ask), analytics (non-evaluate/drift/get-trace), dynamic
-        _ => RuntimeBehavior {
-            formats: vec!["json", "table", "text"],
-            exit_codes: exit_codes(&[
-                ("0", "success"),
-                ("1", "error"),
-                ("2", "infrastructure error"),
-            ]),
-            relevant_globals: DATA_GLOBALS,
-            constraints: vec![],
-        },
+        _ => {
+            // Dynamic list commands support --page-token; other commands do not.
+            let action = path.last().copied().unwrap_or("");
+            let globals = if action == "list" {
+                PAGINATED_DATA_GLOBALS
+            } else {
+                DATA_GLOBALS
+            };
+            RuntimeBehavior {
+                formats: vec!["json", "table", "text"],
+                exit_codes: exit_codes(&[
+                    ("0", "success"),
+                    ("1", "error"),
+                    ("2", "infrastructure error"),
+                ]),
+                relevant_globals: globals,
+                constraints: vec![],
+            }
+        }
     }
 }
 

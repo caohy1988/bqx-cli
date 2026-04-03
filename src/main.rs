@@ -329,6 +329,10 @@ async fn run_dynamic(
         .get_one::<String>("sanitize")
         .map(|s| s.as_str());
 
+    let page_token = root_matches
+        .get_one::<String>("page_token")
+        .map(|s| s.as_str());
+
     let result = executor::execute(
         cmd,
         &args,
@@ -339,6 +343,7 @@ async fn run_dynamic(
         &auth_opts,
         sanitize_template,
         &svc.config,
+        page_token,
     )
     .await;
 
