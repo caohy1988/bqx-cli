@@ -41,6 +41,10 @@ pub fn build_dynamic_commands(
                 if global_param_names.contains(&arg.api_name.as_str()) {
                     continue;
                 }
+                // Skip pageToken — handled by the global --page-token flag.
+                if arg.api_name == "pageToken" {
+                    continue;
+                }
 
                 let mut clap_arg = Arg::new(&arg.flag_name)
                     .long(&arg.flag_name)
@@ -102,6 +106,10 @@ pub fn extract_args(
     let mut args = HashMap::new();
     for arg in &cmd.args {
         if global_param_names.contains(&arg.api_name.as_str()) {
+            continue;
+        }
+        // Skip pageToken — handled by the global --page-token flag.
+        if arg.api_name == "pageToken" {
             continue;
         }
         match arg.value_type {

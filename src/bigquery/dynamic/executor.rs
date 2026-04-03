@@ -29,6 +29,7 @@ pub async fn execute(
     auth_opts: &AuthOptions,
     sanitize_template: Option<&str>,
     config: &ServiceConfig,
+    page_token: Option<&str>,
 ) -> Result<()> {
     let global_params = config.global_param_names();
 
@@ -44,13 +45,20 @@ pub async fn execute(
         .map(|(api_name, _)| *api_name)
         .collect();
 
-    let request = request_builder::build_request(
+    let mut request = request_builder::build_request(
         base_url,
         &cmd.method,
         project_id,
         args,
         &project_id_params,
     )?;
+
+    // Inject page token as query param if provided.
+    if let Some(token) = page_token {
+        request
+            .query_params
+            .push(("pageToken".to_string(), token.to_string()));
+    }
 
     if dry_run {
         return render_dry_run(&request, format);
@@ -68,7 +76,7 @@ pub async fn execute(
         body
     };
 
-    render_response(&body, format)
+    render_response(&body, format, config.service_label)
 }
 
 fn render_dry_run(request: &DynamicRequest, format: &OutputFormat) -> Result<()> {
@@ -144,10 +152,19 @@ async fn send_request(
     Ok(body)
 }
 
-fn render_response(body: &serde_json::Value, format: &OutputFormat) -> Result<()> {
+fn render_response(
+    body: &serde_json::Value,
+    format: &OutputFormat,
+    service_label: &str,
+) -> Result<()> {
     match format {
         OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(body)?);
+            // Normalize list responses into a stable pagination wrapper.
+            if let Some(normalized) = normalize_list_response(body, service_label) {
+                println!("{}", serde_json::to_string_pretty(&normalized)?);
+            } else {
+                println!("{}", serde_json::to_string_pretty(body)?);
+            }
         }
         OutputFormat::Table | OutputFormat::Text => {
             if let Some(items) = find_list_items(body) {
@@ -160,22 +177,67 @@ fn render_response(body: &serde_json::Value, format: &OutputFormat) -> Result<()
     Ok(())
 }
 
+/// Normalize a list API response into a stable pagination wrapper.
+///
+/// Input (varies by service):
+/// ```json
+/// { "datasets": [...], "nextPageToken": "abc", "kind": "...", ... }
+/// ```
+///
+/// Output:
+/// ```json
+/// { "items": [...], "next_page_token": "abc", "source": "BigQuery" }
+/// ```
+///
+/// Returns None for non-list responses (single-object GETs).
+fn normalize_list_response(
+    body: &serde_json::Value,
+    service_label: &str,
+) -> Option<serde_json::Value> {
+    let obj = body.as_object()?;
+
+    // Find the items array (same logic as find_list_items).
+    let items_key = obj.keys().find(|key| {
+        !METADATA_FIELDS.contains(&key.as_str())
+            && obj.get(key.as_str()).and_then(|v| v.as_array()).is_some()
+    })?;
+
+    let items = obj.get(items_key)?;
+
+    let mut result = serde_json::Map::new();
+    result.insert("items".to_string(), items.clone());
+    if let Some(token) = obj.get("nextPageToken").and_then(|v| v.as_str()) {
+        result.insert(
+            "next_page_token".to_string(),
+            serde_json::Value::String(token.to_string()),
+        );
+    }
+    result.insert(
+        "source".to_string(),
+        serde_json::Value::String(service_label.to_string()),
+    );
+
+    Some(serde_json::Value::Object(result))
+}
+
+/// Fields to skip when searching for the items array in a list response.
+const METADATA_FIELDS: &[&str] = &[
+    "kind",
+    "etag",
+    "nextPageToken",
+    "totalItems",
+    "selfLink",
+    "unreachable",
+];
+
 /// Find a list-like array in the response for table rendering.
 ///
 /// Dynamically scans top-level fields for the first array of objects,
 /// skipping known metadata fields.
 fn find_list_items(body: &serde_json::Value) -> Option<&Vec<serde_json::Value>> {
     let obj = body.as_object()?;
-    const SKIP_FIELDS: &[&str] = &[
-        "kind",
-        "etag",
-        "nextPageToken",
-        "totalItems",
-        "selfLink",
-        "unreachable",
-    ];
     for (key, value) in obj {
-        if SKIP_FIELDS.contains(&key.as_str()) {
+        if METADATA_FIELDS.contains(&key.as_str()) {
             continue;
         }
         if let Some(arr) = value.as_array() {
@@ -283,5 +345,67 @@ fn format_cell(value: Option<&serde_json::Value>) -> String {
         Some(serde_json::Value::Bool(b)) => b.to_string(),
         Some(serde_json::Value::Number(n)) => n.to_string(),
         Some(v) => v.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_list_with_pagination() {
+        let body = json!({
+            "kind": "bigquery#datasetList",
+            "datasets": [{"id": "ds1"}, {"id": "ds2"}],
+            "nextPageToken": "abc123"
+        });
+        let result = normalize_list_response(&body, "BigQuery").unwrap();
+        assert_eq!(result["items"], json!([{"id": "ds1"}, {"id": "ds2"}]));
+        assert_eq!(result["next_page_token"], "abc123");
+        assert_eq!(result["source"], "BigQuery");
+    }
+
+    #[test]
+    fn normalize_list_without_pagination() {
+        let body = json!({
+            "kind": "bigquery#datasetList",
+            "datasets": [{"id": "ds1"}]
+        });
+        let result = normalize_list_response(&body, "BigQuery").unwrap();
+        assert_eq!(result["items"], json!([{"id": "ds1"}]));
+        assert!(result.get("next_page_token").is_none());
+        assert_eq!(result["source"], "BigQuery");
+    }
+
+    #[test]
+    fn normalize_skips_non_list_response() {
+        let body = json!({
+            "kind": "bigquery#dataset",
+            "id": "my-dataset",
+            "datasetReference": {"datasetId": "my-dataset"}
+        });
+        assert!(normalize_list_response(&body, "BigQuery").is_none());
+    }
+
+    #[test]
+    fn normalize_spanner_instances() {
+        let body = json!({
+            "instances": [{"name": "inst1"}, {"name": "inst2"}],
+            "nextPageToken": "tok"
+        });
+        let result = normalize_list_response(&body, "Cloud Spanner").unwrap();
+        assert_eq!(result["items"].as_array().unwrap().len(), 2);
+        assert_eq!(result["next_page_token"], "tok");
+        assert_eq!(result["source"], "Cloud Spanner");
+    }
+
+    #[test]
+    fn normalize_empty_list() {
+        let body = json!({
+            "kind": "bigquery#datasetList",
+            "datasets": []
+        });
+        let result = normalize_list_response(&body, "BigQuery").unwrap();
+        assert_eq!(result["items"], json!([]));
     }
 }

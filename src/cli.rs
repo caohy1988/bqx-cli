@@ -38,6 +38,10 @@ pub struct Cli {
     /// (e.g. projects/my-proj/locations/us-central1/templates/my-template)
     #[arg(long, global = true, env = "DCX_SANITIZE_TEMPLATE")]
     pub sanitize: Option<String>,
+
+    /// Pagination token from a previous response's next_page_token
+    #[arg(long, global = true)]
+    pub page_token: Option<String>,
 }
 
 #[derive(Subcommand)]
