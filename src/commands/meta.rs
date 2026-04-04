@@ -282,7 +282,7 @@ fn extract_global_flags(app: &clap::Command) -> Vec<FlagContract> {
     app.get_arguments()
         .filter(|a| {
             let id = a.get_id().as_str();
-            id != "help" && id != "version"
+            id != "help" && id != "version" && id != "_paginated"
         })
         .map(arg_to_flag)
         .collect()
@@ -292,7 +292,7 @@ fn extract_flags(cmd: &clap::Command) -> Vec<FlagContract> {
     cmd.get_arguments()
         .filter(|a| {
             let id = a.get_id().as_str();
-            id != "help" && id != "version"
+            id != "help" && id != "version" && id != "_paginated"
         })
         .map(arg_to_flag)
         .collect()
