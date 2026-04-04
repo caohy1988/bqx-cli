@@ -75,11 +75,13 @@ pub async fn execute(
 
     let resolved = auth::resolve(auth_opts).await?;
 
-    // --page-all: fetch all pages and merge items.
+    // --page-all: fetch all pages and merge items into a pre-normalized response.
     if page_all && supports_pagination {
         let body =
             fetch_all_pages(&resolved, &request, config.service_label, sanitize_template).await?;
-        return render_response(&body, format, config.service_label, true);
+        // The page-all response is already in final form (items, total_items,
+        // pages_fetched, source) — render directly to avoid re-normalization.
+        return render_page_all_response(&body, format);
     }
 
     let body = send_request(&resolved, &request, config.service_label).await?;
@@ -277,6 +279,23 @@ fn render_response(
                 render_items_as_table(items)?;
             } else {
                 render_object_as_table(body)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Render a pre-normalized --page-all response (items, total_items, pages_fetched, source).
+fn render_page_all_response(body: &serde_json::Value, format: &OutputFormat) -> Result<()> {
+    match format {
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(body)?);
+        }
+        OutputFormat::Table | OutputFormat::Text => {
+            if let Some(items) = body.get("items").and_then(|v| v.as_array()) {
+                render_items_as_table(items)?;
+            } else {
+                println!("(no results)");
             }
         }
     }
