@@ -1312,6 +1312,12 @@
           "status": "dcx_extension",
           "type": "bool",
           "global": true
+        },
+        {
+          "flag": "--dry-run",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": false
         }
       ],
       "args": []
@@ -1407,6 +1413,12 @@
           "flag": "--event-type",
           "status": "dcx_extension",
           "type": "string",
+          "global": false
+        },
+        {
+          "flag": "--dry-run",
+          "status": "dcx_extension",
+          "type": "bool",
           "global": false
         }
       ],

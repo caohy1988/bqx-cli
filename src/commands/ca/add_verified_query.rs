@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::Serialize;
 
 use crate::auth::{self, AuthOptions};
 use crate::ca::client::{CaAgentManager, CaClient};
@@ -19,14 +20,33 @@ pub fn validate_inputs(agent: &str, question: &str, query: &str) -> Result<()> {
     Ok(())
 }
 
+#[derive(Serialize)]
+struct DryRunOutput {
+    dry_run: bool,
+    description: String,
+    steps: Vec<DryRunStep>,
+}
+
+#[derive(Serialize)]
+struct DryRunStep {
+    method: String,
+    url: String,
+    description: String,
+}
+
 pub async fn run(
     agent: String,
     question: String,
     query: String,
+    dry_run: bool,
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
     validate_inputs(&agent, &question, &query)?;
+
+    if dry_run {
+        return run_dry_run(&agent, &question, &query, config);
+    }
 
     let resolved = auth::resolve(auth_opts).await?;
     let client = CaClient::new(resolved.clone());
@@ -51,6 +71,34 @@ pub async fn run(
     }
 
     render_response(&resp, &config.format)
+}
+
+fn run_dry_run(agent: &str, question: &str, query: &str, config: &Config) -> Result<()> {
+    let agent_name = format!(
+        "projects/{}/locations/{}/dataAgents/{agent}",
+        config.project_id, config.location
+    );
+    let base = "https://datacatalog.googleapis.com/v1";
+
+    let output = DryRunOutput {
+        dry_run: true,
+        description: format!(
+            "Add verified query to agent '{agent}': \"{question}\" → \"{query}\""
+        ),
+        steps: vec![
+            DryRunStep {
+                method: "GET".into(),
+                url: format!("{base}/{agent_name}"),
+                description: "Fetch current agent to read existing exampleQueries".into(),
+            },
+            DryRunStep {
+                method: "PATCH".into(),
+                url: format!("{base}/{agent_name}:updateSync?updateMask=dataAnalyticsAgent.publishedContext.exampleQueries"),
+                description: "Update agent with appended verified query".into(),
+            },
+        ],
+    };
+    crate::output::render(&output, &config.format)
 }
 
 pub async fn run_with_executor(

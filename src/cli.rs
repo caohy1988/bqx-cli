@@ -431,6 +431,10 @@ pub enum ViewsCommand {
         /// Prefix for view names (e.g., "adk_" → adk_llm_request)
         #[arg(long, default_value = "")]
         prefix: String,
+
+        /// Dry run (show SQL without executing)
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Create a view for a single event type
     Create {
@@ -440,6 +444,10 @@ pub enum ViewsCommand {
         /// Prefix for view names (e.g., "adk_" → adk_llm_request)
         #[arg(long, default_value = "")]
         prefix: String,
+
+        /// Dry run (show SQL without executing)
+        #[arg(long)]
+        dry_run: bool,
     },
 }
 
@@ -485,6 +493,10 @@ pub enum CaCommand {
         /// System instructions for the agent
         #[arg(long)]
         instructions: Option<String>,
+
+        /// Dry run (show request without executing)
+        #[arg(long)]
+        dry_run: bool,
     },
 
     /// List data agents in the project
@@ -503,6 +515,10 @@ pub enum CaCommand {
         /// SQL query to associate with the question
         #[arg(long)]
         query: String,
+
+        /// Dry run (show request without executing)
+        #[arg(long)]
+        dry_run: bool,
     },
 }
 

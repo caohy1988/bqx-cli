@@ -569,6 +569,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                 views,
                 verified_queries,
                 instructions,
+                dry_run,
             } => {
                 commands::ca::create_agent::run(
                     name,
@@ -576,6 +577,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                     views,
                     verified_queries,
                     instructions,
+                    dry_run,
                     &auth_opts,
                     &config,
                 )
@@ -586,9 +588,12 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                 agent,
                 question,
                 query,
+                dry_run,
             } => {
-                commands::ca::add_verified_query::run(agent, question, query, &auth_opts, &config)
-                    .await
+                commands::ca::add_verified_query::run(
+                    agent, question, query, dry_run, &auth_opts, &config,
+                )
+                .await
             }
         },
         Command::Analytics { command } => match command {
@@ -695,12 +700,18 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
                     .await
             }
             AnalyticsCommand::Views { command } => match command {
-                ViewsCommand::CreateAll { prefix } => {
-                    commands::analytics::views::run(prefix, &auth_opts, &config).await
+                ViewsCommand::CreateAll { prefix, dry_run } => {
+                    commands::analytics::views::run(prefix, dry_run, &auth_opts, &config).await
                 }
-                ViewsCommand::Create { event_type, prefix } => {
-                    commands::analytics::views::run_create(event_type, prefix, &auth_opts, &config)
-                        .await
+                ViewsCommand::Create {
+                    event_type,
+                    prefix,
+                    dry_run,
+                } => {
+                    commands::analytics::views::run_create(
+                        event_type, prefix, dry_run, &auth_opts, &config,
+                    )
+                    .await
                 }
             },
             AnalyticsCommand::CategoricalEval {

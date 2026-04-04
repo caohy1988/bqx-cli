@@ -186,9 +186,18 @@ fn check_failures(result: &ViewsCreateResult) -> Result<()> {
     Ok(())
 }
 
-pub async fn run(prefix: String, auth_opts: &AuthOptions, config: &Config) -> Result<()> {
+pub async fn run(
+    prefix: String,
+    dry_run: bool,
+    auth_opts: &AuthOptions,
+    config: &Config,
+) -> Result<()> {
     config::validate_view_prefix(&prefix)?;
     config.require_dataset_id()?;
+
+    if dry_run {
+        return run_dry_run_all(&prefix, config);
+    }
 
     let resolved = auth::resolve(auth_opts).await?;
     let client = BigQueryClient::new(resolved.clone());
@@ -327,12 +336,17 @@ fn render_view_create(result: &ViewCreateResult, config: &Config) -> Result<()> 
 pub async fn run_create(
     event_type: String,
     prefix: String,
+    dry_run: bool,
     auth_opts: &AuthOptions,
     config: &Config,
 ) -> Result<()> {
     warn_if_custom_event_type(&event_type);
     config::validate_view_prefix(&prefix)?;
     config.require_dataset_id()?;
+
+    if dry_run {
+        return run_dry_run_single(&event_type, &prefix, config);
+    }
 
     let resolved = auth::resolve(auth_opts).await?;
     let client = BigQueryClient::new(resolved.clone());
@@ -372,4 +386,57 @@ pub async fn run_create_with_executor(
         anyhow::bail!("View creation failed");
     }
     Ok(())
+}
+
+// ── Dry-run ──
+
+#[derive(Serialize)]
+struct DryRunView {
+    view_name: String,
+    event_type: String,
+    sql: String,
+}
+
+#[derive(Serialize)]
+struct DryRunOutput {
+    dry_run: bool,
+    views: Vec<DryRunView>,
+}
+
+fn run_dry_run_all(prefix: &str, config: &Config) -> Result<()> {
+    let dataset_id = config.require_dataset_id()?;
+    let views: Vec<DryRunView> =
+        build_all_view_sqls(&config.project_id, dataset_id, &config.table, prefix)
+            .into_iter()
+            .map(|(view_name, sql, event_type)| DryRunView {
+                view_name,
+                event_type: event_type.to_string(),
+                sql: sql.trim().to_string(),
+            })
+            .collect();
+    let output = DryRunOutput {
+        dry_run: true,
+        views,
+    };
+    crate::output::render(&output, &config.format)
+}
+
+fn run_dry_run_single(event_type: &str, prefix: &str, config: &Config) -> Result<()> {
+    let dataset_id = config.require_dataset_id()?;
+    let (view_name, sql) = build_create_view_sql(
+        &config.project_id,
+        dataset_id,
+        &config.table,
+        prefix,
+        event_type,
+    );
+    let output = DryRunOutput {
+        dry_run: true,
+        views: vec![DryRunView {
+            view_name,
+            event_type: event_type.to_string(),
+            sql: sql.trim().to_string(),
+        }],
+    };
+    crate::output::render(&output, &config.format)
 }
