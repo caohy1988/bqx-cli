@@ -540,6 +540,10 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         credentials_file: cli.credentials_file.clone(),
     };
 
+    // Analytics commands preserve SDK-aligned 0/1/2 exit semantics;
+    // semantic exit codes (3/4/5) only apply to non-analytics commands.
+    let is_analytics = matches!(cli.command, Command::Analytics { .. });
+
     let result = match cli.command {
         Command::Jobs {
             command:
@@ -753,9 +757,12 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
             std::process::exit(envelope.exit_code);
         }
         // Generic errors → exit 2 (infrastructure), matching SDK semantics.
-        ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 2)
-            .detect_semantic_exit_code()
-            .detect_retryable()
-            .emit_and_exit();
+        let envelope = ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 2);
+        let envelope = if is_analytics {
+            envelope
+        } else {
+            envelope.detect_semantic_exit_code()
+        };
+        envelope.detect_retryable().emit_and_exit();
     }
 }
