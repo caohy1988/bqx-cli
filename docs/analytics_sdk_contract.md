@@ -234,7 +234,7 @@ edit intentional divergence notes only.
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
 | `--page-all` | bool | — | dcx_extension (global) | |
 
-### `views create-all` (1 exact, 3 semantic mismatch, 1 divergent, 6 dcx-only)
+### `views create-all` (1 exact, 3 semantic mismatch, 1 divergent, 7 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -249,8 +249,9 @@ edit intentional divergence notes only.
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
 | `--page-all` | bool | — | dcx_extension (global) | |
+| `--dry-run` | bool | — | dcx_extension (local) | |
 
-### `views create` (1 exact, 3 semantic mismatch, 1 divergent, 7 dcx-only)
+### `views create` (1 exact, 3 semantic mismatch, 1 divergent, 8 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -266,6 +267,7 @@ edit intentional divergence notes only.
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
 | `--page-all` | bool | — | dcx_extension (global) | |
 | `--event-type` | string | — | dcx_extension (local) | |
+| `--dry-run` | bool | — | dcx_extension (local) | |
 
 ## Evaluator Parity
 

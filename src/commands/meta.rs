@@ -38,6 +38,7 @@ pub struct CommandContract {
     constraints: Vec<FlagConstraint>,
     output: OutputContract,
     exit_codes: BTreeMap<String, String>,
+    supports_dry_run: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -166,6 +167,12 @@ fn print_describe_text(c: &CommandContract) {
     }
     println!();
 
+    println!(
+        "  Dry run: {}",
+        if c.supports_dry_run { "yes" } else { "no" }
+    );
+    println!();
+
     println!("  Exit codes:");
     for (code, desc) in &c.exit_codes {
         println!("    {code}: {desc}");
@@ -246,6 +253,11 @@ fn extract_contract(
         .get_arguments()
         .any(|a| a.get_id().as_str() == "_paginated");
 
+    // Detect --dry-run support from the clap arg tree.
+    let supports_dry_run = cmd
+        .get_arguments()
+        .any(|a| a.get_id().as_str() == "dry_run" || a.get_id().as_str() == "dry-run");
+
     // Only include global flags that this command actually reads.
     // Pagination flags are added only for commands that actually support them.
     let relevant_globals: Vec<FlagContract> = all_global_flags
@@ -271,6 +283,7 @@ fn extract_contract(
             formats: behavior.formats.iter().map(|s| s.to_string()).collect(),
         },
         exit_codes: behavior.exit_codes,
+        supports_dry_run,
     }
 }
 
@@ -586,6 +599,18 @@ mod tests {
             .subcommand(clap::Command::new("datasets").subcommand(
                 clap::Command::new("list").about("Lists all datasets in the specified project"),
             ))
+            .subcommand(
+                clap::Command::new("jobs").subcommand(
+                    clap::Command::new("query")
+                        .about("Execute a SQL query")
+                        .arg(clap::Arg::new("query").long("query").required(true))
+                        .arg(
+                            clap::Arg::new("dry_run")
+                                .long("dry-run")
+                                .action(clap::ArgAction::SetTrue),
+                        ),
+                ),
+            )
             .subcommand(
                 clap::Command::new("completions")
                     .about("Generate shell completion scripts")
@@ -930,5 +955,29 @@ mod tests {
             .find(|c| c.command == "dcx datasets list")
             .unwrap();
         assert!(ds.constraints.is_empty());
+    }
+
+    #[test]
+    fn supports_dry_run_detected_from_clap() {
+        let app = sample_app();
+        let contracts = collect_all(&app);
+
+        let query = contracts
+            .iter()
+            .find(|c| c.command == "dcx jobs query")
+            .unwrap();
+        assert!(
+            query.supports_dry_run,
+            "jobs query has --dry-run and should report supports_dry_run=true"
+        );
+
+        let ds = contracts
+            .iter()
+            .find(|c| c.command == "dcx datasets list")
+            .unwrap();
+        assert!(
+            !ds.supports_dry_run,
+            "datasets list has no --dry-run and should report supports_dry_run=false"
+        );
     }
 }
