@@ -42,6 +42,10 @@ pub struct Cli {
     /// Pagination token from a previous response's next_page_token
     #[arg(long, global = true)]
     pub page_token: Option<String>,
+
+    /// Automatically fetch all pages (follows nextPageToken until exhausted)
+    #[arg(long, global = true)]
+    pub page_all: bool,
 }
 
 #[derive(Subcommand)]

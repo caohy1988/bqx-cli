@@ -377,7 +377,7 @@ const DATA_GLOBALS: &[&str] = &[
     "--sanitize",
 ];
 
-/// DATA_GLOBALS + --page-token for dynamic list commands that support pagination.
+/// DATA_GLOBALS + pagination flags for dynamic list commands.
 const PAGINATED_DATA_GLOBALS: &[&str] = &[
     "--project-id",
     "--dataset-id",
@@ -388,6 +388,7 @@ const PAGINATED_DATA_GLOBALS: &[&str] = &[
     "--credentials-file",
     "--sanitize",
     "--page-token",
+    "--page-all",
 ];
 
 /// Global flags relevant to namespace helpers (profile-based, no project/dataset).

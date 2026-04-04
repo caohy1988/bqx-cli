@@ -38,7 +38,7 @@ edit intentional divergence notes only.
 
 ## Flag Parity
 
-### `doctor` (1 exact, 3 semantic mismatch, 1 divergent, 4 dcx-only)
+### `doctor` (1 exact, 3 semantic mismatch, 1 divergent, 5 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -51,8 +51,9 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 
-### `get-trace` (2 exact, 3 semantic mismatch, 2 divergent, 4 dcx-only)
+### `get-trace` (2 exact, 3 semantic mismatch, 2 divergent, 5 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -67,8 +68,9 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 
-### `evaluate` (3 exact, 7 semantic mismatch, 5 divergent, 4 dcx-only)
+### `evaluate` (3 exact, 7 semantic mismatch, 5 divergent, 5 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -91,8 +93,9 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 
-### `insights` (2 exact, 4 semantic mismatch, 3 divergent, 4 dcx-only)
+### `insights` (2 exact, 4 semantic mismatch, 3 divergent, 5 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -109,8 +112,9 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 
-### `drift` (3 exact, 4 semantic mismatch, 2 divergent, 6 dcx-only)
+### `drift` (3 exact, 4 semantic mismatch, 2 divergent, 7 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -127,10 +131,11 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 | `--min-coverage` | float | — | dcx_extension (local) | |
 | `--exit-code` | bool | — | dcx_extension (local) | |
 
-### `distribution` (2 exact, 5 semantic mismatch, 3 divergent, 4 dcx-only)
+### `distribution` (2 exact, 5 semantic mismatch, 3 divergent, 5 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -148,8 +153,9 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 
-### `hitl-metrics` (2 exact, 5 semantic mismatch, 1 divergent, 4 dcx-only)
+### `hitl-metrics` (2 exact, 5 semantic mismatch, 1 divergent, 5 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -165,8 +171,9 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 
-### `list-traces` (3 exact, 5 semantic mismatch, 1 divergent, 4 dcx-only)
+### `list-traces` (3 exact, 5 semantic mismatch, 1 divergent, 5 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -183,8 +190,9 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 
-### `categorical-eval` (8 exact, 4 semantic mismatch, 1 divergent, 1 missing, 5 dcx-only)
+### `categorical-eval` (8 exact, 4 semantic mismatch, 1 divergent, 1 missing, 6 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -206,9 +214,10 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 | `--no-include-justification` | bool | — | dcx_extension (local) | |
 
-### `categorical-views` (3 exact, 3 semantic mismatch, 5 dcx-only)
+### `categorical-views` (3 exact, 3 semantic mismatch, 6 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -223,23 +232,9 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 
-### `views create-all` (1 exact, 3 semantic mismatch, 1 divergent, 5 dcx-only)
-
-| SDK Flag | Type | Required | Status | Note |
-|----------|------|----------|--------|------|
-| `--project-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
-| `--dataset-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
-| `--table-id` | str | no | intentional_divergence | --table-id -> --table |
-| `--prefix` | str | no | semantic_mismatch | SDK default='adk_', dcx default='' |
-| `--format` | str | no | exact |  |
-| `--location` | string | — | dcx_extension (global) | |
-| `--token` | optional<string> | — | dcx_extension (global) | |
-| `--credentials-file` | optional<string> | — | dcx_extension (global) | |
-| `--sanitize` | optional<string> | — | dcx_extension (global) | |
-| `--page-token` | optional<string> | — | dcx_extension (global) | |
-
-### `views create` (1 exact, 3 semantic mismatch, 1 divergent, 6 dcx-only)
+### `views create-all` (1 exact, 3 semantic mismatch, 1 divergent, 6 dcx-only)
 
 | SDK Flag | Type | Required | Status | Note |
 |----------|------|----------|--------|------|
@@ -253,6 +248,23 @@ edit intentional divergence notes only.
 | `--credentials-file` | optional<string> | — | dcx_extension (global) | |
 | `--sanitize` | optional<string> | — | dcx_extension (global) | |
 | `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
+
+### `views create` (1 exact, 3 semantic mismatch, 1 divergent, 7 dcx-only)
+
+| SDK Flag | Type | Required | Status | Note |
+|----------|------|----------|--------|------|
+| `--project-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
+| `--dataset-id` | str | yes | semantic_mismatch | SDK required, dcx optional |
+| `--table-id` | str | no | intentional_divergence | --table-id -> --table |
+| `--prefix` | str | no | semantic_mismatch | SDK default='adk_', dcx default='' |
+| `--format` | str | no | exact |  |
+| `--location` | string | — | dcx_extension (global) | |
+| `--token` | optional<string> | — | dcx_extension (global) | |
+| `--credentials-file` | optional<string> | — | dcx_extension (global) | |
+| `--sanitize` | optional<string> | — | dcx_extension (global) | |
+| `--page-token` | optional<string> | — | dcx_extension (global) | |
+| `--page-all` | bool | — | dcx_extension (global) | |
 | `--event-type` | string | — | dcx_extension (local) | |
 
 ## Evaluator Parity
