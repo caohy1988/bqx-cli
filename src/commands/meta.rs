@@ -241,10 +241,21 @@ fn extract_contract(
     let flags = extract_flags(cmd);
     let behavior = runtime_behavior(path);
 
+    // Check if this dynamic command supports pagination (marked by _paginated arg).
+    let is_paginated = cmd
+        .get_arguments()
+        .any(|a| a.get_id().as_str() == "_paginated");
+
     // Only include global flags that this command actually reads.
+    // Pagination flags are added only for commands that actually support them.
     let relevant_globals: Vec<FlagContract> = all_global_flags
         .iter()
-        .filter(|f| behavior.relevant_globals.iter().any(|&g| f.name == g))
+        .filter(|f| {
+            if f.name == "--page-token" || f.name == "--page-all" {
+                return is_paginated;
+            }
+            behavior.relevant_globals.iter().any(|&g| f.name == g)
+        })
         .cloned()
         .collect();
 
@@ -271,7 +282,7 @@ fn extract_global_flags(app: &clap::Command) -> Vec<FlagContract> {
     app.get_arguments()
         .filter(|a| {
             let id = a.get_id().as_str();
-            id != "help" && id != "version"
+            id != "help" && id != "version" && id != "_paginated"
         })
         .map(arg_to_flag)
         .collect()
@@ -281,7 +292,7 @@ fn extract_flags(cmd: &clap::Command) -> Vec<FlagContract> {
     cmd.get_arguments()
         .filter(|a| {
             let id = a.get_id().as_str();
-            id != "help" && id != "version"
+            id != "help" && id != "version" && id != "_paginated"
         })
         .map(arg_to_flag)
         .collect()
@@ -375,19 +386,6 @@ const DATA_GLOBALS: &[&str] = &[
     "--token",
     "--credentials-file",
     "--sanitize",
-];
-
-/// DATA_GLOBALS + --page-token for dynamic list commands that support pagination.
-const PAGINATED_DATA_GLOBALS: &[&str] = &[
-    "--project-id",
-    "--dataset-id",
-    "--location",
-    "--table",
-    "--format",
-    "--token",
-    "--credentials-file",
-    "--sanitize",
-    "--page-token",
 ];
 
 /// Global flags relevant to namespace helpers (profile-based, no project/dataset).
@@ -516,28 +514,21 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
 
         // ── all other data commands: general handler ────────────────
         // Includes: jobs, ca (non-ask), analytics (non-evaluate/drift/get-trace), dynamic
-        _ => {
-            // Dynamic list commands support --page-token; other commands do not.
-            let action = path.last().copied().unwrap_or("");
-            let globals = if action == "list" {
-                PAGINATED_DATA_GLOBALS
-            } else {
-                DATA_GLOBALS
-            };
-            RuntimeBehavior {
-                formats: vec!["json", "table", "text"],
-                exit_codes: exit_codes(&[
-                    ("0", "success"),
-                    ("1", "validation error"),
-                    ("2", "infrastructure error"),
-                    ("3", "authentication error"),
-                    ("4", "not found"),
-                    ("5", "conflict / already exists"),
-                ]),
-                relevant_globals: globals,
-                constraints: vec![],
-            }
-        }
+        // Pagination flags (--page-token, --page-all) are added by extract_contract
+        // based on the _paginated marker, not by runtime_behavior.
+        _ => RuntimeBehavior {
+            formats: vec!["json", "table", "text"],
+            exit_codes: exit_codes(&[
+                ("0", "success"),
+                ("1", "validation error"),
+                ("2", "infrastructure error"),
+                ("3", "authentication error"),
+                ("4", "not found"),
+                ("5", "conflict / already exists"),
+            ]),
+            relevant_globals: DATA_GLOBALS,
+            constraints: vec![],
+        },
     }
 }
 

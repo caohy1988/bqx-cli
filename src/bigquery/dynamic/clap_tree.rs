@@ -80,6 +80,22 @@ pub fn build_dynamic_commands(
                     .num_args(0),
             );
 
+            // Mark commands that support pagination (used by meta contract).
+            let has_page_token = gen_cmd
+                .method
+                .parameters
+                .iter()
+                .any(|p| p.name == "pageToken");
+            if has_page_token {
+                action_cmd = action_cmd.arg(
+                    Arg::new("_paginated")
+                        .long("_paginated")
+                        .hide(true)
+                        .action(ArgAction::SetTrue)
+                        .num_args(0),
+                );
+            }
+
             subcommands.push(action_cmd);
         }
 

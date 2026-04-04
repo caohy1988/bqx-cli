@@ -78,6 +78,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -172,6 +178,12 @@
           "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
           "global": true
         }
       ],
@@ -339,6 +351,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -452,6 +470,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -563,6 +587,12 @@
           "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
           "global": true
         },
         {
@@ -698,6 +728,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -801,6 +837,12 @@
           "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
           "global": true
         }
       ],
@@ -913,6 +955,12 @@
           "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
           "global": true
         }
       ],
@@ -1067,6 +1115,12 @@
           "global": true
         },
         {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
+        },
+        {
           "flag": "--no-include-justification",
           "status": "dcx_extension",
           "type": "bool",
@@ -1162,6 +1216,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -1246,6 +1306,12 @@
           "status": "dcx_extension",
           "type": "optional<string>",
           "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -1329,6 +1395,12 @@
           "flag": "--page-token",
           "status": "dcx_extension",
           "type": "optional<string>",
+          "global": true
+        },
+        {
+          "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
           "global": true
         },
         {

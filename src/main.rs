@@ -334,6 +334,8 @@ async fn run_dynamic(
         .get_one::<String>("page_token")
         .map(|s| s.as_str());
 
+    let page_all = root_matches.get_flag("page_all");
+
     let result = executor::execute(
         cmd,
         &args,
@@ -345,6 +347,7 @@ async fn run_dynamic(
         sanitize_template,
         &svc.config,
         page_token,
+        page_all,
     )
     .await;
 

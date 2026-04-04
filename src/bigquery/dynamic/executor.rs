@@ -10,6 +10,9 @@ use super::model::GeneratedCommand;
 use super::request_builder::{self, DynamicRequest};
 use super::service::ServiceConfig;
 
+/// Maximum number of pages to fetch in --page-all mode.
+const MAX_PAGES: usize = 100;
+
 /// Execute a dynamic (generated) API command end-to-end.
 ///
 /// 1. Validates required parameters
@@ -30,6 +33,7 @@ pub async fn execute(
     sanitize_template: Option<&str>,
     config: &ServiceConfig,
     page_token: Option<&str>,
+    page_all: bool,
 ) -> Result<()> {
     let global_params = config.global_param_names();
 
@@ -70,6 +74,16 @@ pub async fn execute(
     }
 
     let resolved = auth::resolve(auth_opts).await?;
+
+    // --page-all: fetch all pages and merge items into a pre-normalized response.
+    if page_all && supports_pagination {
+        let body =
+            fetch_all_pages(&resolved, &request, config.service_label, sanitize_template).await?;
+        // The page-all response is already in final form (items, total_items,
+        // pages_fetched, source) — render directly to avoid re-normalization.
+        return render_page_all_response(&body, format);
+    }
+
     let body = send_request(&resolved, &request, config.service_label).await?;
 
     let body = if let Some(template) = sanitize_template {
@@ -82,6 +96,88 @@ pub async fn execute(
     };
 
     render_response(&body, format, config.service_label, supports_pagination)
+}
+
+/// Fetch all pages by following nextPageToken, merging items into one response.
+async fn fetch_all_pages(
+    auth: &ResolvedAuth,
+    base_request: &DynamicRequest,
+    service_label: &str,
+    sanitize_template: Option<&str>,
+) -> Result<serde_json::Value> {
+    let mut all_items: Vec<serde_json::Value> = Vec::new();
+    let mut current_request = base_request.clone();
+    let mut pages_fetched = 0;
+
+    loop {
+        let body = send_request(auth, &current_request, service_label).await?;
+
+        let body = if let Some(template) = sanitize_template {
+            let resolved_auth = auth;
+            let result =
+                crate::bigquery::sanitize::sanitize_response(resolved_auth, template, &body)
+                    .await?;
+            crate::bigquery::sanitize::print_sanitization_notice(&result);
+            result.content
+        } else {
+            body
+        };
+
+        // Extract items from this page.
+        if let Some(obj) = body.as_object() {
+            if let Some(items_key) = obj.keys().find(|key| {
+                !METADATA_FIELDS.contains(&key.as_str())
+                    && obj.get(key.as_str()).and_then(|v| v.as_array()).is_some()
+            }) {
+                if let Some(arr) = obj.get(items_key).and_then(|v| v.as_array()) {
+                    all_items.extend(arr.iter().cloned());
+                }
+            }
+        }
+
+        pages_fetched += 1;
+
+        // Check for next page token.
+        let next_token = body
+            .as_object()
+            .and_then(|obj| obj.get("nextPageToken"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
+        match next_token {
+            Some(token) if pages_fetched < MAX_PAGES => {
+                // Replace or add pageToken in query params for next request.
+                current_request
+                    .query_params
+                    .retain(|(k, _)| k != "pageToken");
+                current_request
+                    .query_params
+                    .push(("pageToken".to_string(), token));
+            }
+            _ => break,
+        }
+    }
+
+    // Build a synthetic response with all items.
+    let mut result = serde_json::Map::new();
+    result.insert(
+        "items".to_string(),
+        serde_json::Value::Array(all_items.clone()),
+    );
+    result.insert(
+        "total_items".to_string(),
+        serde_json::Value::Number(serde_json::Number::from(all_items.len())),
+    );
+    result.insert(
+        "pages_fetched".to_string(),
+        serde_json::Value::Number(serde_json::Number::from(pages_fetched)),
+    );
+    result.insert(
+        "source".to_string(),
+        serde_json::Value::String(service_label.to_string()),
+    );
+
+    Ok(serde_json::Value::Object(result))
 }
 
 fn render_dry_run(request: &DynamicRequest, format: &OutputFormat) -> Result<()> {
@@ -183,6 +279,23 @@ fn render_response(
                 render_items_as_table(items)?;
             } else {
                 render_object_as_table(body)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Render a pre-normalized --page-all response (items, total_items, pages_fetched, source).
+fn render_page_all_response(body: &serde_json::Value, format: &OutputFormat) -> Result<()> {
+    match format {
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(body)?);
+        }
+        OutputFormat::Table | OutputFormat::Text => {
+            if let Some(items) = body.get("items").and_then(|v| v.as_array()) {
+                render_items_as_table(items)?;
+            } else {
+                println!("(no results)");
             }
         }
     }
