@@ -38,6 +38,7 @@ struct DryRunOutput {
     body: serde_json::Value,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     name: String,
     tables: Vec<String>,
