@@ -110,6 +110,7 @@ async fn main() {
                 {
                     if let Err(e) = result {
                         ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 2)
+                            .detect_semantic_exit_code()
                             .detect_retryable()
                             .emit_and_exit();
                     }
@@ -349,6 +350,7 @@ async fn run_dynamic(
 
     if let Err(e) = result {
         ErrorEnvelope::new(ErrorCode::ApiError, e.to_string(), 2)
+            .detect_semantic_exit_code()
             .detect_retryable()
             .emit_and_exit();
     }
@@ -367,7 +369,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
             AuthCommand::Status => auth::login::run_status(&auth_opts).await,
         };
         if let Err(e) = result {
-            ErrorEnvelope::new(ErrorCode::AuthError, e.to_string(), 1).emit_and_exit();
+            ErrorEnvelope::new(ErrorCode::AuthError, e.to_string(), 3).emit_and_exit();
         }
         return;
     }
@@ -519,6 +521,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         .await;
         if let Err(e) = result {
             ErrorEnvelope::new(ErrorCode::ApiError, e.to_string(), 2)
+                .detect_semantic_exit_code()
                 .detect_retryable()
                 .emit_and_exit();
         }
@@ -751,6 +754,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         }
         // Generic errors → exit 2 (infrastructure), matching SDK semantics.
         ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 2)
+            .detect_semantic_exit_code()
             .detect_retryable()
             .emit_and_exit();
     }

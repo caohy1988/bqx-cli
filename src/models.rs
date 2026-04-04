@@ -36,6 +36,8 @@ pub enum ErrorCode {
     UnknownCommand,
     AuthError,
     ApiError,
+    NotFound,
+    Conflict,
     EvalFailed,
     InfraError,
     Internal,
@@ -84,6 +86,32 @@ impl ErrorEnvelope {
             self.retryable = matches!(code, 408 | 429 | 500 | 502 | 503 | 504);
         } else {
             self.retryable = is_transient_transport_error(&self.message);
+        }
+        self
+    }
+
+    /// Refine error code and exit code based on HTTP status in the message.
+    ///
+    /// - 401/403 → `AuthError`, exit 3
+    /// - 404 → `NotFound`, exit 4
+    /// - 409 → `Conflict`, exit 5
+    pub fn detect_semantic_exit_code(mut self) -> Self {
+        if let Some(status) = extract_http_status(&self.message) {
+            match status {
+                401 | 403 => {
+                    self.code = ErrorCode::AuthError;
+                    self.exit_code = 3;
+                }
+                404 => {
+                    self.code = ErrorCode::NotFound;
+                    self.exit_code = 4;
+                }
+                409 => {
+                    self.code = ErrorCode::Conflict;
+                    self.exit_code = 5;
+                }
+                _ => {}
+            }
         }
         self
     }
@@ -275,6 +303,87 @@ mod tests {
             message: "BigQuery API error 503: Service Unavailable".into(),
         };
         let env = ErrorEnvelope::from(&infra);
+        assert!(env.retryable);
+    }
+
+    #[test]
+    fn semantic_exit_code_401_maps_to_auth_error() {
+        let env = ErrorEnvelope::new(
+            ErrorCode::ApiError,
+            "BigQuery API error 401: Unauthorized",
+            2,
+        )
+        .detect_semantic_exit_code();
+        assert!(matches!(env.code, ErrorCode::AuthError));
+        assert_eq!(env.exit_code, 3);
+    }
+
+    #[test]
+    fn semantic_exit_code_403_maps_to_auth_error() {
+        let env = ErrorEnvelope::new(ErrorCode::ApiError, "Spanner API error 403: Forbidden", 2)
+            .detect_semantic_exit_code();
+        assert!(matches!(env.code, ErrorCode::AuthError));
+        assert_eq!(env.exit_code, 3);
+    }
+
+    #[test]
+    fn semantic_exit_code_404_maps_to_not_found() {
+        let env = ErrorEnvelope::new(ErrorCode::ApiError, "BigQuery API error 404: Not Found", 2)
+            .detect_semantic_exit_code();
+        assert!(matches!(env.code, ErrorCode::NotFound));
+        assert_eq!(env.exit_code, 4);
+    }
+
+    #[test]
+    fn semantic_exit_code_409_maps_to_conflict() {
+        let env = ErrorEnvelope::new(
+            ErrorCode::ApiError,
+            "Cloud SQL API error 409: Already Exists",
+            2,
+        )
+        .detect_semantic_exit_code();
+        assert!(matches!(env.code, ErrorCode::Conflict));
+        assert_eq!(env.exit_code, 5);
+    }
+
+    #[test]
+    fn semantic_exit_code_leaves_500_unchanged() {
+        let env = ErrorEnvelope::new(
+            ErrorCode::ApiError,
+            "BigQuery API error 500: Internal Server Error",
+            2,
+        )
+        .detect_semantic_exit_code();
+        assert!(matches!(env.code, ErrorCode::ApiError));
+        assert_eq!(env.exit_code, 2);
+    }
+
+    #[test]
+    fn semantic_exit_code_no_status_unchanged() {
+        let env = ErrorEnvelope::new(ErrorCode::InfraError, "connection refused", 2)
+            .detect_semantic_exit_code();
+        assert!(matches!(env.code, ErrorCode::InfraError));
+        assert_eq!(env.exit_code, 2);
+    }
+
+    #[test]
+    fn semantic_and_retryable_compose() {
+        let env = ErrorEnvelope::new(ErrorCode::ApiError, "BigQuery API error 404: Not Found", 2)
+            .detect_semantic_exit_code()
+            .detect_retryable();
+        assert!(matches!(env.code, ErrorCode::NotFound));
+        assert_eq!(env.exit_code, 4);
+        assert!(!env.retryable);
+
+        let env = ErrorEnvelope::new(
+            ErrorCode::ApiError,
+            "BigQuery API error 503: Service Unavailable",
+            2,
+        )
+        .detect_semantic_exit_code()
+        .detect_retryable();
+        assert!(matches!(env.code, ErrorCode::ApiError));
+        assert_eq!(env.exit_code, 2);
         assert!(env.retryable);
     }
 }
