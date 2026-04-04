@@ -437,10 +437,10 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             constraints: vec![],
         },
 
-        // ── auth login/logout: no structured output, exit 0/1 ───────
+        // ── auth login/logout: no structured output, exit 0/3 ───────
         "auth" => RuntimeBehavior {
             formats: vec![],
-            exit_codes: exit_codes(&[("0", "success"), ("1", "error")]),
+            exit_codes: exit_codes(&[("0", "success"), ("3", "authentication error")]),
             relevant_globals: &[],
             constraints: vec![],
         },
@@ -470,8 +470,10 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             formats: vec!["json", "table", "text"],
             exit_codes: exit_codes(&[
                 ("0", "success"),
-                ("1", "error"),
+                ("1", "validation error"),
                 ("2", "infrastructure error"),
+                ("3", "authentication error"),
+                ("4", "not found"),
             ]),
             relevant_globals: DATA_GLOBALS,
             constraints: vec![FlagConstraint {
@@ -486,8 +488,10 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             formats: vec!["json", "table", "text"],
             exit_codes: exit_codes(&[
                 ("0", "success"),
-                ("1", "error"),
+                ("1", "validation error"),
                 ("2", "infrastructure error"),
+                ("3", "authentication error"),
+                ("4", "not found"),
             ]),
             relevant_globals: DATA_GLOBALS,
             constraints: vec![FlagConstraint {
@@ -497,15 +501,20 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             }],
         },
 
-        // ── namespace helpers: profile-based, exit 0/2 ─────────────
+        // ── namespace helpers: profile-based ──────────────────────
         _ if is_namespace_helper(path) => RuntimeBehavior {
             formats: vec!["json", "table", "text"],
-            exit_codes: exit_codes(&[("0", "success"), ("2", "infrastructure error")]),
+            exit_codes: exit_codes(&[
+                ("0", "success"),
+                ("2", "infrastructure error"),
+                ("3", "authentication error"),
+                ("4", "not found"),
+            ]),
             relevant_globals: HELPER_GLOBALS,
             constraints: vec![],
         },
 
-        // ── all other data commands: general handler, exit 0/1/2 ────
+        // ── all other data commands: general handler ────────────────
         // Includes: jobs, ca (non-ask), analytics (non-evaluate/drift/get-trace), dynamic
         _ => {
             // Dynamic list commands support --page-token; other commands do not.
@@ -519,8 +528,11 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
                 formats: vec!["json", "table", "text"],
                 exit_codes: exit_codes(&[
                     ("0", "success"),
-                    ("1", "error"),
+                    ("1", "validation error"),
                     ("2", "infrastructure error"),
+                    ("3", "authentication error"),
+                    ("4", "not found"),
+                    ("5", "conflict / already exists"),
                 ]),
                 relevant_globals: globals,
                 constraints: vec![],
@@ -675,11 +687,23 @@ mod tests {
             .iter()
             .find(|c| c.command == "dcx datasets list")
             .unwrap();
-        assert_eq!(ds.exit_codes.get("1").unwrap(), "error");
+        assert_eq!(ds.exit_codes.get("1").unwrap(), "validation error");
         assert_eq!(
             ds.exit_codes.get("2").unwrap(),
             "infrastructure error",
             "data commands should advertise exit 2"
+        );
+        assert!(
+            ds.exit_codes.contains_key("3"),
+            "data commands should advertise exit 3 (auth)"
+        );
+        assert!(
+            ds.exit_codes.contains_key("4"),
+            "data commands should advertise exit 4 (not found)"
+        );
+        assert!(
+            ds.exit_codes.contains_key("5"),
+            "data commands should advertise exit 5 (conflict)"
         );
     }
 
@@ -718,7 +742,10 @@ mod tests {
             login.global_flags.is_empty(),
             "auth login should have no global flags"
         );
-        assert!(login.exit_codes.contains_key("1"), "auth login can exit 1");
+        assert!(
+            login.exit_codes.contains_key("3"),
+            "auth login can exit 3 (authentication error)"
+        );
     }
 
     #[test]
