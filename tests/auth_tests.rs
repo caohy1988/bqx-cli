@@ -255,12 +255,11 @@ fn auth_status_respects_credentials_file_cli_flag() {
 // ── Cross-platform random generation test (Fix 3) ──
 
 #[test]
-fn login_generate_random_produces_valid_output() {
-    // Verify that `dcx auth login` starts without crashing (tests the random generation path).
-    // We can't complete the OAuth flow, but we can verify it gets far enough to print the URL.
-    // Use a timeout via the process to avoid hanging on the listener.
+fn login_rejects_non_interactive_terminal() {
+    // `dcx auth login` requires a TTY. In CI / piped stdin, it should exit 3
+    // with a structured error explaining alternative auth methods.
     let bin = cargo_bin();
-    let child = std::process::Command::new(&bin)
+    let output = std::process::Command::new(&bin)
         .args(["auth", "login"])
         .env_remove("DCX_TOKEN")
         .env_remove("DCX_CREDENTIALS_FILE")
@@ -268,25 +267,19 @@ fn login_generate_random_produces_valid_output() {
         .env("DCX_PROJECT", "test-project")
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
-        .spawn()
-        .expect("Failed to start dcx auth login");
+        .output()
+        .expect("Failed to run dcx auth login");
 
-    // Give it a moment to start and print the URL
-    std::thread::sleep(std::time::Duration::from_secs(2));
-
-    // Kill the process (it's waiting for the OAuth callback)
-    let output = {
-        let mut child = child;
-        // On Unix, we can kill directly
-        let _ = child.kill();
-        child.wait_with_output().expect("Failed to wait for child")
-    };
+    assert_eq!(output.status.code(), Some(3), "should exit 3 (auth error)");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
-    // If random generation works, it should get to printing the auth URL
     assert!(
-        stderr.contains("accounts.google.com") || stderr.contains("Opening browser"),
-        "Expected auth URL or browser message (random gen works), got: {stderr}"
+        stderr.contains("interactive terminal"),
+        "Expected non-interactive rejection message, got: {stderr}"
+    );
+    assert!(
+        stderr.contains("--token") && stderr.contains("--credentials-file"),
+        "Should suggest alternative auth methods, got: {stderr}"
     );
 }
 

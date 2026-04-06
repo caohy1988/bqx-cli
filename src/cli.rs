@@ -46,6 +46,10 @@ pub struct Cli {
     /// Automatically fetch all pages (follows nextPageToken until exhausted)
     #[arg(long, global = true)]
     pub page_all: bool,
+
+    /// Skip confirmation prompts (required for non-interactive / CI execution)
+    #[arg(long, global = true, env = "DCX_YES")]
+    pub yes: bool,
 }
 
 #[derive(Subcommand)]
