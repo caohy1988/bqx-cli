@@ -559,7 +559,11 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
     }
 }
 
-/// Detect whether a command path represents a mutation (create/update/delete).
+/// Detect whether a command path represents an unconditional mutation.
+///
+/// Commands that only mutate conditionally (e.g. categorical-eval with
+/// --persist) are not listed here — `is_mutation` should reflect the
+/// default behaviour, not an optional flag.
 fn is_mutation_command(path: &[&str]) -> bool {
     let first = path.first().copied().unwrap_or("");
     let second = path.get(1).copied().unwrap_or("");
@@ -570,7 +574,6 @@ fn is_mutation_command(path: &[&str]) -> bool {
         ("ca", "create-agent", _)
             | ("ca", "add-verified-query", _)
             | ("analytics", "views", "create" | "create-all")
-            | ("analytics", "categorical-eval", _)
             | ("analytics", "categorical-views", _)
     )
 }

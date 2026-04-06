@@ -1,11 +1,12 @@
 use std::io::IsTerminal;
 
-/// Returns `true` when stdin is attached to a terminal.
+/// Returns `true` when both stdin and stderr are attached to a terminal.
 ///
-/// Use this to decide whether interactive prompts (auth login, confirmation
-/// dialogs) are safe to present. When `false`, commands that require user
-/// interaction should either require `--yes` or exit with a structured
+/// Checks stderr (not stdout) because dcx writes all interactive messages
+/// to stderr — stdout is reserved for structured data. If either stdin or
+/// stderr is piped, interactive flows (auth login, confirmation dialogs)
+/// are unsafe and should require `--yes` or exit with a structured
 /// confirmation envelope.
 pub fn is_interactive() -> bool {
-    std::io::stdin().is_terminal()
+    std::io::stdin().is_terminal() && std::io::stderr().is_terminal()
 }
