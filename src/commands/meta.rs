@@ -39,6 +39,7 @@ pub struct CommandContract {
     output: OutputContract,
     exit_codes: BTreeMap<String, String>,
     supports_dry_run: bool,
+    is_mutation: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -168,9 +169,10 @@ fn print_describe_text(c: &CommandContract) {
     println!();
 
     println!(
-        "  Dry run: {}",
+        "  Dry run:  {}",
         if c.supports_dry_run { "yes" } else { "no" }
     );
+    println!("  Mutation: {}", if c.is_mutation { "yes" } else { "no" });
     println!();
 
     println!("  Exit codes:");
@@ -284,6 +286,7 @@ fn extract_contract(
         },
         exit_codes: behavior.exit_codes,
         supports_dry_run,
+        is_mutation: behavior.is_mutation,
     }
 }
 
@@ -416,6 +419,8 @@ struct RuntimeBehavior {
     relevant_globals: &'static [&'static str],
     /// Flag relationship constraints (mutual exclusion, one-of-required).
     constraints: Vec<FlagConstraint>,
+    /// Whether this command mutates state (creates, updates, or deletes resources).
+    is_mutation: bool,
 }
 
 fn exit_codes(entries: &[(&str, &str)]) -> BTreeMap<String, String> {
@@ -438,6 +443,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             exit_codes: exit_codes(&[("0", "success")]),
             relevant_globals: &[],
             constraints: vec![],
+            is_mutation: false,
         },
 
         // ── auth status: always exits 0 (reports status to stderr) ──
@@ -446,6 +452,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             exit_codes: exit_codes(&[("0", "success")]),
             relevant_globals: AUTH_GLOBALS,
             constraints: vec![],
+            is_mutation: false,
         },
 
         // ── auth login/logout: no structured output, exit 0/3 ───────
@@ -454,6 +461,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             exit_codes: exit_codes(&[("0", "success"), ("3", "authentication error")]),
             relevant_globals: &[],
             constraints: vec![],
+            is_mutation: second == "logout",
         },
 
         // ── utility / admin: format-only, early return with exit 1 ──
@@ -462,6 +470,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             exit_codes: exit_codes(&[("0", "success"), ("1", "error")]),
             relevant_globals: &["--format"],
             constraints: vec![],
+            is_mutation: false,
         },
 
         // ── analytics evaluate / drift: SDK-aligned exit codes ──────
@@ -474,6 +483,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             ]),
             relevant_globals: DATA_GLOBALS,
             constraints: vec![],
+            is_mutation: false,
         },
 
         // ── analytics get-trace: one-of-required constraint ─────────
@@ -492,6 +502,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
                 flags: vec!["--session-id".into(), "--trace-id".into()],
                 description: "Provide --session-id or --trace-id".into(),
             }],
+            is_mutation: false,
         },
 
         // ── ca ask: --profile is mutually exclusive with --agent/--tables
@@ -510,6 +521,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
                 flags: vec!["--profile".into(), "--agent".into(), "--tables".into()],
                 description: "--profile cannot be combined with --agent or --tables".into(),
             }],
+            is_mutation: false,
         },
 
         // ── namespace helpers: profile-based ──────────────────────
@@ -523,6 +535,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             ]),
             relevant_globals: HELPER_GLOBALS,
             constraints: vec![],
+            is_mutation: false,
         },
 
         // ── all other data commands: general handler ────────────────
@@ -541,8 +554,25 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             ]),
             relevant_globals: DATA_GLOBALS,
             constraints: vec![],
+            is_mutation: is_mutation_command(path),
         },
     }
+}
+
+/// Detect whether a command path represents a mutation (create/update/delete).
+fn is_mutation_command(path: &[&str]) -> bool {
+    let first = path.first().copied().unwrap_or("");
+    let second = path.get(1).copied().unwrap_or("");
+    let third = path.get(2).copied().unwrap_or("");
+
+    matches!(
+        (first, second, third),
+        ("ca", "create-agent", _)
+            | ("ca", "add-verified-query", _)
+            | ("analytics", "views", "create" | "create-all")
+            | ("analytics", "categorical-eval", _)
+            | ("analytics", "categorical-views", _)
+    )
 }
 
 /// Namespace helper commands that are routed through
@@ -626,14 +656,25 @@ mod tests {
                     .subcommand(clap::Command::new("list").about("List all discoverable profiles")),
             )
             .subcommand(
-                clap::Command::new("ca").subcommand(
-                    clap::Command::new("ask")
-                        .about("Ask a natural language question via Conversational Analytics")
-                        .arg(clap::Arg::new("question").required(true))
-                        .arg(clap::Arg::new("profile").long("profile"))
-                        .arg(clap::Arg::new("agent").long("agent"))
-                        .arg(clap::Arg::new("tables").long("tables").value_delimiter(',')),
-                ),
+                clap::Command::new("ca")
+                    .subcommand(
+                        clap::Command::new("ask")
+                            .about("Ask a natural language question via Conversational Analytics")
+                            .arg(clap::Arg::new("question").required(true))
+                            .arg(clap::Arg::new("profile").long("profile"))
+                            .arg(clap::Arg::new("agent").long("agent"))
+                            .arg(clap::Arg::new("tables").long("tables").value_delimiter(',')),
+                    )
+                    .subcommand(
+                        clap::Command::new("create-agent")
+                            .about("Create a new data agent")
+                            .arg(clap::Arg::new("name").long("name").required(true))
+                            .arg(
+                                clap::Arg::new("dry_run")
+                                    .long("dry-run")
+                                    .action(clap::ArgAction::SetTrue),
+                            ),
+                    ),
             )
             .subcommand(
                 clap::Command::new("analytics")
@@ -955,6 +996,36 @@ mod tests {
             .find(|c| c.command == "dcx datasets list")
             .unwrap();
         assert!(ds.constraints.is_empty());
+    }
+
+    #[test]
+    fn is_mutation_detected_from_path() {
+        let app = sample_app();
+        let contracts = collect_all(&app);
+
+        let create = contracts
+            .iter()
+            .find(|c| c.command == "dcx ca create-agent")
+            .unwrap();
+        assert!(
+            create.is_mutation,
+            "ca create-agent should be marked as mutation"
+        );
+
+        let ask = contracts
+            .iter()
+            .find(|c| c.command == "dcx ca ask")
+            .unwrap();
+        assert!(!ask.is_mutation, "ca ask should not be marked as mutation");
+
+        let ds = contracts
+            .iter()
+            .find(|c| c.command == "dcx datasets list")
+            .unwrap();
+        assert!(
+            !ds.is_mutation,
+            "datasets list should not be marked as mutation"
+        );
     }
 
     #[test]

@@ -9,3 +9,4 @@ pub mod models;
 pub mod output;
 pub mod skills;
 pub mod sources;
+pub mod tty;

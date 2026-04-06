@@ -84,6 +84,12 @@
           "status": "dcx_extension",
           "type": "bool",
           "global": true
+        },
+        {
+          "flag": "--yes",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -182,6 +188,12 @@
         },
         {
           "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
+        },
+        {
+          "flag": "--yes",
           "status": "dcx_extension",
           "type": "bool",
           "global": true
@@ -357,6 +369,12 @@
           "status": "dcx_extension",
           "type": "bool",
           "global": true
+        },
+        {
+          "flag": "--yes",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -476,6 +494,12 @@
           "status": "dcx_extension",
           "type": "bool",
           "global": true
+        },
+        {
+          "flag": "--yes",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -591,6 +615,12 @@
         },
         {
           "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
+        },
+        {
+          "flag": "--yes",
           "status": "dcx_extension",
           "type": "bool",
           "global": true
@@ -734,6 +764,12 @@
           "status": "dcx_extension",
           "type": "bool",
           "global": true
+        },
+        {
+          "flag": "--yes",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -841,6 +877,12 @@
         },
         {
           "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
+        },
+        {
+          "flag": "--yes",
           "status": "dcx_extension",
           "type": "bool",
           "global": true
@@ -959,6 +1001,12 @@
         },
         {
           "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
+        },
+        {
+          "flag": "--yes",
           "status": "dcx_extension",
           "type": "bool",
           "global": true
@@ -1121,6 +1169,12 @@
           "global": true
         },
         {
+          "flag": "--yes",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
+        },
+        {
           "flag": "--no-include-justification",
           "status": "dcx_extension",
           "type": "bool",
@@ -1222,6 +1276,12 @@
           "status": "dcx_extension",
           "type": "bool",
           "global": true
+        },
+        {
+          "flag": "--yes",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
         }
       ],
       "args": []
@@ -1309,6 +1369,12 @@
         },
         {
           "flag": "--page-all",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
+        },
+        {
+          "flag": "--yes",
           "status": "dcx_extension",
           "type": "bool",
           "global": true
@@ -1410,6 +1476,12 @@
           "global": true
         },
         {
+          "flag": "--yes",
+          "status": "dcx_extension",
+          "type": "bool",
+          "global": true
+        },
+        {
           "flag": "--event-type",
           "status": "dcx_extension",
           "type": "string",
@@ -1492,7 +1564,8 @@
       "DCX_LOCATION",
       "DCX_PROJECT",
       "DCX_SANITIZE_TEMPLATE",
-      "DCX_TOKEN"
+      "DCX_TOKEN",
+      "DCX_YES"
     ]
   },
   "exit_codes": {

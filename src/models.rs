@@ -128,6 +128,39 @@ impl ErrorEnvelope {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Confirmation envelope (exit code 2)
+// ---------------------------------------------------------------------------
+
+/// Structured confirmation envelope emitted when a mutation requires user
+/// confirmation but `--yes` was not passed and stdin is not a TTY.
+///
+/// Agents can parse this to decide whether to re-run with `--yes`.
+#[derive(Debug, Clone, Serialize)]
+pub struct ConfirmationEnvelope {
+    pub status: &'static str,
+    pub changes: Vec<String>,
+    pub confirm_command: String,
+    pub exit_code: i32,
+}
+
+impl ConfirmationEnvelope {
+    pub fn new(changes: Vec<String>, confirm_command: impl Into<String>) -> Self {
+        Self {
+            status: "confirmation_required",
+            changes,
+            confirm_command: confirm_command.into(),
+            exit_code: 2,
+        }
+    }
+
+    /// Emit the envelope to stdout and exit.
+    pub fn emit_and_exit(self) -> ! {
+        println!("{}", serde_json::json!(self));
+        std::process::exit(self.exit_code);
+    }
+}
+
 impl From<&BqxError> for ErrorEnvelope {
     fn from(e: &BqxError) -> Self {
         match e {
@@ -385,5 +418,18 @@ mod tests {
         assert!(matches!(env.code, ErrorCode::ApiError));
         assert_eq!(env.exit_code, 2);
         assert!(env.retryable);
+    }
+
+    #[test]
+    fn confirmation_envelope_shape() {
+        let env = ConfirmationEnvelope::new(
+            vec!["Would create agent 'my-agent'".into()],
+            "dcx ca create-agent --name my-agent --tables proj.ds.tbl --yes",
+        );
+        let json = serde_json::to_value(&env).unwrap();
+        assert_eq!(json["status"], "confirmation_required");
+        assert_eq!(json["exit_code"], 2);
+        assert_eq!(json["changes"][0], "Would create agent 'my-agent'");
+        assert!(json["confirm_command"].as_str().unwrap().contains("--yes"));
     }
 }

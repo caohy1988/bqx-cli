@@ -22,7 +22,20 @@ const DEFAULT_CLIENT_ID: &str =
 const DEFAULT_CLIENT_SECRET: &str = "d-FL95Q19q7MQmFpd7hHD0Ty";
 
 /// Run the interactive login flow with PKCE and state protection.
+///
+/// Requires a TTY — in non-interactive environments, use `--token`,
+/// `--credentials-file`, or `GOOGLE_APPLICATION_CREDENTIALS` instead.
 pub async fn run_login() -> Result<()> {
+    if !crate::tty::is_interactive() {
+        bail!(
+            "auth login requires an interactive terminal.\n\
+             In CI or automation, authenticate with:\n  \
+             --token <bearer-token>\n  \
+             --credentials-file <path-to-service-account.json>\n  \
+             GOOGLE_APPLICATION_CREDENTIALS=<path>"
+        );
+    }
+
     let client_id = std::env::var("DCX_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.into());
     let client_secret =
         std::env::var("DCX_CLIENT_SECRET").unwrap_or_else(|_| DEFAULT_CLIENT_SECRET.into());
