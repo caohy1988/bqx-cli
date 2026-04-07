@@ -196,6 +196,7 @@ fn auth_help_shows_subcommands() {
     assert!(stdout.contains("login"), "Missing login subcommand");
     assert!(stdout.contains("status"), "Missing status subcommand");
     assert!(stdout.contains("logout"), "Missing logout subcommand");
+    assert!(stdout.contains("check"), "Missing check subcommand");
 }
 
 #[test]
@@ -281,6 +282,72 @@ fn login_rejects_non_interactive_terminal() {
         stderr.contains("--token") && stderr.contains("--credentials-file"),
         "Should suggest alternative auth methods, got: {stderr}"
     );
+}
+
+// ── auth check preflight tests ──
+
+#[test]
+fn auth_check_with_token_returns_valid_json() {
+    let output = run_dcx_with_env(&["auth", "check"], &[("DCX_TOKEN", "check-token")]);
+    assert!(
+        output.status.success(),
+        "auth check should succeed with valid token"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("Expected JSON on stdout, got: {stdout}\nparse error: {e}"));
+    assert_eq!(json["valid"], true);
+    assert_eq!(json["source"], "DCX_TOKEN / --token");
+}
+
+#[test]
+fn auth_check_with_bad_credentials_file_exits_nonzero() {
+    let dir = tempfile::tempdir().unwrap();
+    let bad_path = dir.path().join("bad.json");
+    let mut f = std::fs::File::create(&bad_path).unwrap();
+    writeln!(f, r#"{{"type": "unknown_type"}}"#).unwrap();
+
+    let output = run_dcx_with_env(
+        &["auth", "check"],
+        &[("DCX_CREDENTIALS_FILE", bad_path.to_str().unwrap())],
+    );
+    assert!(
+        !output.status.success(),
+        "auth check with bad credentials should fail"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("Expected JSON on stdout, got: {stdout}\nparse error: {e}"));
+    assert_eq!(json["valid"], false);
+    assert!(json["error"].is_string());
+}
+
+#[test]
+fn auth_check_text_format_with_token() {
+    let output = run_dcx_with_env(
+        &["--format", "text", "auth", "check"],
+        &[("DCX_TOKEN", "text-check-token")],
+    );
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("OK"),
+        "Expected OK in text output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("DCX_TOKEN"),
+        "Expected source in text output, got: {stdout}"
+    );
+}
+
+#[test]
+fn auth_check_token_via_cli_flag() {
+    let output = run_dcx(&["--token", "flag-check-token", "auth", "check"]);
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(json["valid"], true);
+    assert_eq!(json["source"], "DCX_TOKEN / --token");
 }
 
 // ── Refresh path tests ──

@@ -370,6 +370,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
             AuthCommand::Login => auth::login::run_login().await,
             AuthCommand::Logout => auth::login::run_logout(),
             AuthCommand::Status => auth::login::run_status(&auth_opts).await,
+            AuthCommand::Check => auth::login::run_check(&auth_opts, &cli.format).await,
         };
         if let Err(e) = result {
             ErrorEnvelope::new(ErrorCode::AuthError, e.to_string(), 3).emit_and_exit();
@@ -431,6 +432,10 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
 
     // profiles commands don't need project/dataset config
     if let Command::Profiles { ref command } = cli.command {
+        let auth_opts = auth::AuthOptions {
+            token: cli.token.clone(),
+            credentials_file: cli.credentials_file.clone(),
+        };
         let result = match command {
             ProfilesCommand::List => commands::profiles::list::run(&cli.format),
             ProfilesCommand::Show { profile } => {
@@ -438,6 +443,9 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
             }
             ProfilesCommand::Validate { profile } => {
                 commands::profiles::validate::run(profile, &cli.format)
+            }
+            ProfilesCommand::Test { profile } => {
+                commands::profiles::test::run(profile, &auth_opts, &cli.format).await
             }
         };
         if let Err(e) = result {

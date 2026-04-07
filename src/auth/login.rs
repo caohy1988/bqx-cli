@@ -136,6 +136,82 @@ pub async fn run_login() -> Result<()> {
     Ok(())
 }
 
+/// Structured auth preflight check.
+///
+/// Resolves credentials using the same precedence chain as `auth status`,
+/// then verifies the token with a lightweight call. Outputs structured
+/// JSON to stdout — suitable for CI gates and agent preflight.
+///
+/// Exits 0 on success, 3 on failure.
+pub async fn run_check(opts: &super::AuthOptions, format: &crate::cli::OutputFormat) -> Result<()> {
+    use super::resolver;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct CheckResponse {
+        source: String,
+        valid: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        account: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    }
+
+    let response = match resolver::resolve(opts).await {
+        Ok(resolved) => {
+            let source = resolved.source.to_string();
+            let account = match &resolved.source {
+                resolver::AuthSource::StoredLogin(acct) => Some(acct.clone()),
+                _ => None,
+            };
+            match resolved.token().await {
+                Ok(_) => CheckResponse {
+                    source,
+                    valid: true,
+                    account,
+                    error: None,
+                },
+                Err(e) => CheckResponse {
+                    source,
+                    valid: false,
+                    account,
+                    error: Some(e.to_string()),
+                },
+            }
+        }
+        Err(e) => CheckResponse {
+            source: "none".to_string(),
+            valid: false,
+            account: None,
+            error: Some(e.to_string()),
+        },
+    };
+
+    let is_valid = response.valid;
+
+    if *format == crate::cli::OutputFormat::Text {
+        if response.valid {
+            println!("OK  {}", response.source);
+            if let Some(ref acct) = response.account {
+                println!("  account: {acct}");
+            }
+        } else {
+            println!("FAIL  {}", response.source);
+            if let Some(ref err) = response.error {
+                println!("  error: {err}");
+            }
+        }
+    } else {
+        crate::output::render(&response, format)?;
+    }
+
+    if !is_valid {
+        std::process::exit(3);
+    }
+
+    Ok(())
+}
+
 /// Run the logout flow — clear stored credentials.
 pub fn run_logout() -> Result<()> {
     let store = AuthStore::new();
