@@ -119,6 +119,8 @@ pub enum MetaCommand {
         #[arg(required = true)]
         path: Vec<String>,
     },
+    /// Generate Gemini extension manifest from the command contract
+    GeminiTools,
 }
 
 #[derive(Subcommand)]
