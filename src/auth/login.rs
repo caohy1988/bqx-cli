@@ -137,14 +137,22 @@ pub async fn run_login() -> Result<()> {
     Ok(())
 }
 
-/// Verify a bearer token by calling the Google tokeninfo endpoint.
+/// Resolve the tokeninfo endpoint URL.
+///
+/// Reads `DCX_TOKENINFO_URL` if set (for testing against a local mock),
+/// otherwise falls back to the live Google endpoint.
+pub fn tokeninfo_url() -> String {
+    std::env::var("DCX_TOKENINFO_URL").unwrap_or_else(|_| GOOGLE_TOKENINFO_URL.to_string())
+}
+
+/// Verify a bearer token by calling a tokeninfo endpoint.
 ///
 /// Returns the associated email (if any) on success, or an error if the
 /// token is invalid / expired / revoked.
-pub async fn verify_token(token: &str) -> Result<Option<String>> {
+pub async fn verify_token(token: &str, url: &str) -> Result<Option<String>> {
     let http = reqwest::Client::new();
     let resp = http
-        .get(GOOGLE_TOKENINFO_URL)
+        .get(url)
         .query(&[("access_token", token)])
         .send()
         .await?;
@@ -180,6 +188,7 @@ pub async fn run_check(opts: &super::AuthOptions, format: &crate::cli::OutputFor
         error: Option<String>,
     }
 
+    let ti_url = tokeninfo_url();
     let response = match resolver::resolve(opts).await {
         Ok(resolved) => {
             let source = resolved.source.to_string();
@@ -188,7 +197,7 @@ pub async fn run_check(opts: &super::AuthOptions, format: &crate::cli::OutputFor
                 _ => None,
             };
             match resolved.token().await {
-                Ok(token) => match verify_token(&token).await {
+                Ok(token) => match verify_token(&token, &ti_url).await {
                     Ok(email) => CheckResponse {
                         source,
                         valid: true,

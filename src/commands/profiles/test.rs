@@ -41,12 +41,13 @@ pub async fn run(
         }
     };
 
-    // Step 2: resolve auth, get a token, and verify it against Google tokeninfo
+    // Step 2: resolve auth, get a token, and verify it against tokeninfo endpoint
+    let ti_url = auth::login::tokeninfo_url();
     let (auth_source, auth_valid, error) = match auth::resolve(auth_opts).await {
         Ok(resolved) => {
             let source = resolved.source.to_string();
             match resolved.token().await {
-                Ok(token) => match auth::login::verify_token(&token).await {
+                Ok(token) => match auth::login::verify_token(&token, &ti_url).await {
                     Ok(_) => (Some(source), Some(true), None),
                     Err(e) => (Some(source), Some(false), Some(e.to_string())),
                 },
