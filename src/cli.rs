@@ -137,6 +137,12 @@ pub enum ProfilesCommand {
         #[arg(long)]
         profile: String,
     },
+    /// Validate structure and test authentication (network call)
+    Test {
+        /// Profile name or path to YAML file
+        #[arg(long)]
+        profile: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -534,6 +540,8 @@ pub enum AuthCommand {
     Status,
     /// Clear stored credentials
     Logout,
+    /// Preflight credential check (structured output for CI / agents)
+    Check,
 }
 
 #[derive(Clone, PartialEq, Eq, ValueEnum)]

@@ -11,6 +11,7 @@ use super::store::{AuthStore, StoredToken};
 
 const GOOGLE_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+const GOOGLE_TOKENINFO_URL: &str = "https://oauth2.googleapis.com/tokeninfo";
 const GOOGLE_USERINFO_URL: &str = "https://www.googleapis.com/oauth2/v2/userinfo";
 const SCOPES: &str =
     "https://www.googleapis.com/auth/bigquery https://www.googleapis.com/auth/userinfo.email";
@@ -131,6 +132,121 @@ pub async fn run_login() -> Result<()> {
     eprintln!("Credentials stored securely in OS keychain.");
     if let Some(dir) = store.config_dir() {
         eprintln!("Metadata saved to: {}", dir.display());
+    }
+
+    Ok(())
+}
+
+/// Resolve the tokeninfo endpoint URL.
+///
+/// Reads `DCX_TOKENINFO_URL` if set (for testing against a local mock),
+/// otherwise falls back to the live Google endpoint.
+pub fn tokeninfo_url() -> String {
+    std::env::var("DCX_TOKENINFO_URL").unwrap_or_else(|_| GOOGLE_TOKENINFO_URL.to_string())
+}
+
+/// Verify a bearer token by calling a tokeninfo endpoint.
+///
+/// Returns the associated email (if any) on success, or an error if the
+/// token is invalid / expired / revoked.
+pub async fn verify_token(token: &str, url: &str) -> Result<Option<String>> {
+    let http = reqwest::Client::new();
+    let resp = http
+        .get(url)
+        .query(&[("access_token", token)])
+        .send()
+        .await?;
+
+    if !resp.status().is_success() {
+        let body = resp.text().await.unwrap_or_default();
+        bail!("Token verification failed: {body}");
+    }
+
+    let data: serde_json::Value = resp.json().await?;
+    Ok(data["email"].as_str().map(|s| s.to_string()))
+}
+
+/// Structured auth preflight check.
+///
+/// Resolves credentials using the same precedence chain as `auth status`,
+/// then verifies the token against the Google tokeninfo endpoint.
+/// Outputs structured JSON to stdout — suitable for CI gates and agent
+/// preflight.
+///
+/// Exits 0 on success, 3 on failure.
+pub async fn run_check(opts: &super::AuthOptions, format: &crate::cli::OutputFormat) -> Result<()> {
+    use super::resolver;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct CheckResponse {
+        source: String,
+        valid: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        account: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    }
+
+    let ti_url = tokeninfo_url();
+    let response = match resolver::resolve(opts).await {
+        Ok(resolved) => {
+            let source = resolved.source.to_string();
+            let account = match &resolved.source {
+                resolver::AuthSource::StoredLogin(acct) => Some(acct.clone()),
+                _ => None,
+            };
+            match resolved.token().await {
+                Ok(token) => match verify_token(&token, &ti_url).await {
+                    Ok(email) => CheckResponse {
+                        source,
+                        valid: true,
+                        account: email.or(account),
+                        error: None,
+                    },
+                    Err(e) => CheckResponse {
+                        source,
+                        valid: false,
+                        account,
+                        error: Some(e.to_string()),
+                    },
+                },
+                Err(e) => CheckResponse {
+                    source,
+                    valid: false,
+                    account,
+                    error: Some(e.to_string()),
+                },
+            }
+        }
+        Err(e) => CheckResponse {
+            source: "none".to_string(),
+            valid: false,
+            account: None,
+            error: Some(e.to_string()),
+        },
+    };
+
+    let is_valid = response.valid;
+
+    if *format == crate::cli::OutputFormat::Text {
+        if response.valid {
+            println!("OK  {}", response.source);
+            if let Some(ref acct) = response.account {
+                println!("  account: {acct}");
+            }
+        } else {
+            println!("FAIL  {}", response.source);
+            if let Some(ref err) = response.error {
+                println!("  error: {err}");
+            }
+        }
+    } else {
+        crate::output::render(&response, format)?;
+    }
+
+    if !is_valid {
+        std::process::exit(3);
     }
 
     Ok(())

@@ -1,4 +1,5 @@
-use std::io::Write;
+use std::io::{Read, Write};
+use std::net::TcpListener;
 use std::process::Command;
 
 fn cargo_bin() -> String {
@@ -196,6 +197,7 @@ fn auth_help_shows_subcommands() {
     assert!(stdout.contains("login"), "Missing login subcommand");
     assert!(stdout.contains("status"), "Missing status subcommand");
     assert!(stdout.contains("logout"), "Missing logout subcommand");
+    assert!(stdout.contains("check"), "Missing check subcommand");
 }
 
 #[test]
@@ -281,6 +283,189 @@ fn login_rejects_non_interactive_terminal() {
         stderr.contains("--token") && stderr.contains("--credentials-file"),
         "Should suggest alternative auth methods, got: {stderr}"
     );
+}
+
+// ── auth check preflight tests ──
+
+/// Start a mock tokeninfo server that rejects all tokens with 400.
+/// Returns the base URL (e.g. "http://127.0.0.1:PORT/tokeninfo").
+fn start_mock_tokeninfo_reject() -> (String, TcpListener) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let url = format!("http://127.0.0.1:{port}/tokeninfo");
+    listener
+        .set_nonblocking(false)
+        .expect("set_nonblocking failed");
+    (url, listener)
+}
+
+/// Accept one request on the mock server and respond with 400 (invalid token).
+fn serve_one_reject(listener: &TcpListener) {
+    let (mut stream, _) = listener.accept().unwrap();
+    // Read the request (we don't care about contents).
+    let mut buf = [0u8; 1024];
+    let _ = stream.read(&mut buf);
+    let body = r#"{"error":"invalid_token","error_description":"Invalid Value"}"#;
+    let response = format!(
+        "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    let _ = stream.write_all(response.as_bytes());
+    let _ = stream.flush();
+}
+
+/// Accept one request and respond with 200 (valid token).
+fn serve_one_accept(listener: &TcpListener, email: &str) {
+    let (mut stream, _) = listener.accept().unwrap();
+    let mut buf = [0u8; 1024];
+    let _ = stream.read(&mut buf);
+    let body = format!(r#"{{"email":"{email}","expires_in":3600}}"#);
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    let _ = stream.write_all(response.as_bytes());
+    let _ = stream.flush();
+}
+
+#[test]
+fn auth_check_with_bogus_token_reports_invalid() {
+    let (mock_url, listener) = start_mock_tokeninfo_reject();
+
+    // Spawn dcx in a thread so we can serve the mock response.
+    let mock_url_clone = mock_url.clone();
+    let handle = std::thread::spawn(move || {
+        run_dcx_with_env(
+            &["auth", "check"],
+            &[
+                ("DCX_TOKEN", "definitely-not-real"),
+                ("DCX_TOKENINFO_URL", &mock_url_clone),
+            ],
+        )
+    });
+
+    serve_one_reject(&listener);
+    let output = handle.join().unwrap();
+
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "auth check with bogus token should exit 3"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("Expected JSON on stdout, got: {stdout}\nparse error: {e}"));
+    assert_eq!(json["source"], "DCX_TOKEN / --token");
+    assert_eq!(json["valid"], false);
+    assert!(json["error"].is_string(), "Expected error message");
+}
+
+#[test]
+fn auth_check_with_valid_token_reports_valid() {
+    let (mock_url, listener) = start_mock_tokeninfo_reject();
+
+    let mock_url_clone = mock_url.clone();
+    let handle = std::thread::spawn(move || {
+        run_dcx_with_env(
+            &["auth", "check"],
+            &[
+                ("DCX_TOKEN", "good-token"),
+                ("DCX_TOKENINFO_URL", &mock_url_clone),
+            ],
+        )
+    });
+
+    serve_one_accept(&listener, "user@example.com");
+    let output = handle.join().unwrap();
+
+    assert!(output.status.success(), "auth check should succeed");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(json["valid"], true);
+    assert_eq!(json["source"], "DCX_TOKEN / --token");
+    assert_eq!(json["account"], "user@example.com");
+}
+
+#[test]
+fn auth_check_with_bad_credentials_file_exits_nonzero() {
+    // Bad credentials file fails at resolve() before tokeninfo is called,
+    // so no mock server needed.
+    let dir = tempfile::tempdir().unwrap();
+    let bad_path = dir.path().join("bad.json");
+    let mut f = std::fs::File::create(&bad_path).unwrap();
+    writeln!(f, r#"{{"type": "unknown_type"}}"#).unwrap();
+
+    let output = run_dcx_with_env(
+        &["auth", "check"],
+        &[("DCX_CREDENTIALS_FILE", bad_path.to_str().unwrap())],
+    );
+    assert!(
+        !output.status.success(),
+        "auth check with bad credentials should fail"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("Expected JSON on stdout, got: {stdout}\nparse error: {e}"));
+    assert_eq!(json["valid"], false);
+    assert!(json["error"].is_string());
+}
+
+#[test]
+fn auth_check_text_format_with_bogus_token() {
+    let (mock_url, listener) = start_mock_tokeninfo_reject();
+
+    let mock_url_clone = mock_url.clone();
+    let handle = std::thread::spawn(move || {
+        run_dcx_with_env(
+            &["--format", "text", "auth", "check"],
+            &[
+                ("DCX_TOKEN", "text-check-bogus"),
+                ("DCX_TOKENINFO_URL", &mock_url_clone),
+            ],
+        )
+    });
+
+    serve_one_reject(&listener);
+    let output = handle.join().unwrap();
+
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "text format with bogus token should exit 3"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("FAIL"),
+        "Expected FAIL in text output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("DCX_TOKEN"),
+        "Expected source in text output, got: {stdout}"
+    );
+}
+
+#[test]
+fn auth_check_identifies_source_from_cli_flag() {
+    let (mock_url, listener) = start_mock_tokeninfo_reject();
+
+    let mock_url_clone = mock_url.clone();
+    let handle = std::thread::spawn(move || {
+        run_dcx_with_env(
+            &["--token", "flag-check-bogus", "auth", "check"],
+            &[("DCX_TOKENINFO_URL", &mock_url_clone)],
+        )
+    });
+
+    serve_one_reject(&listener);
+    let output = handle.join().unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(json["source"], "DCX_TOKEN / --token");
+    assert_eq!(json["valid"], false);
 }
 
 // ── Refresh path tests ──
