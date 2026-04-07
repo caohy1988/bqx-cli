@@ -410,6 +410,9 @@ const HELPER_GLOBALS: &[&str] = &["--format", "--token", "--credentials-file", "
 /// Global flags relevant to auth commands.
 const AUTH_GLOBALS: &[&str] = &["--token", "--credentials-file"];
 
+/// Global flags relevant to auth check / profiles test (auth + format).
+const AUTH_FORMAT_GLOBALS: &[&str] = &["--format", "--token", "--credentials-file"];
+
 struct RuntimeBehavior {
     /// Output formats this command actually supports.
     formats: Vec<&'static str>,
@@ -455,6 +458,15 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             is_mutation: false,
         },
 
+        // ── auth check: structured preflight, exit 0/3 ────────────
+        "auth" if second == "check" => RuntimeBehavior {
+            formats: vec!["json", "table", "text"],
+            exit_codes: exit_codes(&[("0", "success"), ("3", "authentication error")]),
+            relevant_globals: AUTH_FORMAT_GLOBALS,
+            constraints: vec![],
+            is_mutation: false,
+        },
+
         // ── auth login/logout: no structured output, exit 0/3 ───────
         "auth" => RuntimeBehavior {
             formats: vec![],
@@ -462,6 +474,15 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
             relevant_globals: &[],
             constraints: vec![],
             is_mutation: second == "logout",
+        },
+
+        // ── profiles test: structural + auth verification, exit 0/1 ──
+        "profiles" if second == "test" => RuntimeBehavior {
+            formats: vec!["json", "table", "text"],
+            exit_codes: exit_codes(&[("0", "success"), ("1", "validation or auth error")]),
+            relevant_globals: AUTH_FORMAT_GLOBALS,
+            constraints: vec![],
+            is_mutation: false,
         },
 
         // ── utility / admin: format-only, early return with exit 1 ──
@@ -629,6 +650,13 @@ mod tests {
                     .env("DCX_TOKEN")
                     .help("Bearer token"),
             )
+            .arg(
+                clap::Arg::new("credentials_file")
+                    .long("credentials-file")
+                    .global(true)
+                    .env("DCX_CREDENTIALS_FILE")
+                    .help("Path to service account credentials JSON file"),
+            )
             .subcommand(clap::Command::new("datasets").subcommand(
                 clap::Command::new("list").about("Lists all datasets in the specified project"),
             ))
@@ -650,13 +678,21 @@ mod tests {
                     .arg(clap::Arg::new("shell").required(true)),
             )
             .subcommand(
-                clap::Command::new("auth").subcommand(
-                    clap::Command::new("login").about("Authenticate with Google OAuth"),
-                ),
+                clap::Command::new("auth")
+                    .subcommand(clap::Command::new("login").about("Authenticate with Google OAuth"))
+                    .subcommand(
+                        clap::Command::new("check").about(
+                            "Preflight credential check (structured output for CI / agents)",
+                        ),
+                    ),
             )
             .subcommand(
                 clap::Command::new("profiles")
-                    .subcommand(clap::Command::new("list").about("List all discoverable profiles")),
+                    .subcommand(clap::Command::new("list").about("List all discoverable profiles"))
+                    .subcommand(
+                        clap::Command::new("test")
+                            .about("Validate structure and test authentication (network call)"),
+                    ),
             )
             .subcommand(
                 clap::Command::new("ca")
@@ -1028,6 +1064,72 @@ mod tests {
         assert!(
             !ds.is_mutation,
             "datasets list should not be marked as mutation"
+        );
+    }
+
+    #[test]
+    fn auth_check_has_format_and_auth_globals() {
+        let app = sample_app();
+        let contracts = collect_all(&app);
+        let check = contracts
+            .iter()
+            .find(|c| c.command == "dcx auth check")
+            .unwrap();
+        let global_names: Vec<&str> = check.global_flags.iter().map(|f| f.name.as_str()).collect();
+        assert!(
+            global_names.contains(&"--format"),
+            "auth check should advertise --format"
+        );
+        assert!(
+            global_names.contains(&"--token"),
+            "auth check should advertise --token"
+        );
+        assert!(
+            global_names.contains(&"--credentials-file"),
+            "auth check should advertise --credentials-file"
+        );
+        assert!(
+            !global_names.contains(&"--project-id"),
+            "auth check should not include --project-id"
+        );
+        assert!(
+            check.exit_codes.contains_key("3"),
+            "auth check should advertise exit 3"
+        );
+        assert!(
+            !check.output.formats.is_empty(),
+            "auth check should support structured output"
+        );
+    }
+
+    #[test]
+    fn profiles_test_has_format_and_auth_globals() {
+        let app = sample_app();
+        let contracts = collect_all(&app);
+        let test = contracts
+            .iter()
+            .find(|c| c.command == "dcx profiles test")
+            .unwrap();
+        let global_names: Vec<&str> = test.global_flags.iter().map(|f| f.name.as_str()).collect();
+        assert!(
+            global_names.contains(&"--format"),
+            "profiles test should advertise --format"
+        );
+        assert!(
+            global_names.contains(&"--token"),
+            "profiles test should advertise --token"
+        );
+        assert!(
+            global_names.contains(&"--credentials-file"),
+            "profiles test should advertise --credentials-file"
+        );
+        assert!(
+            !global_names.contains(&"--project-id"),
+            "profiles test should not include --project-id"
+        );
+        assert!(
+            !test.output.formats.is_empty(),
+            "profiles test should support structured output"
         );
     }
 

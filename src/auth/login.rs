@@ -11,6 +11,7 @@ use super::store::{AuthStore, StoredToken};
 
 const GOOGLE_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+const GOOGLE_TOKENINFO_URL: &str = "https://oauth2.googleapis.com/tokeninfo";
 const GOOGLE_USERINFO_URL: &str = "https://www.googleapis.com/oauth2/v2/userinfo";
 const SCOPES: &str =
     "https://www.googleapis.com/auth/bigquery https://www.googleapis.com/auth/userinfo.email";
@@ -136,11 +137,33 @@ pub async fn run_login() -> Result<()> {
     Ok(())
 }
 
+/// Verify a bearer token by calling the Google tokeninfo endpoint.
+///
+/// Returns the associated email (if any) on success, or an error if the
+/// token is invalid / expired / revoked.
+pub async fn verify_token(token: &str) -> Result<Option<String>> {
+    let http = reqwest::Client::new();
+    let resp = http
+        .get(GOOGLE_TOKENINFO_URL)
+        .query(&[("access_token", token)])
+        .send()
+        .await?;
+
+    if !resp.status().is_success() {
+        let body = resp.text().await.unwrap_or_default();
+        bail!("Token verification failed: {body}");
+    }
+
+    let data: serde_json::Value = resp.json().await?;
+    Ok(data["email"].as_str().map(|s| s.to_string()))
+}
+
 /// Structured auth preflight check.
 ///
 /// Resolves credentials using the same precedence chain as `auth status`,
-/// then verifies the token with a lightweight call. Outputs structured
-/// JSON to stdout — suitable for CI gates and agent preflight.
+/// then verifies the token against the Google tokeninfo endpoint.
+/// Outputs structured JSON to stdout — suitable for CI gates and agent
+/// preflight.
 ///
 /// Exits 0 on success, 3 on failure.
 pub async fn run_check(opts: &super::AuthOptions, format: &crate::cli::OutputFormat) -> Result<()> {
@@ -165,11 +188,19 @@ pub async fn run_check(opts: &super::AuthOptions, format: &crate::cli::OutputFor
                 _ => None,
             };
             match resolved.token().await {
-                Ok(_) => CheckResponse {
-                    source,
-                    valid: true,
-                    account,
-                    error: None,
+                Ok(token) => match verify_token(&token).await {
+                    Ok(email) => CheckResponse {
+                        source,
+                        valid: true,
+                        account: email.or(account),
+                        error: None,
+                    },
+                    Err(e) => CheckResponse {
+                        source,
+                        valid: false,
+                        account,
+                        error: Some(e.to_string()),
+                    },
                 },
                 Err(e) => CheckResponse {
                     source,

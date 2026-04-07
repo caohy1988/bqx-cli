@@ -287,17 +287,20 @@ fn login_rejects_non_interactive_terminal() {
 // ── auth check preflight tests ──
 
 #[test]
-fn auth_check_with_token_returns_valid_json() {
-    let output = run_dcx_with_env(&["auth", "check"], &[("DCX_TOKEN", "check-token")]);
-    assert!(
-        output.status.success(),
-        "auth check should succeed with valid token"
+fn auth_check_with_bogus_token_reports_invalid() {
+    // A bogus token should be verified against Google tokeninfo and rejected.
+    let output = run_dcx_with_env(&["auth", "check"], &[("DCX_TOKEN", "definitely-not-real")]);
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "auth check with bogus token should exit 3"
     );
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout)
         .unwrap_or_else(|e| panic!("Expected JSON on stdout, got: {stdout}\nparse error: {e}"));
-    assert_eq!(json["valid"], true);
     assert_eq!(json["source"], "DCX_TOKEN / --token");
+    assert_eq!(json["valid"], false);
+    assert!(json["error"].is_string(), "Expected error message");
 }
 
 #[test]
@@ -323,16 +326,20 @@ fn auth_check_with_bad_credentials_file_exits_nonzero() {
 }
 
 #[test]
-fn auth_check_text_format_with_token() {
+fn auth_check_text_format_with_bogus_token() {
     let output = run_dcx_with_env(
         &["--format", "text", "auth", "check"],
-        &[("DCX_TOKEN", "text-check-token")],
+        &[("DCX_TOKEN", "text-check-bogus")],
     );
-    assert!(output.status.success());
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "text format with bogus token should exit 3"
+    );
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("OK"),
-        "Expected OK in text output, got: {stdout}"
+        stdout.contains("FAIL"),
+        "Expected FAIL in text output, got: {stdout}"
     );
     assert!(
         stdout.contains("DCX_TOKEN"),
@@ -341,13 +348,14 @@ fn auth_check_text_format_with_token() {
 }
 
 #[test]
-fn auth_check_token_via_cli_flag() {
-    let output = run_dcx(&["--token", "flag-check-token", "auth", "check"]);
-    assert!(output.status.success());
+fn auth_check_identifies_source_from_cli_flag() {
+    // --token flag should be identified as the source even when the token is invalid.
+    let output = run_dcx(&["--token", "flag-check-bogus", "auth", "check"]);
+    assert_eq!(output.status.code(), Some(3));
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-    assert_eq!(json["valid"], true);
     assert_eq!(json["source"], "DCX_TOKEN / --token");
+    assert_eq!(json["valid"], false);
 }
 
 // ── Refresh path tests ──
