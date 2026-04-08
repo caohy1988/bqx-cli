@@ -19,7 +19,7 @@ Do not use when the user wants analytics workflows (doctor, evaluate, get-trace)
 
 ## Prerequisites
 
-See **dcx-shared** for authentication and global flags.
+Authentication: `dcx auth login` or set `DCX_PROJECT` / `DCX_TOKEN` environment variables.
 
 Requires: `--project-id` (all commands), `--dataset-id` (some commands — see per-command details below)
 
@@ -33,8 +33,8 @@ Returns the dataset specified by datasetID.
 dcx datasets get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
-  [--access-policy-version] \
-  [--dataset-view] \
+  [--access-policy-version <ACCESS_POLICY_VERSION>] \
+  [--dataset-view <DATASET_VIEW>] \
   [--dry-run] \
   [--format json|table|text]
 ```
@@ -54,8 +54,8 @@ Lists all datasets in the specified project to which the user has been granted t
 dcx datasets list \
   --project-id <PROJECT_ID> \
   [--all] \
-  [--filter] \
-  [--max-results] \
+  [--filter <FILTER>] \
+  [--max-results <MAX_RESULTS>] \
   [--dry-run] \
   [--format json|table|text]
 ```

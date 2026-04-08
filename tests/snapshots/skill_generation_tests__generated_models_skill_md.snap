@@ -19,7 +19,7 @@ Do not use when the user wants analytics workflows (doctor, evaluate, get-trace)
 
 ## Prerequisites
 
-See **dcx-shared** for authentication and global flags.
+Authentication: `dcx auth login` or set `DCX_PROJECT` / `DCX_TOKEN` environment variables.
 
 Requires: `--project-id` and `--dataset-id`
 
@@ -52,7 +52,7 @@ Lists all models in the specified dataset. Requires the READER dataset role. Aft
 dcx models list \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
-  [--max-results] \
+  [--max-results <MAX_RESULTS>] \
   [--dry-run] \
   [--format json|table|text]
 ```

@@ -19,7 +19,7 @@ Do not use when the user wants analytics workflows (doctor, evaluate, get-trace)
 
 ## Prerequisites
 
-See **dcx-shared** for authentication and global flags.
+Authentication: `dcx auth login` or set `DCX_PROJECT` / `DCX_TOKEN` environment variables.
 
 Requires: `--project-id` and `--dataset-id`
 
@@ -34,7 +34,7 @@ dcx routines get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --routine-id <ROUTINE_ID> \
-  [--read-mask] \
+  [--read-mask <READ_MASK>] \
   [--dry-run] \
   [--format json|table|text]
 ```
@@ -54,9 +54,9 @@ Lists all routines in the specified dataset. Requires the READER dataset role.
 dcx routines list \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
-  [--filter] \
-  [--max-results] \
-  [--read-mask] \
+  [--filter <FILTER>] \
+  [--max-results <MAX_RESULTS>] \
+  [--read-mask <READ_MASK>] \
   [--dry-run] \
   [--format json|table|text]
 ```

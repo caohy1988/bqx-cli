@@ -143,7 +143,7 @@ fn build_skill_md(
 
     // Prerequisites
     out.push_str("## Prerequisites\n\n");
-    out.push_str("See **dcx-shared** for authentication and global flags.\n\n");
+    out.push_str("Authentication: `dcx auth login` or set `DCX_PROJECT` / `DCX_TOKEN` environment variables.\n\n");
 
     // Determine per-command requirements and summarize at the group level.
     let all_need_dataset = commands.iter().all(|c| cmd_needs_dataset(c));
@@ -200,7 +200,16 @@ fn build_skill_md(
         }
         for flag in &contract_flags {
             if !flag.required {
-                usage.push_str(&format!(" \\\n  [{}]", flag.name));
+                if flag.flag_type == "boolean" {
+                    usage.push_str(&format!(" \\\n  [{}]", flag.name));
+                } else {
+                    let placeholder = flag
+                        .name
+                        .trim_start_matches("--")
+                        .to_uppercase()
+                        .replace('-', "_");
+                    usage.push_str(&format!(" \\\n  [{} <{}>]", flag.name, placeholder));
+                }
             }
         }
         if contract.map(|c| c.supports_dry_run).unwrap_or(true) {

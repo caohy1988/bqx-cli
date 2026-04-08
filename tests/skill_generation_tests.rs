@@ -139,15 +139,15 @@ fn generate_skills_filter_limits_output() {
 }
 
 #[test]
-fn generated_skill_md_references_dcx_shared() {
+fn generated_skill_md_has_auth_prerequisites() {
     let commands = load_generated_commands();
     let contracts = load_contracts();
     let skills = generator::generate_all(&commands, &contracts);
 
     for skill in &skills {
         assert!(
-            skill.skill_md.contains("dcx-shared"),
-            "{}: should reference dcx-shared for auth guidance",
+            skill.skill_md.contains("dcx auth login"),
+            "{}: should document authentication in prerequisites",
             skill.dir_name
         );
     }

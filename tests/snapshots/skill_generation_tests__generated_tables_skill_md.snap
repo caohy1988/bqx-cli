@@ -19,7 +19,7 @@ Do not use when the user wants analytics workflows (doctor, evaluate, get-trace)
 
 ## Prerequisites
 
-See **dcx-shared** for authentication and global flags.
+Authentication: `dcx auth login` or set `DCX_PROJECT` / `DCX_TOKEN` environment variables.
 
 Requires: `--project-id` and `--dataset-id`
 
@@ -34,8 +34,8 @@ dcx tables get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   --table-id <TABLE_ID> \
-  [--selected-fields] \
-  [--view] \
+  [--selected-fields <SELECTED_FIELDS>] \
+  [--view <VIEW>] \
   [--dry-run] \
   [--format json|table|text]
 ```
@@ -56,7 +56,7 @@ Lists all tables in the specified dataset. Requires the READER dataset role.
 dcx tables list \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
-  [--max-results] \
+  [--max-results <MAX_RESULTS>] \
   [--dry-run] \
   [--format json|table|text]
 ```
