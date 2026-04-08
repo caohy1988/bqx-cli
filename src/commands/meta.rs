@@ -122,6 +122,251 @@ pub fn run_describe(app: &clap::Command, path: &[String], format: &OutputFormat)
     }
 }
 
+/// `dcx meta gemini-tools` — generate Gemini manifest from the command contract.
+pub fn run_gemini_tools(app: &clap::Command, format: &OutputFormat) -> Result<()> {
+    let contracts = collect_all(app);
+    let manifest = generate_gemini_manifest(&contracts);
+    match format {
+        OutputFormat::Json => output::render(&manifest, format),
+        OutputFormat::Table | OutputFormat::Text => {
+            // Pretty-print tool listing
+            println!(
+                "{} – {} tools (v{})",
+                manifest.display_name,
+                manifest.tools.len(),
+                manifest.version
+            );
+            println!();
+            for tool in &manifest.tools {
+                println!("  {} – {}", tool.name, tool.description);
+            }
+            Ok(())
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Gemini manifest generation from contract
+// ---------------------------------------------------------------------------
+
+#[derive(serde::Serialize)]
+struct GeminiManifest {
+    name: String,
+    display_name: String,
+    description: String,
+    version: String,
+    homepage: String,
+    tools: Vec<GeminiTool>,
+}
+
+#[derive(serde::Serialize)]
+struct GeminiTool {
+    name: String,
+    description: String,
+    parameters: serde_json::Value,
+    command: String,
+}
+
+/// Commands to include in the Gemini manifest, in presentation order.
+/// Each entry is (command path, optional tool name override).
+/// A tool name override of `None` means derive from the command path.
+const GEMINI_TOOL_ALLOWLIST: &[(&str, Option<&str>)] = &[
+    ("dcx jobs query", None),
+    ("dcx datasets list", None),
+    ("dcx datasets get", None),
+    ("dcx tables list", None),
+    ("dcx tables get", None),
+    ("dcx routines list", None),
+    ("dcx models list", None),
+    ("dcx analytics doctor", None),
+    ("dcx analytics evaluate", None),
+    ("dcx analytics get-trace", None),
+    ("dcx analytics list-traces", None),
+    ("dcx analytics insights", None),
+    ("dcx analytics drift", None),
+    ("dcx analytics distribution", None),
+    ("dcx analytics hitl-metrics", None),
+    ("dcx ca ask", None),
+    ("dcx ca ask", Some("dcx_ca_ask_profile")), // profile variant
+    ("dcx spanner instances list", None),
+    ("dcx spanner databases list", None),
+    ("dcx spanner schema describe", None),
+    ("dcx alloydb clusters list", None),
+    ("dcx alloydb schema describe", None),
+    ("dcx cloudsql instances list", None),
+    ("dcx cloudsql schema describe", None),
+    ("dcx looker instances list", None),
+    ("dcx looker explores list", None),
+    ("dcx profiles list", None),
+    ("dcx profiles validate", None),
+];
+
+/// Global flags to promote into tool parameters (when the command reads them).
+const PROMOTED_GLOBALS: &[&str] = &[
+    "--project-id",
+    "--dataset-id",
+    "--location",
+    // --format is intentionally excluded: every Gemini tool hardcodes --format json
+    // so the agent cannot override it.
+    "--profile",
+];
+
+fn generate_gemini_manifest(contracts: &[CommandContract]) -> GeminiManifest {
+    let version = env!("CARGO_PKG_VERSION").to_string();
+    let mut tools = Vec::new();
+
+    for (cmd_path, name_override) in GEMINI_TOOL_ALLOWLIST {
+        let contract = match contracts.iter().find(|c| c.command == *cmd_path) {
+            Some(c) => c,
+            None => continue,
+        };
+
+        let is_profile_variant =
+            name_override.is_some() && name_override.unwrap().contains("profile");
+
+        let tool = if is_profile_variant {
+            build_profile_variant_tool(contract, name_override.unwrap())
+        } else {
+            build_gemini_tool(contract, name_override.as_ref())
+        };
+
+        tools.push(tool);
+    }
+
+    GeminiManifest {
+        name: "dcx".to_string(),
+        display_name: "dcx \u{2013} Agent-Native Data Cloud CLI".to_string(),
+        description: "Data Cloud CLI optimized for AI agents. Provides query execution, \
+            dataset/table/routine/model inspection, agent analytics, and conversational \
+            analytics across BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL."
+            .to_string(),
+        version,
+        homepage: "https://github.com/bigquery/dcx".to_string(),
+        tools,
+    }
+}
+
+fn build_gemini_tool(contract: &CommandContract, name_override: Option<&&str>) -> GeminiTool {
+    let tool_name = match name_override {
+        Some(n) => n.to_string(),
+        None => contract
+            .command
+            .replace("dcx ", "dcx_")
+            .replace([' ', '-'], "_"),
+    };
+
+    let mut params = serde_json::Map::new();
+    let mut cmd_parts = vec![contract.command.clone()];
+
+    // Add command-specific flags as parameters.
+    // Value-taking flags appear in the template as `--flag {param}`.
+    // Boolean (presence-style) flags are advertised as parameters but
+    // excluded from the template — the execution layer appends the bare
+    // flag when the agent sets the parameter to true.
+    for flag in &contract.flags {
+        if flag.name == "--dry-run" || flag.name == "--yes" {
+            continue; // internal flags, not for Gemini tools
+        }
+        let param = flag_to_gemini_param(flag);
+        let param_name = flag.name.trim_start_matches("--").replace('-', "_");
+        if flag.flag_type != "boolean" {
+            cmd_parts.push(format!("{} {{{}}}", flag.name, param_name));
+        }
+        params.insert(param_name, param);
+    }
+
+    // Promote relevant global flags.
+    for gflag in &contract.global_flags {
+        if !PROMOTED_GLOBALS.contains(&gflag.name.as_str()) {
+            continue;
+        }
+        if gflag.name == "--profile" {
+            continue; // handled separately in profile variant
+        }
+        let param = flag_to_gemini_param(gflag);
+        let param_name = gflag.name.trim_start_matches("--").replace('-', "_");
+        if gflag.flag_type != "boolean" {
+            cmd_parts.push(format!("{} {{{}}}", gflag.name, param_name));
+        }
+        params.insert(param_name, param);
+    }
+
+    // Always end with --format json.
+    cmd_parts.push("--format json".to_string());
+
+    GeminiTool {
+        name: tool_name,
+        description: contract.synopsis.clone(),
+        parameters: serde_json::Value::Object(params),
+        command: cmd_parts.join(" "),
+    }
+}
+
+/// Build the `dcx_ca_ask_profile` variant: uses --profile instead of --agent/--tables.
+fn build_profile_variant_tool(contract: &CommandContract, tool_name: &str) -> GeminiTool {
+    let mut params = serde_json::Map::new();
+
+    // The profile variant takes --profile (required) and question (positional).
+    // Find the question flag from the command flags.
+    for flag in &contract.flags {
+        if flag.name == "--agent" || flag.name == "--tables" {
+            continue; // excluded in profile variant
+        }
+        let param = flag_to_gemini_param(flag);
+        let param_name = flag.name.trim_start_matches("--").replace('-', "_");
+        params.insert(param_name, param);
+    }
+
+    // Add --profile as required.
+    params.insert(
+        "profile".to_string(),
+        serde_json::json!({
+            "type": "string",
+            "description": "Path to a CA source profile YAML file",
+            "required": true
+        }),
+    );
+
+    GeminiTool {
+        name: tool_name.to_string(),
+        description: "Ask a natural language question over a Data Cloud source \
+            (Looker, AlloyDB, Spanner, Cloud SQL) using a YAML profile."
+            .to_string(),
+        parameters: serde_json::Value::Object(params),
+        command: "dcx ca ask {question} --profile {profile} --format json".to_string(),
+    }
+}
+
+fn flag_to_gemini_param(flag: &FlagContract) -> serde_json::Value {
+    let mut param = serde_json::Map::new();
+
+    let param_type = match flag.flag_type.as_str() {
+        "boolean" => "boolean",
+        _ => "string",
+    };
+    param.insert("type".to_string(), serde_json::json!(param_type));
+    param.insert(
+        "description".to_string(),
+        serde_json::json!(flag.description),
+    );
+
+    if flag.required {
+        param.insert("required".to_string(), serde_json::json!(true));
+    }
+    if let Some(ref default) = flag.default {
+        // Parse numbers for numeric defaults.
+        if let Ok(n) = default.parse::<f64>() {
+            param.insert("default".to_string(), serde_json::json!(n));
+        } else if default == "true" || default == "false" {
+            param.insert("default".to_string(), serde_json::json!(default == "true"));
+        } else {
+            param.insert("default".to_string(), serde_json::json!(default));
+        }
+    }
+
+    serde_json::Value::Object(param)
+}
+
 // ---------------------------------------------------------------------------
 // Text renderer for describe
 // ---------------------------------------------------------------------------

@@ -7,520 +7,784 @@
   "tools": [
     {
       "name": "dcx_jobs_query",
-      "description": "Execute a SQL query against BigQuery and return results as JSON.",
+      "description": "Execute a SQL query",
       "parameters": {
-        "query": {
-          "type": "string",
-          "description": "SQL query string",
-          "required": true
-        },
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
-        },
-        "use_legacy_sql": {
-          "type": "boolean",
-          "description": "Use legacy SQL dialect",
-          "default": false
+        "dataset_id": {
+          "description": "BigQuery dataset",
+          "type": "string"
         },
         "location": {
-          "type": "string",
+          "default": "US",
           "description": "BigQuery location",
-          "default": "US"
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
+        },
+        "query": {
+          "description": "SQL query string",
+          "required": true,
+          "type": "string"
+        },
+        "use_legacy_sql": {
+          "default": false,
+          "description": "Use legacy SQL",
+          "type": "boolean"
         }
       },
-      "command": "dcx jobs query --query {query} --project-id {project_id} --format json"
+      "command": "dcx jobs query --query {query} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_datasets_list",
-      "description": "List all datasets in a BigQuery project.",
+      "description": "Lists all datasets in the specified project to which the user has been granted the READER dataset role.",
       "parameters": {
+        "all": {
+          "description": "Whether to list all datasets, including hidden ones",
+          "type": "boolean"
+        },
+        "dataset_id": {
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "filter": {
+          "description": "An expression for filtering the results of the request by label. The syntax is `labels.[:]`. Multiple filters can be AND-ed together by connecting with a space. Example: `labels.department:receiving labels.active`. See [Filtering datasets using labels](https://cloud.google.com/bigquery/docs/filtering-labels#filtering_datasets_using_labels) for details.",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "max_results": {
+          "description": "The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.",
+          "type": "string"
+        },
         "project_id": {
-          "type": "string",
           "description": "GCP project ID",
-          "required": true
+          "type": "string"
         }
       },
-      "command": "dcx datasets list --project-id {project_id} --format json"
+      "command": "dcx datasets list --filter {filter} --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_datasets_get",
-      "description": "Get metadata for a specific BigQuery dataset.",
+      "description": "Returns the dataset specified by datasetID.",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
+        "access_policy_version": {
+          "description": "Optional. The version of the access policy schema to fetch. Valid values are 0, 1, and 3. Requests specifying an invalid value will be rejected. Requests for conditional access policy binding in datasets must specify version 3. Dataset with no conditional role bindings in access policy may specify any valid value or leave the field unset. This field will be mapped to [IAM Policy version] (https://cloud.google.com/iam/docs/policies#versions) and will be used to fetch policy from IAM. If unset or if 0 or 1 value is used for dataset with conditional bindings, access entry with condition will have role string appended by 'withcond' string followed by a hash value. For example : { \"access\": [ { \"role\": \"roles/bigquery.dataViewer_with_conditionalbinding_7a34awqsda\", \"userByEmail\": \"user@example.com\", } ] } Please refer https://cloud.google.com/iam/docs/troubleshooting-withcond for more details.",
+          "type": "string"
         },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "dataset_view": {
+          "description": "Optional. Specifies the view that determines which dataset information is returned. By default, metadata and ACL information are returned.",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
         }
       },
-      "command": "dcx datasets get --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx datasets get --access-policy-version {access_policy_version} --dataset-view {dataset_view} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_tables_list",
-      "description": "List all tables in a BigQuery dataset.",
+      "description": "Lists all tables in the specified dataset. Requires the READER dataset role.",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
-        },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "max_results": {
+          "description": "The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
         }
       },
-      "command": "dcx tables list --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx tables list --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_tables_get",
-      "description": "Get metadata for a specific BigQuery table including schema.",
+      "description": "Gets the specified table resource by table ID. This method does not return the data in the table, it only returns the table resource, which describes the structure of this table.",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
-        },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
+        },
+        "selected_fields": {
+          "description": "List of table schema fields to return (comma-separated). If unspecified, all fields are returned. A fieldMask cannot be used here because the fields will automatically be converted from camelCase to snake_case and the conversion will fail if there are underscores. Since these are fields in BigQuery table schemas, underscores are allowed.",
+          "type": "string"
         },
         "table_id": {
-          "type": "string",
-          "description": "Table ID",
-          "required": true
+          "description": "Required. Table ID of the requested table",
+          "required": true,
+          "type": "string"
+        },
+        "view": {
+          "description": "Optional. Specifies the view that determines which table information is returned. By default, basic table information and storage statistics (STORAGE_STATS) are returned.",
+          "type": "string"
         }
       },
-      "command": "dcx tables get --project-id {project_id} --dataset-id {dataset_id} --table-id {table_id} --format json"
+      "command": "dcx tables get --table-id {table_id} --selected-fields {selected_fields} --view {view} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_routines_list",
-      "description": "List all routines (UDFs, procedures) in a BigQuery dataset.",
+      "description": "Lists all routines in the specified dataset. Requires the READER dataset role.",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
-        },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "filter": {
+          "description": "If set, then only the Routines matching this filter are returned. The supported format is `routineType:{RoutineType}`, where `{RoutineType}` is a RoutineType enum. For example: `routineType:SCALAR_FUNCTION`.",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "max_results": {
+          "description": "The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
+        },
+        "read_mask": {
+          "description": "If set, then only the Routine fields in the field mask, as well as project_id, dataset_id and routine_id, are returned in the response. If unset, then the following Routine fields are returned: etag, project_id, dataset_id, routine_id, routine_type, creation_time, last_modified_time, and language.",
+          "type": "string"
         }
       },
-      "command": "dcx routines list --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx routines list --filter {filter} --max-results {max_results} --read-mask {read_mask} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_models_list",
-      "description": "List all ML models in a BigQuery dataset.",
+      "description": "Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
-        },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "max_results": {
+          "description": "The maximum number of results to return in a single response page. Leverage the page tokens to iterate through the entire collection.",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
         }
       },
-      "command": "dcx models list --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx models list --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_doctor",
-      "description": "Run a health check on the BigQuery agent_events table.",
+      "description": "Health check on BigQuery table and configuration",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
-        },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
         }
       },
-      "command": "dcx analytics doctor --project-id {project_id} --dataset-id {dataset_id} --format json"
+      "command": "dcx analytics doctor --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_evaluate",
-      "description": "Evaluate agent sessions against a quality threshold (latency or error rate).",
+      "description": "Evaluate agent sessions against a threshold",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
+        "agent_id": {
+          "description": "Filter by agent name",
+          "type": "string"
+        },
+        "connection_id": {
+          "description": "BQ connection ID for AI.GENERATE",
+          "type": "string"
+        },
+        "criterion": {
+          "default": "correctness",
+          "description": "LLM judge criterion (correctness, hallucination, sentiment)",
+          "type": "string"
         },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "endpoint": {
+          "description": "AI.GENERATE endpoint for LLM judge",
+          "type": "string"
         },
         "evaluator": {
-          "type": "string",
-          "description": "Evaluator type: latency or error-rate",
-          "required": true
+          "description": "Evaluator type",
+          "required": true,
+          "type": "string"
         },
-        "threshold": {
-          "type": "number",
-          "description": "Pass/fail threshold (ms for latency, 0-1 for rates)",
-          "required": true
+        "exit_code": {
+          "description": "Return exit code 1 on evaluation failure",
+          "type": "boolean"
         },
         "last": {
-          "type": "string",
-          "description": "Time window (e.g. 1h, 24h, 7d)",
-          "required": true
+          "description": "Time window (e.g., 1h, 24h, 7d)",
+          "required": true,
+          "type": "string"
         },
-        "agent_id": {
-          "type": "string",
-          "description": "Filter by agent name"
+        "limit": {
+          "default": 100.0,
+          "description": "Maximum number of sessions to evaluate",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
+        },
+        "strict": {
+          "description": "Fail sessions with unparseable judge output",
+          "type": "boolean"
+        },
+        "threshold": {
+          "description": "Pass/fail threshold (ms for latency, 0-1 for rates)",
+          "required": true,
+          "type": "string"
         }
       },
-      "command": "dcx analytics evaluate --project-id {project_id} --dataset-id {dataset_id} --evaluator {evaluator} --threshold {threshold} --last {last} --format json"
+      "command": "dcx analytics evaluate --evaluator {evaluator} --threshold {threshold} --last {last} --agent-id {agent_id} --criterion {criterion} --limit {limit} --endpoint {endpoint} --connection-id {connection_id} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_get_trace",
-      "description": "Retrieve the full event trace for a specific agent session.",
+      "description": "Retrieve a session trace",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
-        },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
         },
         "session_id": {
-          "type": "string",
           "description": "Session ID to retrieve",
-          "required": true
+          "type": "string"
+        },
+        "trace_id": {
+          "description": "Trace ID to retrieve",
+          "type": "string"
         }
       },
-      "command": "dcx analytics get-trace --project-id {project_id} --dataset-id {dataset_id} --session-id {session_id} --format json"
+      "command": "dcx analytics get-trace --session-id {session_id} --trace-id {trace_id} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_list_traces",
-      "description": "List recent agent session traces with event counts.",
+      "description": "List recent traces matching filter criteria",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
+        "agent_id": {
+          "description": "Filter by agent name",
+          "type": "string"
         },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
         },
         "last": {
-          "type": "string",
-          "description": "Time window (e.g. 1h, 24h, 7d)",
-          "required": true
-        },
-        "agent_id": {
-          "type": "string",
-          "description": "Filter by agent name"
+          "description": "Time window (e.g., 1h, 24h, 7d)",
+          "required": true,
+          "type": "string"
         },
         "limit": {
-          "type": "number",
-          "description": "Maximum traces to return",
-          "default": 20
+          "default": 100.0,
+          "description": "Maximum number of traces to return",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
+        },
+        "session_id": {
+          "description": "Filter by session ID",
+          "type": "string"
         }
       },
-      "command": "dcx analytics list-traces --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+      "command": "dcx analytics list-traces --last {last} --session-id {session_id} --agent-id {agent_id} --limit {limit} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_insights",
-      "description": "Generate a comprehensive agent insights report with sessions, errors, latency, and tool usage.",
+      "description": "Generate comprehensive agent insights report",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
+        "agent_id": {
+          "description": "Filter by agent name",
+          "type": "string"
         },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
         },
         "last": {
-          "type": "string",
-          "description": "Time window (e.g. 1h, 24h, 7d)",
-          "required": true
+          "description": "Time window (e.g., 1h, 24h, 7d)",
+          "required": true,
+          "type": "string"
         },
-        "agent_id": {
-          "type": "string",
-          "description": "Filter by agent name"
+        "limit": {
+          "default": 100.0,
+          "description": "Maximum number of sessions to analyze",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "max_sessions": {
+          "default": 50.0,
+          "description": "Max sessions for insights pipeline",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
         }
       },
-      "command": "dcx analytics insights --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+      "command": "dcx analytics insights --last {last} --agent-id {agent_id} --limit {limit} --max-sessions {max_sessions} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_drift",
-      "description": "Run drift detection against a golden question set and report coverage.",
+      "description": "Run drift detection against a golden question set",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
+        "agent_id": {
+          "description": "Filter by agent name",
+          "type": "string"
         },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "exit_code": {
+          "description": "Return exit code 1 on drift failure",
+          "type": "boolean"
         },
         "golden_dataset": {
-          "type": "string",
-          "description": "Golden dataset table name (in same dataset)",
-          "required": true
+          "description": "Golden dataset table name (in the same dataset)",
+          "required": true,
+          "type": "string"
         },
         "last": {
-          "type": "string",
-          "description": "Time window (e.g. 1h, 24h, 7d)",
-          "default": "7d"
+          "default": "7d",
+          "description": "Time window (e.g., 1h, 24h, 7d)",
+          "type": "string"
+        },
+        "limit": {
+          "default": 100.0,
+          "description": "Maximum number of sessions",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
         },
         "min_coverage": {
-          "type": "number",
+          "default": 0.8,
           "description": "Minimum coverage threshold (0.0-1.0)",
-          "default": 0.8
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
         }
       },
-      "command": "dcx analytics drift --project-id {project_id} --dataset-id {dataset_id} --golden-dataset {golden_dataset} --last {last} --format json"
+      "command": "dcx analytics drift --golden-dataset {golden_dataset} --last {last} --agent-id {agent_id} --limit {limit} --min-coverage {min_coverage} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_distribution",
-      "description": "Analyze event type distribution patterns across agent sessions.",
+      "description": "Analyze event distribution patterns",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
+        "agent_id": {
+          "description": "Filter by agent name",
+          "type": "string"
         },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
         },
         "last": {
-          "type": "string",
-          "description": "Time window (e.g. 1h, 24h, 7d)",
-          "required": true
+          "description": "Time window (e.g., 1h, 24h, 7d)",
+          "required": true,
+          "type": "string"
         },
-        "agent_id": {
-          "type": "string",
-          "description": "Filter by agent name"
+        "limit": {
+          "default": 100.0,
+          "description": "Maximum number of sessions",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "mode": {
+          "default": "auto_group_using_semantics",
+          "description": "Analysis mode",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
+        },
+        "top_k": {
+          "default": 20.0,
+          "description": "Top items per category",
+          "type": "string"
         }
       },
-      "command": "dcx analytics distribution --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+      "command": "dcx analytics distribution --last {last} --agent-id {agent_id} --limit {limit} --mode {mode} --top-k {top_k} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_hitl_metrics",
-      "description": "Show human-in-the-loop interaction metrics for agent sessions.",
+      "description": "Show human-in-the-loop interaction metrics",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
+        "agent_id": {
+          "description": "Filter by agent name",
+          "type": "string"
         },
         "dataset_id": {
-          "type": "string",
-          "description": "Dataset ID",
-          "required": true
+          "description": "BigQuery dataset",
+          "type": "string"
         },
         "last": {
-          "type": "string",
-          "description": "Time window (e.g. 1h, 24h, 7d)",
-          "required": true
+          "description": "Time window (e.g., 1h, 24h, 7d)",
+          "required": true,
+          "type": "string"
         },
-        "agent_id": {
-          "type": "string",
-          "description": "Filter by agent name"
+        "limit": {
+          "default": 100.0,
+          "description": "Maximum number of sessions to return",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
         }
       },
-      "command": "dcx analytics hitl-metrics --project-id {project_id} --dataset-id {dataset_id} --last {last} --format json"
+      "command": "dcx analytics hitl-metrics --last {last} --agent-id {agent_id} --limit {limit} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_ca_ask",
-      "description": "Ask a natural language question over BigQuery data using a data agent.",
+      "description": "Ask a natural language question via Conversational Analytics",
       "parameters": {
+        "agent": {
+          "description": "Data agent to use (e.g. agent-analytics)",
+          "type": "string"
+        },
+        "dataset_id": {
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "profile": {
+          "description": "CA source profile name or path to profile YAML file",
+          "type": "string"
+        },
         "project_id": {
-          "type": "string",
           "description": "GCP project ID",
-          "required": true
+          "type": "string"
         },
         "question": {
-          "type": "string",
-          "description": "Natural language question",
-          "required": true
+          "description": "The question to ask",
+          "required": true,
+          "type": "string"
         },
-        "agent": {
-          "type": "string",
-          "description": "Data agent to use (e.g. agent-analytics)",
-          "required": true
+        "tables": {
+          "description": "Table references for context (e.g. project.dataset.table)",
+          "type": "string"
         }
       },
-      "command": "dcx ca ask {question} --project-id {project_id} --agent {agent} --format json"
+      "command": "dcx ca ask question {question} --profile {profile} --agent {agent} --tables {tables} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_ca_ask_profile",
       "description": "Ask a natural language question over a Data Cloud source (Looker, AlloyDB, Spanner, Cloud SQL) using a YAML profile.",
       "parameters": {
         "profile": {
-          "type": "string",
           "description": "Path to a CA source profile YAML file",
-          "required": true
+          "required": true,
+          "type": "string"
         },
         "question": {
-          "type": "string",
-          "description": "Natural language question",
-          "required": true
-        },
-        "format": {
-          "type": "string",
-          "description": "Output format: json, text, or table",
-          "default": "json"
+          "description": "The question to ask",
+          "required": true,
+          "type": "string"
         }
       },
-      "command": "dcx ca ask {question} --profile {profile} --format {format}"
+      "command": "dcx ca ask {question} --profile {profile} --format json"
     },
     {
       "name": "dcx_spanner_instances_list",
-      "description": "List all Spanner instances in a GCP project.",
+      "description": "Lists all instances in the given project.",
       "parameters": {
+        "dataset_id": {
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "filter": {
+          "description": "An expression for filtering the results of the request. Filter rules are case insensitive. The fields eligible for filtering are: * `name` * `display_name` * `labels.key` where key is the name of a label Some examples of using filters are: * `name:*` --> The instance has a name. * `name:Howl` --> The instance's name contains the string \"howl\". * `name:HOWL` --> Equivalent to above. * `NAME:howl` --> Equivalent to above. * `labels.env:*` --> The instance has the label \"env\". * `labels.env:dev` --> The instance has the label \"env\" and the value of the label contains the string \"dev\". * `name:howl labels.env:dev` --> The instance's name contains \"howl\" and it has the label \"env\" with its value containing \"dev\".",
+          "type": "string"
+        },
+        "instance_deadline": {
+          "description": "Deadline used while retrieving metadata for instances. Instances whose metadata cannot be retrieved within this deadline will be added to unreachable in ListInstancesResponse.",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "page_size": {
+          "description": "Number of instances to be returned in the response. If 0 or less, defaults to the server's maximum allowed page size.",
+          "type": "string"
+        },
         "project_id": {
-          "type": "string",
           "description": "GCP project ID",
-          "required": true
+          "type": "string"
         }
       },
-      "command": "dcx spanner instances list --project-id {project_id} --format json"
+      "command": "dcx spanner instances list --filter {filter} --instance-deadline {instance_deadline} --page-size {page_size} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_spanner_databases_list",
-      "description": "List all databases in a Spanner instance.",
+      "description": "Lists Cloud Spanner databases.",
       "parameters": {
-        "project_id": {
-          "type": "string",
-          "description": "GCP project ID",
-          "required": true
+        "dataset_id": {
+          "description": "BigQuery dataset",
+          "type": "string"
         },
         "instance_id": {
-          "type": "string",
-          "description": "Spanner instance ID",
-          "required": true
+          "description": "",
+          "required": true,
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "page_size": {
+          "description": "Number of databases to be returned in the response. If 0 or less, defaults to the server's maximum allowed page size.",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "GCP project ID",
+          "type": "string"
         }
       },
-      "command": "dcx spanner databases list --project-id {project_id} --instance-id {instance_id} --format json"
+      "command": "dcx spanner databases list --instance-id {instance_id} --page-size {page_size} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_spanner_schema_describe",
-      "description": "Describe all columns in a Spanner database using a source profile.",
+      "description": "Describe database schema from a source profile",
       "parameters": {
         "profile": {
-          "type": "string",
-          "description": "Path to a Spanner source profile YAML file",
-          "required": true
+          "description": "Profile name or path to profile YAML file",
+          "required": true,
+          "type": "string"
         }
       },
       "command": "dcx spanner schema describe --profile {profile} --format json"
     },
     {
       "name": "dcx_alloydb_clusters_list",
-      "description": "List all AlloyDB clusters in a GCP project.",
+      "description": "Lists Clusters in a given project and location.",
       "parameters": {
+        "dataset_id": {
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "filter": {
+          "description": "Optional. Filtering results",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "order_by": {
+          "description": "Optional. Hint for how to order the results",
+          "type": "string"
+        },
+        "page_size": {
+          "description": "Optional. Requested page size. Server may return fewer items than requested. If unspecified, server will pick an appropriate default.",
+          "type": "string"
+        },
         "project_id": {
-          "type": "string",
           "description": "GCP project ID",
-          "required": true
+          "type": "string"
         }
       },
-      "command": "dcx alloydb clusters list --project-id {project_id} --format json"
+      "command": "dcx alloydb clusters list --filter {filter} --order-by {order_by} --page-size {page_size} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_alloydb_schema_describe",
-      "description": "Describe all columns in an AlloyDB database using a source profile.",
+      "description": "Describe database schema from a source profile",
       "parameters": {
         "profile": {
-          "type": "string",
-          "description": "Path to an AlloyDB source profile YAML file",
-          "required": true
+          "description": "Profile name or path to profile YAML file",
+          "required": true,
+          "type": "string"
         }
       },
       "command": "dcx alloydb schema describe --profile {profile} --format json"
     },
     {
       "name": "dcx_cloudsql_instances_list",
-      "description": "List all Cloud SQL instances in a GCP project.",
+      "description": "Lists instances under a given project.",
       "parameters": {
+        "dataset_id": {
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "filter": {
+          "description": "A filter expression that filters resources listed in the response. The expression is in the form of field:value. For example, 'instanceType:CLOUD_SQL_INSTANCE'. Fields can be nested as needed as per their JSON representation, such as 'settings.userLabels.auto_start:true'. Multiple filter queries are space-separated. For example. 'state:RUNNABLE instanceType:CLOUD_SQL_INSTANCE'. By default, each expression is an AND expression. However, you can include AND and OR expressions explicitly.",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "max_results": {
+          "description": "The maximum number of instances to return. The service may return fewer than this value. If unspecified, at most 500 instances are returned. The maximum value is 1000; values above 1000 are coerced to 1000.",
+          "type": "string"
+        },
         "project_id": {
-          "type": "string",
           "description": "GCP project ID",
-          "required": true
+          "type": "string"
         }
       },
-      "command": "dcx cloudsql instances list --project-id {project_id} --format json"
+      "command": "dcx cloudsql instances list --filter {filter} --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_cloudsql_schema_describe",
-      "description": "Describe all columns in a Cloud SQL database using a source profile.",
+      "description": "Describe database schema from a source profile",
       "parameters": {
         "profile": {
-          "type": "string",
-          "description": "Path to a Cloud SQL source profile YAML file",
-          "required": true
+          "description": "Profile name or path to profile YAML file",
+          "required": true,
+          "type": "string"
         }
       },
       "command": "dcx cloudsql schema describe --profile {profile} --format json"
     },
     {
       "name": "dcx_looker_instances_list",
-      "description": "List all Looker instances in a GCP project.",
+      "description": "Lists Instances in a given project and location.",
       "parameters": {
+        "dataset_id": {
+          "description": "BigQuery dataset",
+          "type": "string"
+        },
+        "location": {
+          "default": "US",
+          "description": "BigQuery location",
+          "type": "string"
+        },
+        "page_size": {
+          "description": "The maximum number of instances to return. If unspecified at most 256 will be returned. The maximum possible value is 2048.",
+          "type": "string"
+        },
         "project_id": {
-          "type": "string",
           "description": "GCP project ID",
-          "required": true
+          "type": "string"
         }
       },
-      "command": "dcx looker instances list --project-id {project_id} --format json"
+      "command": "dcx looker instances list --page-size {page_size} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_looker_explores_list",
-      "description": "List all explores from a Looker instance using a source profile.",
+      "description": "List all explores from the Looker instance",
       "parameters": {
         "profile": {
-          "type": "string",
-          "description": "Path to a Looker source profile YAML file",
-          "required": true
+          "description": "Looker profile name or path",
+          "required": true,
+          "type": "string"
         }
       },
       "command": "dcx looker explores list --profile {profile} --format json"
     },
     {
       "name": "dcx_profiles_list",
-      "description": "List all discoverable source profiles with name, source type, and family.",
+      "description": "List all discoverable profiles",
       "parameters": {},
       "command": "dcx profiles list --format json"
     },
     {
       "name": "dcx_profiles_validate",
-      "description": "Validate the structure of a source profile without making network calls.",
+      "description": "Validate a profile's structure",
       "parameters": {
         "profile": {
-          "type": "string",
-          "description": "Profile name or path to a YAML file",
-          "required": true
+          "description": "Profile name or path to YAML file",
+          "required": true,
+          "type": "string"
         }
       },
       "command": "dcx profiles validate --profile {profile} --format json"

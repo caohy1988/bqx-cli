@@ -491,6 +491,7 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         let result = match command {
             MetaCommand::Commands => commands::meta::run_commands(&app, &cli.format),
             MetaCommand::Describe { path } => commands::meta::run_describe(&app, path, &cli.format),
+            MetaCommand::GeminiTools => commands::meta::run_gemini_tools(&app, &cli.format),
         };
         if let Err(e) = result {
             ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 1).emit_and_exit();
