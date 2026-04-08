@@ -4,6 +4,9 @@ use crate::commands::meta::{CommandContract, FlagContract};
 /// Maximum skill name length (agentskills.io constraint).
 const MAX_SKILL_NAME_LEN: usize = 64;
 
+/// Maximum lines in the thin router SKILL.md.
+const MAX_SKILL_MD_LINES: usize = 60;
+
 /// Flags handled elsewhere (Prerequisites, usage line, or internal) —
 /// not listed in per-command flag tables.
 const SKIP_FLAGS: &[&str] = &[
@@ -26,10 +29,12 @@ const SKIP_FLAGS: &[&str] = &[
 pub struct SkillOutput {
     /// Skill directory name, e.g. "dcx-datasets"
     pub dir_name: String,
-    /// SKILL.md content
+    /// SKILL.md content (thin router)
     pub skill_md: String,
     /// agents/openai.yaml content
     pub openai_yaml: String,
+    /// references/commands.md content (full command detail)
+    pub references_md: String,
 }
 
 /// agentskills.io validation errors.
@@ -49,13 +54,15 @@ pub fn generate_resource_skill(
     let dir_name = format!("dcx-{group}");
     let display_name = capitalize(group);
 
-    let skill_md = build_skill_md(group, &display_name, commands, contracts);
+    let skill_md = build_thin_skill_md(group, commands, contracts);
     let openai_yaml = build_openai_yaml(group, &display_name, commands);
+    let references_md = build_references_md(group, commands, contracts);
 
     SkillOutput {
         dir_name,
         skill_md,
         openai_yaml,
+        references_md,
     }
 }
 
@@ -97,15 +104,37 @@ pub fn validate_skill(skill: &SkillOutput) -> SkillValidation {
         errors.push("Missing 'description:' in frontmatter".to_string());
     }
 
+    // Size budget: router SKILL.md must stay within line cap.
+    let line_count = skill.skill_md.lines().count();
+    if line_count > MAX_SKILL_MD_LINES {
+        errors.push(format!(
+            "SKILL.md exceeds {} line budget ({} lines)",
+            MAX_SKILL_MD_LINES, line_count
+        ));
+    }
+
+    // Flag tables must not appear in SKILL.md (they belong in references).
+    if skill.skill_md.contains("| Flag | Required | Description |") {
+        errors.push("SKILL.md contains flag table — move to references/commands.md".to_string());
+    }
+
+    // Must point to references.
+    if !skill.skill_md.contains("references/commands.md") {
+        errors.push("SKILL.md must reference references/commands.md".to_string());
+    }
+
     SkillValidation {
         skill_name: skill.dir_name.clone(),
         errors,
     }
 }
 
-fn build_skill_md(
+// ---------------------------------------------------------------------------
+// Thin router SKILL.md (routing knowledge only)
+// ---------------------------------------------------------------------------
+
+fn build_thin_skill_md(
     group: &str,
-    _display_name: &str,
     commands: &[&GeneratedCommand],
     contracts: &[CommandContract],
 ) -> String {
@@ -117,60 +146,104 @@ fn build_skill_md(
     out.push_str(&format!(
         "---\n\
          name: dcx-{group}\n\
-         description: Use dcx to manage BigQuery {group} via the {actions_str} commands. \
-         Generated from the BigQuery v2 Discovery API.\n\
+         description: Use dcx to manage BigQuery {group} via the {actions_str} commands.\n\
          ---\n\n"
     ));
 
     // When to use
     out.push_str("## When to use this skill\n\n");
-    out.push_str("Use when the user asks about:\n");
+    out.push_str("Use when the user wants to:\n");
     for cmd in commands {
         out.push_str(&format!(
-            "- \"{} a BigQuery {}\"\n",
+            "- {} a BigQuery {}\n",
             cmd.action,
             singular(group)
         ));
     }
-    out.push_str(&format!(
-        "- \"show me BigQuery {group}\"\n\
-         - \"what {group} are in my project\"\n\n"
-    ));
+    out.push_str(&format!("- show or inspect BigQuery {group}\n\n"));
     out.push_str(
-        "Do not use when the user wants analytics workflows (doctor, evaluate, get-trace) \
+        "Do not use for analytics workflows (doctor, evaluate, get-trace) \
          — use dcx-analytics instead.\n\n",
     );
 
     // Prerequisites
     out.push_str("## Prerequisites\n\n");
-    out.push_str("Authentication: `dcx auth login` or set `DCX_PROJECT` / `DCX_TOKEN` environment variables.\n\n");
+    out.push_str("Authentication: `dcx auth login` or set `DCX_PROJECT` / `DCX_TOKEN`.\n\n");
 
-    // Determine per-command requirements and summarize at the group level.
     let all_need_dataset = commands.iter().all(|c| cmd_needs_dataset(c));
     let some_need_dataset = commands.iter().any(|c| cmd_needs_dataset(c));
     if all_need_dataset {
         out.push_str("Requires: `--project-id` and `--dataset-id`\n\n");
     } else if some_need_dataset {
-        out.push_str("Requires: `--project-id` (all commands), `--dataset-id` (some commands — see per-command details below)\n\n");
+        out.push_str("Requires: `--project-id` (all), `--dataset-id` (some)\n\n");
     } else {
         out.push_str("Requires: `--project-id`\n\n");
     }
 
-    // Commands section — flags from contracts (source of truth).
+    // Command summary table (no flags — just names and descriptions)
     out.push_str("## Commands\n\n");
+    out.push_str("| Command | Description |\n");
+    out.push_str("|---------|-------------|\n");
+    for cmd in commands {
+        let cmd_path = format!("dcx {} {}", group, cmd.action);
+        let description = contracts
+            .iter()
+            .find(|c| c.command == cmd_path)
+            .map(|c| truncate_description(&c.synopsis))
+            .unwrap_or_else(|| truncate_description(&cmd.about));
+        out.push_str(&format!("| `{cmd_path}` | {description} |\n"));
+    }
+    out.push_str(
+        "\nSee [references/commands.md](references/commands.md) for flags, constraints, and examples.\n\n",
+    );
+
+    // Decision rules
+    out.push_str("## Decision rules\n\n");
+    out.push_str("- Use `--dry-run` to preview the API request\n");
+    out.push_str("- Use `--format table` for visual scanning, `--format json` for piping\n");
+    if commands.iter().any(|c| c.action == "list") {
+        out.push_str(&format!(
+            "- Use `{group} list` to discover available {group}\n"
+        ));
+    }
+    if commands.iter().any(|c| c.action == "get") {
+        out.push_str(&format!(
+            "- Use `{group} get` to inspect a specific {singular}\n",
+            singular = singular(group)
+        ));
+    }
+
+    out
+}
+
+// ---------------------------------------------------------------------------
+// Generated references/commands.md (full command detail)
+// ---------------------------------------------------------------------------
+
+fn build_references_md(
+    group: &str,
+    commands: &[&GeneratedCommand],
+    contracts: &[CommandContract],
+) -> String {
+    let mut out = String::new();
+
+    out.push_str(&format!(
+        "# dcx-{group} command reference\n\n\
+         > Generated from the command contract. Do not edit by hand.\n\n"
+    ));
+
     for cmd in commands {
         let needs_dataset = cmd_needs_dataset(cmd);
         let cmd_path = format!("dcx {} {}", group, cmd.action);
         let contract = contracts.iter().find(|c| c.command == cmd_path);
 
-        out.push_str(&format!("### {} {}\n\n", group, cmd.action));
-        // Use contract synopsis if available, else fall back to Discovery about.
+        out.push_str(&format!("## {} {}\n\n", group, cmd.action));
         let description = contract
             .map(|c| c.synopsis.as_str())
             .unwrap_or(cmd.about.as_str());
         out.push_str(&format!("{}\n\n", description));
 
-        // Collect flags from contract (command-specific + promoted globals).
+        // Collect flags from contract.
         let contract_flags: Vec<&FlagContract> = if let Some(c) = contract {
             c.flags
                 .iter()
@@ -181,13 +254,12 @@ fn build_skill_md(
             Vec::new()
         };
 
-        // Build usage line.
+        // Usage block.
         let mut usage = format!("```bash\ndcx {group} {}", cmd.action);
         usage.push_str(" \\\n  --project-id <PROJECT_ID>");
         if needs_dataset {
             usage.push_str(" \\\n  --dataset-id <DATASET_ID>");
         }
-
         for flag in &contract_flags {
             if flag.required {
                 let placeholder = flag
@@ -218,7 +290,7 @@ fn build_skill_md(
         usage.push_str(" \\\n  [--format json|table|text]\n```\n\n");
         out.push_str(&usage);
 
-        // Flags table from contract.
+        // Flags table.
         out.push_str("| Flag | Required | Description |\n");
         out.push_str("|------|----------|-------------|\n");
         out.push_str("| `--project-id` | Yes | GCP project ID (global flag) |\n");
@@ -232,7 +304,7 @@ fn build_skill_md(
         }
         out.push('\n');
 
-        // Constraints from contract (mutually exclusive, one_of_required).
+        // Constraints from contract.
         if let Some(c) = contract {
             if !c.constraints.is_empty() {
                 out.push_str("**Constraints:**\n");
@@ -247,24 +319,6 @@ fn build_skill_md(
             }
         }
     }
-
-    // Decision rules
-    out.push_str("## Decision rules\n\n");
-    out.push_str("- Use `--dry-run` to see the API request without executing it\n");
-    out.push_str("- Use `--format table` for scanning results visually in a terminal\n");
-    out.push_str("- Use `--format json` when piping output to other tools or scripts\n");
-    if commands.iter().any(|c| c.action == "list") {
-        out.push_str(&format!(
-            "- Use `{group} list` to discover available {group} in a project\n"
-        ));
-    }
-    if commands.iter().any(|c| c.action == "get") {
-        out.push_str(&format!(
-            "- Use `{group} get` to inspect a specific {singular}'s metadata\n",
-            singular = singular(group)
-        ));
-    }
-    out.push('\n');
 
     // Examples
     out.push_str("## Examples\n\n```bash\n");
@@ -286,7 +340,6 @@ fn build_skill_md(
             out.push_str(" \\\n  --dataset-id my_dataset");
         }
 
-        // Add required flags from contract.
         if let Some(c) = contract {
             for flag in &c.flags {
                 if flag.required && !SKIP_FLAGS.contains(&flag.name.as_str()) {
@@ -301,16 +354,7 @@ fn build_skill_md(
 
         out.push_str(" \\\n  --format table\n\n");
     }
-    out.push_str("```\n\n");
-
-    // Constraints
-    out.push_str("## Constraints\n\n");
-    out.push_str(&format!(
-        "- These commands are generated from the BigQuery v2 Discovery API\n\
-         - Only read operations are supported in Phase 2\n\
-         - Nested response objects are summarized in table format; use `--format json` for full detail\n\
-         - Reference objects (e.g. {group}Reference) are automatically flattened in table output\n"
-    ));
+    out.push_str("```\n");
 
     out
 }

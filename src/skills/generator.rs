@@ -51,17 +51,21 @@ pub fn filter_skills(skills: Vec<SkillOutput>, filter: &[String]) -> Vec<SkillOu
 
 /// Write generated skills to the output directory.
 ///
-/// Creates `<output_dir>/<skill_dir>/SKILL.md` and
-/// `<output_dir>/<skill_dir>/agents/openai.yaml` for each skill.
+/// Creates `<output_dir>/<skill_dir>/SKILL.md`,
+/// `<output_dir>/<skill_dir>/agents/openai.yaml`, and
+/// `<output_dir>/<skill_dir>/references/commands.md` for each skill.
 pub fn write_skills(output_dir: &Path, skills: &[SkillOutput]) -> Result<Vec<String>> {
     let mut written = Vec::new();
 
     for skill in skills {
         let skill_dir = output_dir.join(&skill.dir_name);
         let agents_dir = skill_dir.join("agents");
+        let refs_dir = skill_dir.join("references");
 
         std::fs::create_dir_all(&agents_dir)
             .with_context(|| format!("Failed to create directory: {}", agents_dir.display()))?;
+        std::fs::create_dir_all(&refs_dir)
+            .with_context(|| format!("Failed to create directory: {}", refs_dir.display()))?;
 
         let skill_path = skill_dir.join("SKILL.md");
         std::fs::write(&skill_path, &skill.skill_md)
@@ -70,6 +74,10 @@ pub fn write_skills(output_dir: &Path, skills: &[SkillOutput]) -> Result<Vec<Str
         let yaml_path = agents_dir.join("openai.yaml");
         std::fs::write(&yaml_path, &skill.openai_yaml)
             .with_context(|| format!("Failed to write: {}", yaml_path.display()))?;
+
+        let refs_path = refs_dir.join("commands.md");
+        std::fs::write(&refs_path, &skill.references_md)
+            .with_context(|| format!("Failed to write: {}", refs_path.display()))?;
 
         written.push(skill.dir_name.clone());
     }
@@ -157,12 +165,19 @@ mod tests {
         let skills = generate_all(&commands, &contracts);
         for skill in &skills {
             let md = &skill.skill_md;
+            // Thin router SKILL.md has routing sections.
             assert!(md.contains("## When to use"), "{}", skill.dir_name);
             assert!(md.contains("## Prerequisites"), "{}", skill.dir_name);
             assert!(md.contains("## Commands"), "{}", skill.dir_name);
             assert!(md.contains("## Decision rules"), "{}", skill.dir_name);
-            assert!(md.contains("## Examples"), "{}", skill.dir_name);
-            assert!(md.contains("## Constraints"), "{}", skill.dir_name);
+            // Detail sections moved to references/commands.md.
+            let refs = &skill.references_md;
+            assert!(refs.contains("## Examples"), "{}", skill.dir_name);
+            assert!(
+                refs.contains("| Flag | Required |"),
+                "{}: references missing flag tables",
+                skill.dir_name
+            );
         }
     }
 
@@ -225,15 +240,26 @@ mod tests {
         for skill in &skills {
             let skill_md = tmp.path().join(&skill.dir_name).join("SKILL.md");
             let yaml = tmp.path().join(&skill.dir_name).join("agents/openai.yaml");
+            let refs = tmp
+                .path()
+                .join(&skill.dir_name)
+                .join("references/commands.md");
             assert!(skill_md.exists(), "Missing SKILL.md for {}", skill.dir_name);
             assert!(
                 yaml.exists(),
                 "Missing agents/openai.yaml for {}",
                 skill.dir_name
             );
+            assert!(
+                refs.exists(),
+                "Missing references/commands.md for {}",
+                skill.dir_name
+            );
 
             let content = std::fs::read_to_string(&skill_md).unwrap();
             assert_eq!(content, skill.skill_md);
+            let refs_content = std::fs::read_to_string(&refs).unwrap();
+            assert_eq!(refs_content, skill.references_md);
         }
     }
 

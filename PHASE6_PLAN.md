@@ -333,6 +333,57 @@ Done when:
 - generated skills comply with agentskills.io structural constraints
 - skill drift is caught in CI
 
+### M4b: Thin Skill Layer and Reference-First Generation
+
+Keep the skill layer small, routing-focused, and resistant to re-growth.
+
+Target work:
+
+- keep the advertised skill set flat:
+  - router skills remain the primary activation surface
+  - recipe skills remain the only workflow-level additions
+  - API detail moves into generated references instead of new top-level skills
+- make every router `SKILL.md` a thin dispatcher:
+  - when to use
+  - when not to use
+  - 3-6 decision rules
+  - pointers to generated `references/commands.md` and related resources
+- move exact command detail out of top-level skill bodies:
+  - flag tables
+  - constraints
+  - examples
+  - command matrices
+- generate reference files from `CommandContract` so exact syntax stays in one
+  place
+- enforce a thin-skill budget in CI:
+  - top-level `SKILL.md` line / token cap
+  - no duplicated flag tables across router skills
+  - trigger-condition wording starts with `Use when the user wants to...`
+- replace repeated prerequisite boilerplate with one shared generated auth /
+  globals reference
+- add lightweight activation telemetry / eval hooks:
+  - which skill was selected
+  - whether generated references were loaded
+  - wrong-skill activations
+  - tasks completed without extra reference loads
+
+Result:
+
+- fewer tokens in the always-loaded skill layer
+- less duplicated command prose
+- lower pressure to add new skills as commands grow
+- tighter separation between routing knowledge and exact CLI syntax
+
+Done when:
+
+- router skills are the only primary advertised domain skills
+- API command details are emitted into generated references rather than copied
+  into `SKILL.md`
+- top-level router skills stay within a documented size budget
+- CI fails if generated references drift from the command contract
+- skill count stays flat unless activation data justifies a new top-level skill
+- evals can distinguish router-only success from router-plus-reference fallback
+
 ### M5: Agent Eval Harness
 
 Add a real measurement loop for agent performance on `dcx`.

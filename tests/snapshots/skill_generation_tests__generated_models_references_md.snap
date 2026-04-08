@@ -1,0 +1,63 @@
+---
+source: tests/skill_generation_tests.rs
+expression: "&models_skill.references_md"
+---
+# dcx-models command reference
+
+> Generated from the command contract. Do not edit by hand.
+
+## models get
+
+Gets the specified model resource by model ID.
+
+```bash
+dcx models get \
+  --project-id <PROJECT_ID> \
+  --dataset-id <DATASET_ID> \
+  --model-id <MODEL_ID> \
+  [--dry-run] \
+  [--format json|table|text]
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
+| `--dataset-id` | Yes | BigQuery dataset (global flag) |
+| `--model-id` | Yes | Required |
+
+## models list
+
+Lists all models in the specified dataset. Requires the READER dataset role. After retrieving the list of models, you can get information about a particular model by calling the models.get method.
+
+```bash
+dcx models list \
+  --project-id <PROJECT_ID> \
+  --dataset-id <DATASET_ID> \
+  [--max-results <MAX_RESULTS>] \
+  [--dry-run] \
+  [--format json|table|text]
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
+| `--dataset-id` | Yes | BigQuery dataset (global flag) |
+| `--max-results` | No | The maximum number of results to return in a single response page |
+
+## Examples
+
+```bash
+# Get models
+dcx models get \
+  --project-id my-proj \
+  --dataset-id my_dataset \
+  --model-id my_model_id \
+  --format table
+
+# List models
+dcx models list \
+  --project-id my-proj \
+  --dataset-id my_dataset \
+  --format table
+
+```
