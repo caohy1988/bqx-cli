@@ -33,7 +33,7 @@
           "type": "boolean"
         }
       },
-      "command": "dcx jobs query --query {query} --use-legacy-sql {use_legacy_sql} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
+      "command": "dcx jobs query --query {query} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_datasets_list",
@@ -65,7 +65,7 @@
           "type": "string"
         }
       },
-      "command": "dcx datasets list --all {all} --filter {filter} --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
+      "command": "dcx datasets list --filter {filter} --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_datasets_get",
@@ -291,7 +291,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics evaluate --evaluator {evaluator} --threshold {threshold} --last {last} --agent-id {agent_id} --exit-code {exit_code} --criterion {criterion} --limit {limit} --strict {strict} --endpoint {endpoint} --connection-id {connection_id} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
+      "command": "dcx analytics evaluate --evaluator {evaluator} --threshold {threshold} --last {last} --agent-id {agent_id} --criterion {criterion} --limit {limit} --endpoint {endpoint} --connection-id {connection_id} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_get_trace",
@@ -444,7 +444,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics drift --golden-dataset {golden_dataset} --last {last} --agent-id {agent_id} --limit {limit} --min-coverage {min_coverage} --exit-code {exit_code} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
+      "command": "dcx analytics drift --golden-dataset {golden_dataset} --last {last} --agent-id {agent_id} --limit {limit} --min-coverage {min_coverage} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_distribution",

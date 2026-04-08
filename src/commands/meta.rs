@@ -259,15 +259,19 @@ fn build_gemini_tool(contract: &CommandContract, name_override: Option<&&str>) -
     let mut cmd_parts = vec![contract.command.clone()];
 
     // Add command-specific flags as parameters.
-    // Every advertised parameter must appear in the command template so
-    // Gemini can actually substitute the value when the agent provides it.
+    // Value-taking flags appear in the template as `--flag {param}`.
+    // Boolean (presence-style) flags are advertised as parameters but
+    // excluded from the template — the execution layer appends the bare
+    // flag when the agent sets the parameter to true.
     for flag in &contract.flags {
         if flag.name == "--dry-run" || flag.name == "--yes" {
             continue; // internal flags, not for Gemini tools
         }
         let param = flag_to_gemini_param(flag);
         let param_name = flag.name.trim_start_matches("--").replace('-', "_");
-        cmd_parts.push(format!("{} {{{}}}", flag.name, param_name));
+        if flag.flag_type != "boolean" {
+            cmd_parts.push(format!("{} {{{}}}", flag.name, param_name));
+        }
         params.insert(param_name, param);
     }
 
@@ -281,7 +285,9 @@ fn build_gemini_tool(contract: &CommandContract, name_override: Option<&&str>) -
         }
         let param = flag_to_gemini_param(gflag);
         let param_name = gflag.name.trim_start_matches("--").replace('-', "_");
-        cmd_parts.push(format!("{} {{{}}}", gflag.name, param_name));
+        if gflag.flag_type != "boolean" {
+            cmd_parts.push(format!("{} {{{}}}", gflag.name, param_name));
+        }
         params.insert(param_name, param);
     }
 
