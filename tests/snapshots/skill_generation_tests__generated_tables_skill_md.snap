@@ -33,7 +33,7 @@ Gets the specified table resource by table ID. This method does not return the d
 dcx tables get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
-  --table-id <tableId> \
+  --table-id <TABLE_ID> \
   [--selected-fields] \
   [--view] \
   [--dry-run] \
@@ -57,7 +57,6 @@ dcx tables list \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
   [--max-results] \
-  [--page-token] \
   [--dry-run] \
   [--format json|table|text]
 ```
@@ -67,7 +66,6 @@ dcx tables list \
 | `--project-id` | Yes | GCP project ID (global flag) |
 | `--dataset-id` | Yes | BigQuery dataset (global flag) |
 | `--max-results` | No | The maximum number of results to return in a single response page |
-| `--page-token` | No | Page token, returned by a previous call, to request the next page of results |
 
 ## Decision rules
 
@@ -84,7 +82,7 @@ dcx tables list \
 dcx tables get \
   --project-id my-proj \
   --dataset-id my_dataset \
-  --table-id my_tableid \
+  --table-id my_table_id \
   --format table
 
 # List tables

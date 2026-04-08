@@ -1,8 +1,25 @@
 use crate::bigquery::dynamic::model::{GeneratedCommand, ParamLocation};
+use crate::commands::meta::{CommandContract, FlagContract};
 
-/// Parameters that are provided by global CLI flags and should be
-/// documented as global rather than per-command flags.
-const GLOBAL_PARAMS: &[&str] = &["projectId", "datasetId"];
+/// Maximum skill name length (agentskills.io constraint).
+const MAX_SKILL_NAME_LEN: usize = 64;
+
+/// Flags handled elsewhere (Prerequisites, usage line, or internal) —
+/// not listed in per-command flag tables.
+const SKIP_FLAGS: &[&str] = &[
+    "--project-id",
+    "--dataset-id",
+    "--location",
+    "--format",
+    "--table",
+    "--token",
+    "--credentials-file",
+    "--sanitize",
+    "--page-token",
+    "--page-all",
+    "--yes",
+    "--dry-run", // shown separately in usage line
+];
 
 /// A generated skill ready to be written to disk.
 #[derive(Debug, Clone)]
@@ -15,12 +32,24 @@ pub struct SkillOutput {
     pub openai_yaml: String,
 }
 
-/// Generate a skill for a resource group (e.g. "datasets") from its commands.
-pub fn generate_resource_skill(group: &str, commands: &[&GeneratedCommand]) -> SkillOutput {
+/// agentskills.io validation errors.
+#[derive(Debug)]
+pub struct SkillValidation {
+    pub skill_name: String,
+    pub errors: Vec<String>,
+}
+
+/// Generate a skill for a resource group (e.g. "datasets") from its commands,
+/// using contracts as the source of truth for flags and constraints.
+pub fn generate_resource_skill(
+    group: &str,
+    commands: &[&GeneratedCommand],
+    contracts: &[CommandContract],
+) -> SkillOutput {
     let dir_name = format!("dcx-{group}");
     let display_name = capitalize(group);
 
-    let skill_md = build_skill_md(group, &display_name, commands);
+    let skill_md = build_skill_md(group, &display_name, commands, contracts);
     let openai_yaml = build_openai_yaml(group, &display_name, commands);
 
     SkillOutput {
@@ -30,7 +59,56 @@ pub fn generate_resource_skill(group: &str, commands: &[&GeneratedCommand]) -> S
     }
 }
 
-fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedCommand]) -> String {
+/// Validate a skill against agentskills.io constraints.
+pub fn validate_skill(skill: &SkillOutput) -> SkillValidation {
+    let mut errors = Vec::new();
+
+    // Name must be lowercase-hyphenated.
+    if skill.dir_name != skill.dir_name.to_lowercase() {
+        errors.push(format!("Name '{}' must be lowercase", skill.dir_name));
+    }
+    if skill.dir_name.contains('_') {
+        errors.push(format!(
+            "Name '{}' must use hyphens, not underscores",
+            skill.dir_name
+        ));
+    }
+
+    // Name length check.
+    if skill.dir_name.len() > MAX_SKILL_NAME_LEN {
+        errors.push(format!(
+            "Name '{}' exceeds {} chars ({} chars)",
+            skill.dir_name,
+            MAX_SKILL_NAME_LEN,
+            skill.dir_name.len()
+        ));
+    }
+
+    // Must have trigger condition (When to use section).
+    if !skill.skill_md.contains("## When to use this skill") {
+        errors.push("Missing '## When to use this skill' section".to_string());
+    }
+
+    // Frontmatter must have name and description.
+    if !skill.skill_md.contains("name: ") {
+        errors.push("Missing 'name:' in frontmatter".to_string());
+    }
+    if !skill.skill_md.contains("description: ") {
+        errors.push("Missing 'description:' in frontmatter".to_string());
+    }
+
+    SkillValidation {
+        skill_name: skill.dir_name.clone(),
+        errors,
+    }
+}
+
+fn build_skill_md(
+    group: &str,
+    _display_name: &str,
+    commands: &[&GeneratedCommand],
+    contracts: &[CommandContract],
+) -> String {
     let mut out = String::new();
 
     // Frontmatter
@@ -78,58 +156,87 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
         out.push_str("Requires: `--project-id`\n\n");
     }
 
-    // Commands section
+    // Commands section — flags from contracts (source of truth).
     out.push_str("## Commands\n\n");
     for cmd in commands {
         let needs_dataset = cmd_needs_dataset(cmd);
+        let cmd_path = format!("dcx {} {}", group, cmd.action);
+        let contract = contracts.iter().find(|c| c.command == cmd_path);
 
         out.push_str(&format!("### {} {}\n\n", group, cmd.action));
-        out.push_str(&format!("{}\n\n", cmd.about));
+        // Use contract synopsis if available, else fall back to Discovery about.
+        let description = contract
+            .map(|c| c.synopsis.as_str())
+            .unwrap_or(cmd.about.as_str());
+        out.push_str(&format!("{}\n\n", description));
 
-        // Build usage line — include global flags that this command requires.
+        // Collect flags from contract (command-specific + promoted globals).
+        let contract_flags: Vec<&FlagContract> = if let Some(c) = contract {
+            c.flags
+                .iter()
+                .chain(c.global_flags.iter())
+                .filter(|f| !SKIP_FLAGS.contains(&f.name.as_str()))
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        // Build usage line.
         let mut usage = format!("```bash\ndcx {group} {}", cmd.action);
         usage.push_str(" \\\n  --project-id <PROJECT_ID>");
         if needs_dataset {
             usage.push_str(" \\\n  --dataset-id <DATASET_ID>");
         }
 
-        let user_args: Vec<_> = cmd
-            .args
-            .iter()
-            .filter(|a| !GLOBAL_PARAMS.contains(&a.api_name.as_str()))
-            .collect();
-        for arg in &user_args {
-            if arg.required {
-                usage.push_str(&format!(" \\\n  --{} <{}>", arg.flag_name, arg.api_name));
+        for flag in &contract_flags {
+            if flag.required {
+                let placeholder = flag
+                    .name
+                    .trim_start_matches("--")
+                    .to_uppercase()
+                    .replace('-', "_");
+                usage.push_str(&format!(" \\\n  {} <{}>", flag.name, placeholder));
             }
         }
-        for arg in &user_args {
-            if !arg.required {
-                usage.push_str(&format!(" \\\n  [--{}]", arg.flag_name));
+        for flag in &contract_flags {
+            if !flag.required {
+                usage.push_str(&format!(" \\\n  [{}]", flag.name));
             }
         }
-        usage.push_str(" \\\n  [--dry-run] \\\n  [--format json|table|text]\n```\n\n");
+        if contract.map(|c| c.supports_dry_run).unwrap_or(true) {
+            usage.push_str(" \\\n  [--dry-run]");
+        }
+        usage.push_str(" \\\n  [--format json|table|text]\n```\n\n");
         out.push_str(&usage);
 
-        // Flags table — include the required global flags for this command.
+        // Flags table from contract.
         out.push_str("| Flag | Required | Description |\n");
         out.push_str("|------|----------|-------------|\n");
         out.push_str("| `--project-id` | Yes | GCP project ID (global flag) |\n");
         if needs_dataset {
             out.push_str("| `--dataset-id` | Yes | BigQuery dataset (global flag) |\n");
         }
-        for arg in &user_args {
-            let req = if arg.required { "Yes" } else { "No" };
-            let help_text = arg.help.trim();
-            let desc =
-                if help_text.is_empty() || help_text == "Required." || help_text == "Optional." {
-                    format!("{} parameter", arg.api_name)
-                } else {
-                    truncate_description(help_text)
-                };
-            out.push_str(&format!("| `--{}` | {} | {} |\n", arg.flag_name, req, desc));
+        for flag in &contract_flags {
+            let req = if flag.required { "Yes" } else { "No" };
+            let desc = truncate_description(&flag.description);
+            out.push_str(&format!("| `{}` | {} | {} |\n", flag.name, req, desc));
         }
         out.push('\n');
+
+        // Constraints from contract (mutually exclusive, one_of_required).
+        if let Some(c) = contract {
+            if !c.constraints.is_empty() {
+                out.push_str("**Constraints:**\n");
+                for constraint in &c.constraints {
+                    let flags = constraint.flags.join(", ");
+                    out.push_str(&format!(
+                        "- {} ({}): {}\n",
+                        constraint.constraint_type, flags, constraint.description
+                    ));
+                }
+                out.push('\n');
+            }
+        }
     }
 
     // Decision rules
@@ -159,6 +266,9 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
             .iter()
             .any(|p| p.name == "datasetId" && p.location == ParamLocation::Path);
 
+        let cmd_path = format!("dcx {} {}", group, cmd.action);
+        let contract = contracts.iter().find(|c| c.command == cmd_path);
+
         out.push_str(&format!("# {} {}\n", capitalize(&cmd.action), group));
         out.push_str(&format!("dcx {group} {}", cmd.action));
         out.push_str(" \\\n  --project-id my-proj");
@@ -167,17 +277,17 @@ fn build_skill_md(group: &str, _display_name: &str, commands: &[&GeneratedComman
             out.push_str(" \\\n  --dataset-id my_dataset");
         }
 
-        let user_required: Vec<_> = cmd
-            .args
-            .iter()
-            .filter(|a| a.required && !GLOBAL_PARAMS.contains(&a.api_name.as_str()))
-            .collect();
-        for arg in &user_required {
-            out.push_str(&format!(
-                " \\\n  --{} my_{}",
-                arg.flag_name,
-                arg.api_name.to_lowercase()
-            ));
+        // Add required flags from contract.
+        if let Some(c) = contract {
+            for flag in &c.flags {
+                if flag.required && !SKIP_FLAGS.contains(&flag.name.as_str()) {
+                    let val = format!(
+                        "my_{}",
+                        flag.name.trim_start_matches("--").replace('-', "_")
+                    );
+                    out.push_str(&format!(" \\\n  {} {}", flag.name, val));
+                }
+            }
         }
 
         out.push_str(" \\\n  --format table\n\n");

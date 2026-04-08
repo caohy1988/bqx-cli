@@ -33,7 +33,7 @@ Gets the specified routine resource by routine ID.
 dcx routines get \
   --project-id <PROJECT_ID> \
   --dataset-id <DATASET_ID> \
-  --routine-id <routineId> \
+  --routine-id <ROUTINE_ID> \
   [--read-mask] \
   [--dry-run] \
   [--format json|table|text]
@@ -56,7 +56,6 @@ dcx routines list \
   --dataset-id <DATASET_ID> \
   [--filter] \
   [--max-results] \
-  [--page-token] \
   [--read-mask] \
   [--dry-run] \
   [--format json|table|text]
@@ -68,7 +67,6 @@ dcx routines list \
 | `--dataset-id` | Yes | BigQuery dataset (global flag) |
 | `--filter` | No | If set, then only the Routines matching this filter are returned |
 | `--max-results` | No | The maximum number of results to return in a single response page |
-| `--page-token` | No | Page token, returned by a previous call, to request the next page of results |
 | `--read-mask` | No | If set, then only the Routine fields in the field mask, as well as project_id, dataset_id and routine_id, are returne... |
 
 ## Decision rules
@@ -86,7 +84,7 @@ dcx routines list \
 dcx routines get \
   --project-id my-proj \
   --dataset-id my_dataset \
-  --routine-id my_routineid \
+  --routine-id my_routine_id \
   --format table
 
 # List routines

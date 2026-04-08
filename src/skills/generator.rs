@@ -4,14 +4,19 @@ use std::path::Path;
 use anyhow::{Context, Result};
 
 use crate::bigquery::dynamic::model::GeneratedCommand;
+use crate::commands::meta::CommandContract;
 
 use super::templates::{self, SkillOutput};
 
-/// Generate skill files for all resource groups from the generated commands.
+/// Generate skill files for all resource groups from the generated commands,
+/// using contracts as the source of truth for flags and constraints.
 ///
 /// Groups commands by resource (e.g. "datasets", "tables") and generates
 /// one skill directory per group containing SKILL.md and agents/openai.yaml.
-pub fn generate_all(commands: &[GeneratedCommand]) -> Vec<SkillOutput> {
+pub fn generate_all(
+    commands: &[GeneratedCommand],
+    contracts: &[CommandContract],
+) -> Vec<SkillOutput> {
     let mut groups: HashMap<&str, Vec<&GeneratedCommand>> = HashMap::new();
     for cmd in commands {
         groups.entry(cmd.group.as_str()).or_default().push(cmd);
@@ -25,7 +30,7 @@ pub fn generate_all(commands: &[GeneratedCommand]) -> Vec<SkillOutput> {
         let group_cmds = &groups[group_name];
         let mut sorted_cmds = group_cmds.clone();
         sorted_cmds.sort_by_key(|c| &c.action);
-        let skill = templates::generate_resource_skill(group_name, &sorted_cmds);
+        let skill = templates::generate_resource_skill(group_name, &sorted_cmds, contracts);
         skills.push(skill);
     }
 
@@ -78,6 +83,7 @@ mod tests {
     use crate::bigquery::discovery::{self, DiscoverySource};
     use crate::bigquery::dynamic::model::{extract_methods, filter_allowed, to_generated_command};
     use crate::bigquery::dynamic::service;
+    use crate::commands::meta;
 
     fn load_generated_commands() -> Vec<GeneratedCommand> {
         let cfg = service::bigquery();
@@ -87,10 +93,32 @@ mod tests {
         allowed.iter().map(to_generated_command).collect()
     }
 
+    fn load_contracts() -> Vec<CommandContract> {
+        use crate::bigquery::dynamic::clap_tree;
+        use clap::CommandFactory;
+
+        let cfg = service::bigquery();
+        let doc = discovery::load(&DiscoverySource::Bundled).unwrap();
+        let methods = extract_methods(&doc, cfg.use_flat_path);
+        let allowed = filter_allowed(&methods, cfg.allowed_methods);
+        let commands: Vec<_> = allowed.iter().map(to_generated_command).collect();
+
+        let global_params = cfg.global_param_names();
+        let dynamic_clap =
+            clap_tree::build_dynamic_commands(&commands, &global_params, cfg.service_label);
+
+        let mut app = crate::cli::Cli::command();
+        for sub in dynamic_clap {
+            app = app.subcommand(sub);
+        }
+        meta::collect_all(&app)
+    }
+
     #[test]
     fn generate_all_produces_expected_groups() {
         let commands = load_generated_commands();
-        let skills = generate_all(&commands);
+        let contracts = load_contracts();
+        let skills = generate_all(&commands, &contracts);
         let names: Vec<&str> = skills.iter().map(|s| s.dir_name.as_str()).collect();
         assert_eq!(
             names,
@@ -101,7 +129,8 @@ mod tests {
     #[test]
     fn generated_skill_md_has_frontmatter() {
         let commands = load_generated_commands();
-        let skills = generate_all(&commands);
+        let contracts = load_contracts();
+        let skills = generate_all(&commands, &contracts);
         for skill in &skills {
             assert!(
                 skill.skill_md.starts_with("---\n"),
@@ -124,7 +153,8 @@ mod tests {
     #[test]
     fn generated_skill_md_has_required_sections() {
         let commands = load_generated_commands();
-        let skills = generate_all(&commands);
+        let contracts = load_contracts();
+        let skills = generate_all(&commands, &contracts);
         for skill in &skills {
             let md = &skill.skill_md;
             assert!(md.contains("## When to use"), "{}", skill.dir_name);
@@ -139,7 +169,8 @@ mod tests {
     #[test]
     fn generated_openai_yaml_has_required_fields() {
         let commands = load_generated_commands();
-        let skills = generate_all(&commands);
+        let contracts = load_contracts();
+        let skills = generate_all(&commands, &contracts);
         for skill in &skills {
             let yaml = &skill.openai_yaml;
             assert!(yaml.contains("display_name:"), "{}", skill.dir_name);
@@ -156,7 +187,8 @@ mod tests {
     #[test]
     fn filter_skills_empty_returns_all() {
         let commands = load_generated_commands();
-        let skills = generate_all(&commands);
+        let contracts = load_contracts();
+        let skills = generate_all(&commands, &contracts);
         let filtered = filter_skills(skills.clone(), &[]);
         assert_eq!(filtered.len(), skills.len());
     }
@@ -164,7 +196,8 @@ mod tests {
     #[test]
     fn filter_skills_by_name() {
         let commands = load_generated_commands();
-        let skills = generate_all(&commands);
+        let contracts = load_contracts();
+        let skills = generate_all(&commands, &contracts);
         let filtered = filter_skills(skills, &["dcx-datasets".to_string()]);
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].dir_name, "dcx-datasets");
@@ -173,7 +206,8 @@ mod tests {
     #[test]
     fn filter_skills_nonexistent_returns_empty() {
         let commands = load_generated_commands();
-        let skills = generate_all(&commands);
+        let contracts = load_contracts();
+        let skills = generate_all(&commands, &contracts);
         let filtered = filter_skills(skills, &["dcx-nonexistent".to_string()]);
         assert!(filtered.is_empty());
     }
@@ -181,7 +215,8 @@ mod tests {
     #[test]
     fn write_skills_creates_files() {
         let commands = load_generated_commands();
-        let skills = generate_all(&commands);
+        let contracts = load_contracts();
+        let skills = generate_all(&commands, &contracts);
 
         let tmp = tempfile::tempdir().unwrap();
         let written = write_skills(tmp.path(), &skills).unwrap();
@@ -199,6 +234,23 @@ mod tests {
 
             let content = std::fs::read_to_string(&skill_md).unwrap();
             assert_eq!(content, skill.skill_md);
+        }
+    }
+
+    #[test]
+    fn all_skills_pass_agentskills_validation() {
+        use crate::skills::templates::validate_skill;
+        let commands = load_generated_commands();
+        let contracts = load_contracts();
+        let skills = generate_all(&commands, &contracts);
+        for skill in &skills {
+            let validation = validate_skill(skill);
+            assert!(
+                validation.errors.is_empty(),
+                "{}: agentskills.io violations: {:?}",
+                validation.skill_name,
+                validation.errors
+            );
         }
     }
 }

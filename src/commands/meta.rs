@@ -29,40 +29,40 @@ struct CommandSummary {
 #[derive(Serialize)]
 pub struct CommandContract {
     contract_version: &'static str,
-    command: String,
-    domain: String,
-    synopsis: String,
-    flags: Vec<FlagContract>,
-    global_flags: Vec<FlagContract>,
+    pub command: String,
+    pub domain: String,
+    pub synopsis: String,
+    pub flags: Vec<FlagContract>,
+    pub global_flags: Vec<FlagContract>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    constraints: Vec<FlagConstraint>,
+    pub constraints: Vec<FlagConstraint>,
     output: OutputContract,
-    exit_codes: BTreeMap<String, String>,
-    supports_dry_run: bool,
+    pub exit_codes: BTreeMap<String, String>,
+    pub supports_dry_run: bool,
     is_mutation: bool,
 }
 
 #[derive(Serialize, Clone)]
 pub struct FlagConstraint {
     #[serde(rename = "type")]
-    constraint_type: &'static str,
-    flags: Vec<String>,
-    description: String,
+    pub constraint_type: &'static str,
+    pub flags: Vec<String>,
+    pub description: String,
 }
 
 #[derive(Serialize, Clone)]
 pub struct FlagContract {
-    name: String,
+    pub name: String,
     #[serde(rename = "type")]
-    flag_type: String,
-    required: bool,
+    pub flag_type: String,
+    pub required: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    default: Option<String>,
-    description: String,
+    pub default: Option<String>,
+    pub description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    values: Option<Vec<String>>,
+    pub values: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    env: Option<String>,
+    pub env: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -451,7 +451,8 @@ fn print_flag(f: &FlagContract) {
 // Introspection engine
 // ---------------------------------------------------------------------------
 
-fn collect_all(app: &clap::Command) -> Vec<CommandContract> {
+/// Collect contracts for all leaf commands in the clap tree.
+pub fn collect_all(app: &clap::Command) -> Vec<CommandContract> {
     let global_flags = extract_global_flags(app);
     let mut contracts = Vec::new();
     walk_commands(app, &[], &global_flags, &mut contracts);

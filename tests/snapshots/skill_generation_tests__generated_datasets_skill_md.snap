@@ -56,7 +56,6 @@ dcx datasets list \
   [--all] \
   [--filter] \
   [--max-results] \
-  [--page-token] \
   [--dry-run] \
   [--format json|table|text]
 ```
@@ -67,7 +66,6 @@ dcx datasets list \
 | `--all` | No | Whether to list all datasets, including hidden ones |
 | `--filter` | No | An expression for filtering the results of the request by label |
 | `--max-results` | No | The maximum number of results to return in a single response page |
-| `--page-token` | No | Page token, returned by a previous call, to request the next page of results |
 
 ## Decision rules
 

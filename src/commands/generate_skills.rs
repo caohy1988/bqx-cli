@@ -6,13 +6,20 @@ use serde_json::json;
 use crate::bigquery::discovery::{self, DiscoverySource};
 use crate::bigquery::dynamic::{model, service};
 use crate::cli::OutputFormat;
+use crate::commands::meta;
 use crate::skills::generator;
 
 /// Run the `generate-skills` command.
 ///
 /// Generates SKILL.md and agents/openai.yaml for each resource group
-/// from the BigQuery v2 Discovery Document.
-pub fn run(output_dir: &str, filter: &[String], format: &OutputFormat) -> Result<()> {
+/// from the BigQuery v2 Discovery Document. Flags and constraints are
+/// sourced from the command contract (same data as `dcx meta describe`).
+pub fn run(
+    app: &clap::Command,
+    output_dir: &str,
+    filter: &[String],
+    format: &OutputFormat,
+) -> Result<()> {
     let cfg = service::bigquery();
     let doc = discovery::load(&DiscoverySource::Bundled)?;
     let methods = model::extract_methods(&doc, cfg.use_flat_path);
@@ -20,7 +27,8 @@ pub fn run(output_dir: &str, filter: &[String], format: &OutputFormat) -> Result
     let commands: Vec<model::GeneratedCommand> =
         allowed.iter().map(model::to_generated_command).collect();
 
-    let skills = generator::generate_all(&commands);
+    let contracts = meta::collect_all(app);
+    let skills = generator::generate_all(&commands, &contracts);
     let skills = generator::filter_skills(skills, filter);
 
     if skills.is_empty() {

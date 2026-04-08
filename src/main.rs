@@ -384,7 +384,38 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         ref filter,
     } = cli.command
     {
-        let result = commands::generate_skills::run(output_dir, filter, &cli.format);
+        // Build the full augmented command tree so contracts cover all commands.
+        let mut app = Cli::command();
+        for svc in services {
+            let global_params = svc.config.global_param_names();
+            let dynamic_clap = clap_tree::build_dynamic_commands(
+                &svc.commands,
+                &global_params,
+                svc.config.service_label,
+            );
+            if svc.config.namespace.is_empty() {
+                for sub in dynamic_clap {
+                    if !STATIC_COMMANDS.contains(&sub.get_name()) {
+                        app = app.subcommand(sub);
+                    }
+                }
+            } else {
+                let ns_cmd = clap::Command::new(svc.config.namespace)
+                    .about(format!(
+                        "{} operations (generated from API)",
+                        svc.config.service_label
+                    ))
+                    .subcommand_required(true)
+                    .arg_required_else_help(true)
+                    .subcommands(dynamic_clap);
+                let ns_cmd = commands::database_helpers::augment_namespace_command(
+                    svc.config.namespace,
+                    ns_cmd,
+                );
+                app = app.subcommand(ns_cmd);
+            }
+        }
+        let result = commands::generate_skills::run(&app, output_dir, filter, &cli.format);
         if let Err(e) = result {
             ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 1).emit_and_exit();
         }
