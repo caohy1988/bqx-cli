@@ -1,0 +1,69 @@
+---
+source: tests/skill_generation_tests.rs
+expression: "&routines_skill.references_md"
+---
+# dcx-routines command reference
+
+> Generated from the command contract. Do not edit by hand.
+
+## routines get
+
+Gets the specified routine resource by routine ID.
+
+```bash
+dcx routines get \
+  --project-id <PROJECT_ID> \
+  --dataset-id <DATASET_ID> \
+  --routine-id <ROUTINE_ID> \
+  [--read-mask <READ_MASK>] \
+  [--dry-run] \
+  [--format json|table|text]
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
+| `--dataset-id` | Yes | BigQuery dataset (global flag) |
+| `--routine-id` | Yes | Required |
+| `--read-mask` | No | If set, only the Routine fields in the field mask are returned in the response |
+
+## routines list
+
+Lists all routines in the specified dataset. Requires the READER dataset role.
+
+```bash
+dcx routines list \
+  --project-id <PROJECT_ID> \
+  --dataset-id <DATASET_ID> \
+  [--filter <FILTER>] \
+  [--max-results <MAX_RESULTS>] \
+  [--read-mask <READ_MASK>] \
+  [--dry-run] \
+  [--format json|table|text]
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--project-id` | Yes | GCP project ID (global flag) |
+| `--dataset-id` | Yes | BigQuery dataset (global flag) |
+| `--filter` | No | If set, then only the Routines matching this filter are returned |
+| `--max-results` | No | The maximum number of results to return in a single response page |
+| `--read-mask` | No | If set, then only the Routine fields in the field mask, as well as project_id, dataset_id and routine_id, are returne... |
+
+## Examples
+
+```bash
+# Get routines
+dcx routines get \
+  --project-id my-proj \
+  --dataset-id my_dataset \
+  --routine-id my_routine_id \
+  --format table
+
+# List routines
+dcx routines list \
+  --project-id my-proj \
+  --dataset-id my_dataset \
+  --format table
+
+```

@@ -1,6 +1,9 @@
+use clap::CommandFactory;
 use dcx::bigquery::discovery::{self, DiscoverySource};
+use dcx::bigquery::dynamic::clap_tree;
 use dcx::bigquery::dynamic::model::{extract_methods, filter_allowed, to_generated_command};
 use dcx::bigquery::dynamic::service;
+use dcx::commands::meta;
 use dcx::skills::generator;
 
 fn load_generated_commands() -> Vec<dcx::bigquery::dynamic::model::GeneratedCommand> {
@@ -11,6 +14,24 @@ fn load_generated_commands() -> Vec<dcx::bigquery::dynamic::model::GeneratedComm
     allowed.iter().map(to_generated_command).collect()
 }
 
+fn load_contracts() -> Vec<meta::CommandContract> {
+    let cfg = service::bigquery();
+    let doc = discovery::load(&DiscoverySource::Bundled).unwrap();
+    let methods = extract_methods(&doc, cfg.use_flat_path);
+    let allowed = filter_allowed(&methods, cfg.allowed_methods);
+    let commands: Vec<_> = allowed.iter().map(to_generated_command).collect();
+
+    let global_params = cfg.global_param_names();
+    let dynamic_clap =
+        clap_tree::build_dynamic_commands(&commands, &global_params, cfg.service_label);
+
+    let mut app = dcx::cli::Cli::command();
+    for sub in dynamic_clap {
+        app = app.subcommand(sub);
+    }
+    meta::collect_all(&app)
+}
+
 // ---------------------------------------------------------------------------
 // Snapshot tests for generated skills
 // ---------------------------------------------------------------------------
@@ -18,7 +39,8 @@ fn load_generated_commands() -> Vec<dcx::bigquery::dynamic::model::GeneratedComm
 #[test]
 fn snapshot_datasets_skill_md() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
     let datasets_skill = skills
         .iter()
         .find(|s| s.dir_name == "dcx-datasets")
@@ -29,7 +51,8 @@ fn snapshot_datasets_skill_md() {
 #[test]
 fn snapshot_tables_skill_md() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
     let tables_skill = skills.iter().find(|s| s.dir_name == "dcx-tables").unwrap();
     insta::assert_snapshot!("generated_tables_skill_md", &tables_skill.skill_md);
 }
@@ -37,7 +60,8 @@ fn snapshot_tables_skill_md() {
 #[test]
 fn snapshot_datasets_openai_yaml() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
     let datasets_skill = skills
         .iter()
         .find(|s| s.dir_name == "dcx-datasets")
@@ -51,7 +75,8 @@ fn snapshot_datasets_openai_yaml() {
 #[test]
 fn snapshot_tables_openai_yaml() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
     let tables_skill = skills.iter().find(|s| s.dir_name == "dcx-tables").unwrap();
     insta::assert_snapshot!("generated_tables_openai_yaml", &tables_skill.openai_yaml);
 }
@@ -63,7 +88,8 @@ fn snapshot_tables_openai_yaml() {
 #[test]
 fn generate_skills_writes_all_expected_files() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
 
     let tmp = tempfile::tempdir().unwrap();
     let written = generator::write_skills(tmp.path(), &skills).unwrap();
@@ -78,8 +104,10 @@ fn generate_skills_writes_all_expected_files() {
     for name in &written {
         let skill_md = tmp.path().join(name).join("SKILL.md");
         let yaml = tmp.path().join(name).join("agents/openai.yaml");
+        let refs = tmp.path().join(name).join("references/commands.md");
         assert!(skill_md.exists(), "Missing SKILL.md for {name}");
         assert!(yaml.exists(), "Missing agents/openai.yaml for {name}");
+        assert!(refs.exists(), "Missing references/commands.md for {name}");
 
         // Verify SKILL.md starts with frontmatter.
         let content = std::fs::read_to_string(&skill_md).unwrap();
@@ -94,13 +122,21 @@ fn generate_skills_writes_all_expected_files() {
             yaml_content.contains("display_name:"),
             "{name}/openai.yaml missing display_name"
         );
+
+        // Verify references/commands.md has flag tables.
+        let refs_content = std::fs::read_to_string(&refs).unwrap();
+        assert!(
+            refs_content.contains("| Flag | Required |"),
+            "{name}/references/commands.md missing flag tables"
+        );
     }
 }
 
 #[test]
 fn generate_skills_filter_limits_output() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
     let filtered = generator::filter_skills(skills, &["dcx-tables".to_string()]);
 
     let tmp = tempfile::tempdir().unwrap();
@@ -112,34 +148,40 @@ fn generate_skills_filter_limits_output() {
 }
 
 #[test]
-fn generated_skill_md_references_dcx_shared() {
+fn generated_skill_md_has_auth_prerequisites() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
 
     for skill in &skills {
         assert!(
-            skill.skill_md.contains("dcx-shared"),
-            "{}: should reference dcx-shared for auth guidance",
+            skill.skill_md.contains("dcx auth login"),
+            "{}: should document authentication in prerequisites",
             skill.dir_name
         );
     }
 }
 
 #[test]
-fn generated_skill_md_contains_command_examples() {
+fn generated_skill_md_contains_command_references() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
 
+    // SKILL.md should list commands in the summary table.
     let datasets_skill = skills
         .iter()
         .find(|s| s.dir_name == "dcx-datasets")
         .unwrap();
     assert!(datasets_skill.skill_md.contains("dcx datasets list"));
     assert!(datasets_skill.skill_md.contains("dcx datasets get"));
+    // SKILL.md should point to references.
+    assert!(datasets_skill.skill_md.contains("references/commands.md"));
 
     let tables_skill = skills.iter().find(|s| s.dir_name == "dcx-tables").unwrap();
     assert!(tables_skill.skill_md.contains("dcx tables list"));
     assert!(tables_skill.skill_md.contains("dcx tables get"));
+    assert!(tables_skill.skill_md.contains("references/commands.md"));
 
     let routines_skill = skills
         .iter()
@@ -147,16 +189,28 @@ fn generated_skill_md_contains_command_examples() {
         .unwrap();
     assert!(routines_skill.skill_md.contains("dcx routines list"));
     assert!(routines_skill.skill_md.contains("dcx routines get"));
+    assert!(routines_skill.skill_md.contains("references/commands.md"));
 
     let models_skill = skills.iter().find(|s| s.dir_name == "dcx-models").unwrap();
     assert!(models_skill.skill_md.contains("dcx models list"));
     assert!(models_skill.skill_md.contains("dcx models get"));
+    assert!(models_skill.skill_md.contains("references/commands.md"));
+
+    // Examples should be in references_md, not skill_md.
+    for skill in &skills {
+        assert!(
+            skill.references_md.contains("## Examples"),
+            "{}: references_md should contain examples",
+            skill.dir_name
+        );
+    }
 }
 
 #[test]
 fn snapshot_routines_skill_md() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
     let routines_skill = skills
         .iter()
         .find(|s| s.dir_name == "dcx-routines")
@@ -167,7 +221,8 @@ fn snapshot_routines_skill_md() {
 #[test]
 fn snapshot_routines_openai_yaml() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
     let routines_skill = skills
         .iter()
         .find(|s| s.dir_name == "dcx-routines")
@@ -181,7 +236,8 @@ fn snapshot_routines_openai_yaml() {
 #[test]
 fn snapshot_models_skill_md() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
     let models_skill = skills.iter().find(|s| s.dir_name == "dcx-models").unwrap();
     insta::assert_snapshot!("generated_models_skill_md", &models_skill.skill_md);
 }
@@ -189,7 +245,157 @@ fn snapshot_models_skill_md() {
 #[test]
 fn snapshot_models_openai_yaml() {
     let commands = load_generated_commands();
-    let skills = generator::generate_all(&commands);
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
     let models_skill = skills.iter().find(|s| s.dir_name == "dcx-models").unwrap();
     insta::assert_snapshot!("generated_models_openai_yaml", &models_skill.openai_yaml);
+}
+
+// ---------------------------------------------------------------------------
+// Snapshot tests for references/commands.md
+// ---------------------------------------------------------------------------
+
+#[test]
+fn snapshot_datasets_references_md() {
+    let commands = load_generated_commands();
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
+    let datasets_skill = skills
+        .iter()
+        .find(|s| s.dir_name == "dcx-datasets")
+        .unwrap();
+    insta::assert_snapshot!(
+        "generated_datasets_references_md",
+        &datasets_skill.references_md
+    );
+}
+
+#[test]
+fn snapshot_tables_references_md() {
+    let commands = load_generated_commands();
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
+    let tables_skill = skills.iter().find(|s| s.dir_name == "dcx-tables").unwrap();
+    insta::assert_snapshot!(
+        "generated_tables_references_md",
+        &tables_skill.references_md
+    );
+}
+
+#[test]
+fn snapshot_routines_references_md() {
+    let commands = load_generated_commands();
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
+    let routines_skill = skills
+        .iter()
+        .find(|s| s.dir_name == "dcx-routines")
+        .unwrap();
+    insta::assert_snapshot!(
+        "generated_routines_references_md",
+        &routines_skill.references_md
+    );
+}
+
+#[test]
+fn snapshot_models_references_md() {
+    let commands = load_generated_commands();
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
+    let models_skill = skills.iter().find(|s| s.dir_name == "dcx-models").unwrap();
+    insta::assert_snapshot!(
+        "generated_models_references_md",
+        &models_skill.references_md
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Contract-driven validation
+// ---------------------------------------------------------------------------
+
+/// Verify all generated skills pass agentskills.io constraints.
+#[test]
+fn all_skills_pass_agentskills_validation() {
+    use dcx::skills::templates::validate_skill;
+    let commands = load_generated_commands();
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
+    for skill in &skills {
+        let validation = validate_skill(skill);
+        assert!(
+            validation.errors.is_empty(),
+            "{}: agentskills.io violations: {:?}",
+            validation.skill_name,
+            validation.errors
+        );
+    }
+}
+
+/// Verify skill flag tables in references/commands.md match the command contract (drift detection).
+#[test]
+fn skill_flag_tables_match_contracts() {
+    let commands = load_generated_commands();
+    let contracts = load_contracts();
+    let skills = generator::generate_all(&commands, &contracts);
+
+    for skill in &skills {
+        // Flag tables live in references_md, not skill_md (M4b thin-skill split).
+        let refs = &skill.references_md;
+
+        // Extract flag names from the references flag tables.
+        let skill_flags: Vec<String> = refs
+            .lines()
+            .filter(|l| l.starts_with("| `--") && !l.contains("global flag"))
+            .filter_map(|l| l.split('`').nth(1).map(|s| s.to_string()))
+            .collect();
+
+        // For each flag in references, verify it exists in the contract.
+        for flag_name in &skill_flags {
+            let cmd_path = find_command_for_flag(flag_name, refs);
+            if let Some(path) = cmd_path {
+                let contract = contracts.iter().find(|c| c.command == path);
+                assert!(
+                    contract.is_some(),
+                    "{}: flag {} references command '{}' not in contracts",
+                    skill.dir_name,
+                    flag_name,
+                    path
+                );
+                if let Some(c) = contract {
+                    let in_contract = c.flags.iter().any(|f| f.name == *flag_name)
+                        || c.global_flags.iter().any(|f| f.name == *flag_name);
+                    assert!(
+                        in_contract,
+                        "{}: flag {} not found in contract for '{}'",
+                        skill.dir_name, flag_name, path
+                    );
+                }
+            }
+        }
+
+        // Verify SKILL.md does NOT contain flag tables (thin-skill invariant).
+        assert!(
+            !skill.skill_md.contains("| Flag | Required | Description |"),
+            "{}: SKILL.md should not contain flag tables — they belong in references/commands.md",
+            skill.dir_name
+        );
+    }
+}
+
+/// Helper: find the command path for a flag by scanning references/commands.md
+/// for the preceding `## group action` heading.
+fn find_command_for_flag(flag: &str, references_md: &str) -> Option<String> {
+    let mut current_cmd = None;
+    for line in references_md.lines() {
+        if line.starts_with("## ") && !line.starts_with("## Examples") {
+            let parts: Vec<&str> = line.trim_start_matches("## ").split_whitespace().collect();
+            if parts.len() == 2 {
+                current_cmd = Some(format!("dcx {} {}", parts[0], parts[1]));
+            }
+        }
+        if line.contains(flag) && line.starts_with("| `") {
+            return current_cmd.clone();
+        }
+    }
+    None
 }
