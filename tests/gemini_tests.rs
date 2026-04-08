@@ -70,8 +70,9 @@ fn all_tool_commands_are_valid_dcx_invocations() {
 
 #[test]
 fn bundled_manifest_matches_generated_contract() {
-    // Run `dcx meta gemini-tools --format json` and compare tool names + count
-    // with the bundled manifest to catch drift.
+    // Run `dcx meta gemini-tools --format json` and compare full tool objects
+    // with the bundled manifest to catch any drift in names, parameters, or
+    // command templates.
     let output = std::process::Command::new(env!("CARGO"))
         .args(["build", "--quiet"])
         .output()
@@ -91,28 +92,42 @@ fn bundled_manifest_matches_generated_contract() {
     let generated: serde_json::Value = serde_json::from_str(&stdout)
         .unwrap_or_else(|e| panic!("Invalid JSON from meta gemini-tools: {e}"));
 
-    let bundled = gemini::load_manifest().unwrap();
+    // Parse the bundled manifest as raw JSON for field-level comparison.
+    let bundled_json: serde_json::Value =
+        serde_json::from_str(include_str!("../extensions/gemini/manifest.json"))
+            .expect("Failed to parse bundled manifest");
 
-    // Compare tool names in order.
-    let generated_names: Vec<&str> = generated["tools"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|t| t["name"].as_str().unwrap())
-        .collect();
-
-    let bundled_names: Vec<&str> = bundled.tools.iter().map(|t| t.name.as_str()).collect();
+    let gen_tools = generated["tools"].as_array().unwrap();
+    let bun_tools = bundled_json["tools"].as_array().unwrap();
 
     assert_eq!(
-        generated_names, bundled_names,
-        "Bundled manifest tool names differ from generated contract.\n\
-         Regenerate with: dcx meta gemini-tools --format json > extensions/gemini/manifest.json"
+        gen_tools.len(),
+        bun_tools.len(),
+        "Tool count differs. Regenerate with:\n  \
+         dcx meta gemini-tools --format json > extensions/gemini/manifest.json"
     );
 
-    // Compare tool count.
-    assert_eq!(
-        generated["tools"].as_array().unwrap().len(),
-        bundled.tools.len(),
-        "Bundled manifest tool count differs from generated contract"
-    );
+    // Compare each tool: name, parameters, and command template.
+    for (i, (gen, bun)) in gen_tools.iter().zip(bun_tools.iter()).enumerate() {
+        assert_eq!(
+            gen["name"], bun["name"],
+            "Tool #{i} name differs.\n  generated: {}\n  bundled:   {}\n\
+             Regenerate with: dcx meta gemini-tools --format json > extensions/gemini/manifest.json",
+            gen["name"], bun["name"]
+        );
+        assert_eq!(
+            gen["parameters"], bun["parameters"],
+            "Tool '{}' parameters differ.\n  generated: {}\n  bundled:   {}\n\
+             Regenerate with: dcx meta gemini-tools --format json > extensions/gemini/manifest.json",
+            gen["name"],
+            serde_json::to_string_pretty(&gen["parameters"]).unwrap(),
+            serde_json::to_string_pretty(&bun["parameters"]).unwrap()
+        );
+        assert_eq!(
+            gen["command"], bun["command"],
+            "Tool '{}' command differs.\n  generated: {}\n  bundled:   {}\n\
+             Regenerate with: dcx meta gemini-tools --format json > extensions/gemini/manifest.json",
+            gen["name"], gen["command"], bun["command"]
+        );
+    }
 }

@@ -206,7 +206,8 @@ const PROMOTED_GLOBALS: &[&str] = &[
     "--project-id",
     "--dataset-id",
     "--location",
-    "--format",
+    // --format is intentionally excluded: every Gemini tool hardcodes --format json
+    // so the agent cannot override it.
     "--profile",
 ];
 
@@ -258,15 +259,15 @@ fn build_gemini_tool(contract: &CommandContract, name_override: Option<&&str>) -
     let mut cmd_parts = vec![contract.command.clone()];
 
     // Add command-specific flags as parameters.
+    // Every advertised parameter must appear in the command template so
+    // Gemini can actually substitute the value when the agent provides it.
     for flag in &contract.flags {
         if flag.name == "--dry-run" || flag.name == "--yes" {
             continue; // internal flags, not for Gemini tools
         }
         let param = flag_to_gemini_param(flag);
         let param_name = flag.name.trim_start_matches("--").replace('-', "_");
-        if flag.required {
-            cmd_parts.push(format!("{} {{{}}}", flag.name, param_name));
-        }
+        cmd_parts.push(format!("{} {{{}}}", flag.name, param_name));
         params.insert(param_name, param);
     }
 
@@ -275,15 +276,12 @@ fn build_gemini_tool(contract: &CommandContract, name_override: Option<&&str>) -
         if !PROMOTED_GLOBALS.contains(&gflag.name.as_str()) {
             continue;
         }
-        // Skip --profile for non-profile commands (handled separately).
         if gflag.name == "--profile" {
-            continue;
+            continue; // handled separately in profile variant
         }
         let param = flag_to_gemini_param(gflag);
         let param_name = gflag.name.trim_start_matches("--").replace('-', "_");
-        if gflag.required || gflag.name == "--project-id" {
-            cmd_parts.push(format!("{} {{{}}}", gflag.name, param_name));
-        }
+        cmd_parts.push(format!("{} {{{}}}", gflag.name, param_name));
         params.insert(param_name, param);
     }
 
@@ -323,23 +321,13 @@ fn build_profile_variant_tool(contract: &CommandContract, tool_name: &str) -> Ge
         }),
     );
 
-    // Add format.
-    params.insert(
-        "format".to_string(),
-        serde_json::json!({
-            "type": "string",
-            "description": "Output format: json, text, or table",
-            "default": "json"
-        }),
-    );
-
     GeminiTool {
         name: tool_name.to_string(),
         description: "Ask a natural language question over a Data Cloud source \
             (Looker, AlloyDB, Spanner, Cloud SQL) using a YAML profile."
             .to_string(),
         parameters: serde_json::Value::Object(params),
-        command: "dcx ca ask {question} --profile {profile} --format {format}".to_string(),
+        command: "dcx ca ask {question} --profile {profile} --format json".to_string(),
     }
 }
 

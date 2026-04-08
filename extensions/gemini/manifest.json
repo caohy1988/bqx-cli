@@ -13,11 +13,6 @@
           "description": "BigQuery dataset",
           "type": "string"
         },
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "location": {
           "default": "US",
           "description": "BigQuery location",
@@ -38,7 +33,7 @@
           "type": "boolean"
         }
       },
-      "command": "dcx jobs query --query {query} --project-id {project_id} --format json"
+      "command": "dcx jobs query --query {query} --use-legacy-sql {use_legacy_sql} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_datasets_list",
@@ -56,11 +51,6 @@
           "description": "An expression for filtering the results of the request by label. The syntax is `labels.[:]`. Multiple filters can be AND-ed together by connecting with a space. Example: `labels.department:receiving labels.active`. See [Filtering datasets using labels](https://cloud.google.com/bigquery/docs/filtering-labels#filtering_datasets_using_labels) for details.",
           "type": "string"
         },
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "location": {
           "default": "US",
           "description": "BigQuery location",
@@ -75,7 +65,7 @@
           "type": "string"
         }
       },
-      "command": "dcx datasets list --project-id {project_id} --format json"
+      "command": "dcx datasets list --all {all} --filter {filter} --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_datasets_get",
@@ -93,11 +83,6 @@
           "description": "Optional. Specifies the view that determines which dataset information is returned. By default, metadata and ACL information are returned.",
           "type": "string"
         },
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "location": {
           "default": "US",
           "description": "BigQuery location",
@@ -108,7 +93,7 @@
           "type": "string"
         }
       },
-      "command": "dcx datasets get --project-id {project_id} --format json"
+      "command": "dcx datasets get --access-policy-version {access_policy_version} --dataset-view {dataset_view} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_tables_list",
@@ -116,11 +101,6 @@
       "parameters": {
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "location": {
@@ -137,7 +117,7 @@
           "type": "string"
         }
       },
-      "command": "dcx tables list --project-id {project_id} --format json"
+      "command": "dcx tables list --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_tables_get",
@@ -145,11 +125,6 @@
       "parameters": {
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "location": {
@@ -175,7 +150,7 @@
           "type": "string"
         }
       },
-      "command": "dcx tables get --table-id {table_id} --project-id {project_id} --format json"
+      "command": "dcx tables get --table-id {table_id} --selected-fields {selected_fields} --view {view} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_routines_list",
@@ -187,11 +162,6 @@
         },
         "filter": {
           "description": "If set, then only the Routines matching this filter are returned. The supported format is `routineType:{RoutineType}`, where `{RoutineType}` is a RoutineType enum. For example: `routineType:SCALAR_FUNCTION`.",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "location": {
@@ -212,7 +182,7 @@
           "type": "string"
         }
       },
-      "command": "dcx routines list --project-id {project_id} --format json"
+      "command": "dcx routines list --filter {filter} --max-results {max_results} --read-mask {read_mask} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_models_list",
@@ -220,11 +190,6 @@
       "parameters": {
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "location": {
@@ -241,7 +206,7 @@
           "type": "string"
         }
       },
-      "command": "dcx models list --project-id {project_id} --format json"
+      "command": "dcx models list --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_doctor",
@@ -249,11 +214,6 @@
       "parameters": {
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "location": {
@@ -266,7 +226,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics doctor --project-id {project_id} --format json"
+      "command": "dcx analytics doctor --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_evaluate",
@@ -302,11 +262,6 @@
           "description": "Return exit code 1 on evaluation failure",
           "type": "boolean"
         },
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "last": {
           "description": "Time window (e.g., 1h, 24h, 7d)",
           "required": true,
@@ -336,7 +291,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics evaluate --evaluator {evaluator} --threshold {threshold} --last {last} --project-id {project_id} --format json"
+      "command": "dcx analytics evaluate --evaluator {evaluator} --threshold {threshold} --last {last} --agent-id {agent_id} --exit-code {exit_code} --criterion {criterion} --limit {limit} --strict {strict} --endpoint {endpoint} --connection-id {connection_id} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_get_trace",
@@ -344,11 +299,6 @@
       "parameters": {
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "location": {
@@ -369,7 +319,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics get-trace --project-id {project_id} --format json"
+      "command": "dcx analytics get-trace --session-id {session_id} --trace-id {trace_id} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_list_traces",
@@ -381,11 +331,6 @@
         },
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "last": {
@@ -412,7 +357,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics list-traces --last {last} --project-id {project_id} --format json"
+      "command": "dcx analytics list-traces --last {last} --session-id {session_id} --agent-id {agent_id} --limit {limit} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_insights",
@@ -424,11 +369,6 @@
         },
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "last": {
@@ -456,7 +396,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics insights --last {last} --project-id {project_id} --format json"
+      "command": "dcx analytics insights --last {last} --agent-id {agent_id} --limit {limit} --max-sessions {max_sessions} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_drift",
@@ -473,11 +413,6 @@
         "exit_code": {
           "description": "Return exit code 1 on drift failure",
           "type": "boolean"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
         },
         "golden_dataset": {
           "description": "Golden dataset table name (in the same dataset)",
@@ -509,7 +444,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics drift --golden-dataset {golden_dataset} --project-id {project_id} --format json"
+      "command": "dcx analytics drift --golden-dataset {golden_dataset} --last {last} --agent-id {agent_id} --limit {limit} --min-coverage {min_coverage} --exit-code {exit_code} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_distribution",
@@ -521,11 +456,6 @@
         },
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "last": {
@@ -558,7 +488,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics distribution --last {last} --project-id {project_id} --format json"
+      "command": "dcx analytics distribution --last {last} --agent-id {agent_id} --limit {limit} --mode {mode} --top-k {top_k} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_analytics_hitl_metrics",
@@ -570,11 +500,6 @@
         },
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "last": {
@@ -597,7 +522,7 @@
           "type": "string"
         }
       },
-      "command": "dcx analytics hitl-metrics --last {last} --project-id {project_id} --format json"
+      "command": "dcx analytics hitl-metrics --last {last} --agent-id {agent_id} --limit {limit} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_ca_ask",
@@ -609,11 +534,6 @@
         },
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "location": {
@@ -639,17 +559,12 @@
           "type": "string"
         }
       },
-      "command": "dcx ca ask question {question} --project-id {project_id} --format json"
+      "command": "dcx ca ask question {question} --profile {profile} --agent {agent} --tables {tables} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_ca_ask_profile",
       "description": "Ask a natural language question over a Data Cloud source (Looker, AlloyDB, Spanner, Cloud SQL) using a YAML profile.",
       "parameters": {
-        "format": {
-          "default": "json",
-          "description": "Output format: json, text, or table",
-          "type": "string"
-        },
         "profile": {
           "description": "Path to a CA source profile YAML file",
           "required": true,
@@ -661,7 +576,7 @@
           "type": "string"
         }
       },
-      "command": "dcx ca ask {question} --profile {profile} --format {format}"
+      "command": "dcx ca ask {question} --profile {profile} --format json"
     },
     {
       "name": "dcx_spanner_instances_list",
@@ -673,11 +588,6 @@
         },
         "filter": {
           "description": "An expression for filtering the results of the request. Filter rules are case insensitive. The fields eligible for filtering are: * `name` * `display_name` * `labels.key` where key is the name of a label Some examples of using filters are: * `name:*` --> The instance has a name. * `name:Howl` --> The instance's name contains the string \"howl\". * `name:HOWL` --> Equivalent to above. * `NAME:howl` --> Equivalent to above. * `labels.env:*` --> The instance has the label \"env\". * `labels.env:dev` --> The instance has the label \"env\" and the value of the label contains the string \"dev\". * `name:howl labels.env:dev` --> The instance's name contains \"howl\" and it has the label \"env\" with its value containing \"dev\".",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "instance_deadline": {
@@ -698,7 +608,7 @@
           "type": "string"
         }
       },
-      "command": "dcx spanner instances list --project-id {project_id} --format json"
+      "command": "dcx spanner instances list --filter {filter} --instance-deadline {instance_deadline} --page-size {page_size} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_spanner_databases_list",
@@ -706,11 +616,6 @@
       "parameters": {
         "dataset_id": {
           "description": "BigQuery dataset",
-          "type": "string"
-        },
-        "format": {
-          "default": "json",
-          "description": "Output format",
           "type": "string"
         },
         "instance_id": {
@@ -732,17 +637,12 @@
           "type": "string"
         }
       },
-      "command": "dcx spanner databases list --instance-id {instance_id} --project-id {project_id} --format json"
+      "command": "dcx spanner databases list --instance-id {instance_id} --page-size {page_size} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_spanner_schema_describe",
       "description": "Describe database schema from a source profile",
       "parameters": {
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "profile": {
           "description": "Profile name or path to profile YAML file",
           "required": true,
@@ -763,11 +663,6 @@
           "description": "Optional. Filtering results",
           "type": "string"
         },
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "location": {
           "default": "US",
           "description": "BigQuery location",
@@ -786,17 +681,12 @@
           "type": "string"
         }
       },
-      "command": "dcx alloydb clusters list --project-id {project_id} --format json"
+      "command": "dcx alloydb clusters list --filter {filter} --order-by {order_by} --page-size {page_size} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_alloydb_schema_describe",
       "description": "Describe database schema from a source profile",
       "parameters": {
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "profile": {
           "description": "Profile name or path to profile YAML file",
           "required": true,
@@ -817,11 +707,6 @@
           "description": "A filter expression that filters resources listed in the response. The expression is in the form of field:value. For example, 'instanceType:CLOUD_SQL_INSTANCE'. Fields can be nested as needed as per their JSON representation, such as 'settings.userLabels.auto_start:true'. Multiple filter queries are space-separated. For example. 'state:RUNNABLE instanceType:CLOUD_SQL_INSTANCE'. By default, each expression is an AND expression. However, you can include AND and OR expressions explicitly.",
           "type": "string"
         },
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "location": {
           "default": "US",
           "description": "BigQuery location",
@@ -836,17 +721,12 @@
           "type": "string"
         }
       },
-      "command": "dcx cloudsql instances list --project-id {project_id} --format json"
+      "command": "dcx cloudsql instances list --filter {filter} --max-results {max_results} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_cloudsql_schema_describe",
       "description": "Describe database schema from a source profile",
       "parameters": {
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "profile": {
           "description": "Profile name or path to profile YAML file",
           "required": true,
@@ -863,11 +743,6 @@
           "description": "BigQuery dataset",
           "type": "string"
         },
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "location": {
           "default": "US",
           "description": "BigQuery location",
@@ -882,17 +757,12 @@
           "type": "string"
         }
       },
-      "command": "dcx looker instances list --project-id {project_id} --format json"
+      "command": "dcx looker instances list --page-size {page_size} --project-id {project_id} --dataset-id {dataset_id} --location {location} --format json"
     },
     {
       "name": "dcx_looker_explores_list",
       "description": "List all explores from the Looker instance",
       "parameters": {
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "profile": {
           "description": "Looker profile name or path",
           "required": true,
@@ -904,24 +774,13 @@
     {
       "name": "dcx_profiles_list",
       "description": "List all discoverable profiles",
-      "parameters": {
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        }
-      },
+      "parameters": {},
       "command": "dcx profiles list --format json"
     },
     {
       "name": "dcx_profiles_validate",
       "description": "Validate a profile's structure",
       "parameters": {
-        "format": {
-          "default": "json",
-          "description": "Output format",
-          "type": "string"
-        },
         "profile": {
           "description": "Profile name or path to YAML file",
           "required": true,
