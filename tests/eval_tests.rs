@@ -114,12 +114,24 @@ fn eval_meta_commands_returns_complete_surface() {
         let _synopsis = cmd["synopsis"].as_str().unwrap();
     }
 
-    // Core domains are present.
+    // All known domains are present.
     let domains: Vec<&str> = commands
         .iter()
         .map(|c| c["domain"].as_str().unwrap())
         .collect();
-    for expected in &["analytics", "bigquery", "meta"] {
+    for expected in &[
+        "alloydb",
+        "analytics",
+        "auth",
+        "bigquery",
+        "ca",
+        "cloudsql",
+        "looker",
+        "meta",
+        "profiles",
+        "spanner",
+        "utility",
+    ] {
         assert!(
             domains.contains(expected),
             "Missing domain '{expected}' in command surface"
@@ -703,17 +715,54 @@ fn eval_auth_status_works_without_creds() {
     );
 }
 
-/// `dcx auth check` is a fast local check.
+/// `dcx auth check --format json` returns a structured response with stable
+/// contract keys regardless of whether credentials are available.
+///
+/// This is a network call (tokeninfo endpoint), not a local-only preflight.
+/// The eval validates the response contract shape, not a specific auth state.
 #[test]
-fn eval_auth_check_is_local() {
-    let output = run_dcx(&["auth", "check"]);
-    // Without creds it should fail with exit code 3 (auth error) or produce
-    // a structured response — not hang or crash.
-    let combined = format!("{}{}", stdout(&output), stderr(&output));
+fn eval_auth_check_json_contract() {
+    let output = run_dcx(&["auth", "check", "--format", "json"]);
+    let code = exit_code(&output);
+
+    // Exit 0 = valid creds, exit 3 = auth failure. Both are acceptable.
     assert!(
-        !combined.is_empty(),
-        "auth check should produce some output"
+        code == 0 || code == 3,
+        "auth check should exit 0 or 3, got {code}. stdout: {} stderr: {}",
+        stdout(&output),
+        stderr(&output)
     );
+
+    // stdout must contain structured JSON with required contract fields.
+    let text = stdout(&output);
+    assert!(
+        !text.trim().is_empty(),
+        "auth check should produce JSON on stdout"
+    );
+    let json: Value = serde_json::from_str(text.trim())
+        .unwrap_or_else(|e| panic!("auth check stdout not valid JSON: {e}\n{text}"));
+
+    // Required fields in the auth check response.
+    assert!(
+        json["source"].as_str().is_some(),
+        "auth check response must include 'source' field"
+    );
+    assert!(
+        json.get("valid").is_some(),
+        "auth check response must include 'valid' field"
+    );
+
+    // valid=true must pair with exit 0; valid=false must pair with exit 3.
+    let valid = json["valid"].as_bool().unwrap();
+    if valid {
+        assert_eq!(code, 0, "valid=true should exit 0");
+        assert!(
+            json.get("account").is_some(),
+            "valid auth check should include 'account' field"
+        );
+    } else {
+        assert_eq!(code, 3, "valid=false should exit 3");
+    }
 }
 
 // ---------------------------------------------------------------------------
