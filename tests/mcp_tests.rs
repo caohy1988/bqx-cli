@@ -132,6 +132,36 @@ fn mcp_tools_list_returns_expected_tools() {
             "Looker tools should not be in MCP: {name}"
         );
     }
+
+    // Interactive commands must not be exposed.
+    assert!(
+        !names.contains(&"dcx_auth_login"),
+        "Interactive auth login should not be in MCP"
+    );
+    assert!(
+        !names.contains(&"dcx_auth_logout"),
+        "Interactive auth logout should not be in MCP"
+    );
+
+    // Mutating commands must not be exposed.
+    assert!(
+        !names.contains(&"dcx_ca_create-agent"),
+        "Mutation ca create-agent should not be in MCP"
+    );
+    assert!(
+        !names.contains(&"dcx_ca_add-verified-query"),
+        "Mutation ca add-verified-query should not be in MCP"
+    );
+
+    // No tool schema should advertise a format parameter.
+    for tool in tools {
+        let props = tool["inputSchema"]["properties"].as_object().unwrap();
+        assert!(
+            !props.contains_key("format"),
+            "Tool {} should not advertise format parameter",
+            tool["name"]
+        );
+    }
 }
 
 #[test]
@@ -238,6 +268,35 @@ fn mcp_ping_responds() {
     assert_eq!(responses[0]["id"], 42);
     assert!(responses[0]["result"].is_object());
     assert!(responses[0].get("error").is_none());
+}
+
+#[test]
+fn mcp_tool_call_rejects_unlisted_tool() {
+    // Calling a tool that is not in the MCP allowlist should fail with
+    // isError=true, not execute the command via fallback parsing.
+    let responses = mcp_session(&[serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+            "name": "dcx_spanner_instances_list",
+            "arguments": {
+                "project_id": "bypass-test",
+                "dry_run": true
+            }
+        }
+    })]);
+
+    let result = &responses[0]["result"];
+    assert_eq!(
+        result["isError"], true,
+        "Unlisted tool should return isError=true"
+    );
+    let text = result["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("Unknown tool"),
+        "Error should mention unknown tool, got: {text}"
+    );
 }
 
 #[test]

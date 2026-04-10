@@ -56,6 +56,11 @@ struct JsonRpcError {
 /// MCP servers.
 const MCP_DOMAINS: &[&str] = &["analytics", "auth", "bigquery", "ca", "meta", "profiles"];
 
+/// Interactive commands that should never be exposed via MCP. These require
+/// user interaction (browser OAuth flow, terminal prompts) that an agent
+/// cannot perform.
+const MCP_EXCLUDED_COMMANDS: &[&str] = &["dcx auth login", "dcx auth logout"];
+
 /// Convert a command path like "dcx analytics evaluate" to an MCP tool name
 /// like "dcx_analytics_evaluate".
 ///
@@ -65,27 +70,16 @@ fn tool_name(command: &str) -> String {
     command.replace(' ', "_")
 }
 
-/// Reverse a tool name back to CLI args.
-///
-/// "dcx_analytics_get-trace" → ["analytics", "get-trace"]
-///
-/// We store a mapping from tool name → command path to avoid lossy reverse
-/// parsing. This function just strips the "dcx_" prefix and splits on "_",
-/// but callers should prefer the lookup table built during tool list generation.
-fn tool_name_to_args(tool: &str) -> Vec<String> {
-    tool.strip_prefix("dcx_")
-        .unwrap_or(tool)
-        .split('_')
-        .map(|s| s.to_string())
-        .collect()
-}
-
 /// Build a JSON Schema `inputSchema` from a command contract's flags.
 fn build_input_schema(contract: &CommandContract) -> Value {
     let mut properties = serde_json::Map::new();
     let mut required = Vec::new();
 
     for flag in contract.flags.iter().chain(contract.global_flags.iter()) {
+        // Skip --format: the MCP bridge always forces --format json.
+        if flag.name == "--format" {
+            continue;
+        }
         let prop = flag_to_json_schema(flag);
         let key = flag.name.trim_start_matches("--").replace('-', "_");
         if flag.required {
@@ -140,6 +134,15 @@ fn build_tool_list(contracts: &[CommandContract]) -> (Vec<Value>, HashMap<String
         if !MCP_DOMAINS.contains(&c.domain.as_str()) {
             continue;
         }
+        // Skip mutating commands — agents should not perform writes without
+        // explicit human confirmation flows that MCP doesn't provide.
+        if c.is_mutation {
+            continue;
+        }
+        // Skip interactive commands (browser OAuth, terminal prompts).
+        if MCP_EXCLUDED_COMMANDS.contains(&c.command.as_str()) {
+            continue;
+        }
         let name = tool_name(&c.command);
         // Command path "dcx analytics evaluate" → args ["analytics", "evaluate"]
         let args: Vec<String> = c
@@ -174,10 +177,16 @@ fn execute_tool(
     arguments: &HashMap<String, Value>,
     cmd_lookup: &HashMap<String, Vec<String>>,
 ) -> Result<(bool, String)> {
-    // Look up the CLI args for this tool name.
+    // Look up the CLI args for this tool name. Reject unknown tools —
+    // the lookup table is the single source of truth for the allowed surface.
     let cmd_args = match cmd_lookup.get(tool_name_str) {
         Some(args) => args.clone(),
-        None => tool_name_to_args(tool_name_str),
+        None => {
+            return Ok((
+                true,
+                format!("Unknown tool: {tool_name_str}. Use tools/list to see available tools."),
+            ));
+        }
     };
 
     let mut args = cmd_args;
@@ -481,6 +490,96 @@ mod tests {
         );
         assert_eq!(lookup["dcx_datasets_list"], vec!["datasets", "list"]);
         assert!(!lookup.contains_key("dcx_spanner_instances_list"));
+    }
+
+    #[test]
+    fn build_tool_list_excludes_mutations() {
+        let read_contract = CommandContract::new_for_test("dcx ca ask", "ca", "Ask a question");
+        let mutation_contract =
+            CommandContract::new_mutation_for_test("dcx ca create-agent", "ca", "Create an agent");
+
+        let contracts = vec![read_contract, mutation_contract];
+        let (tools, lookup) = build_tool_list(&contracts);
+
+        let tool_names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
+        assert!(tool_names.contains(&"dcx_ca_ask"));
+        assert!(
+            !tool_names.contains(&"dcx_ca_create-agent"),
+            "Mutation commands must not appear in MCP tool list"
+        );
+        assert!(!lookup.contains_key("dcx_ca_create-agent"));
+    }
+
+    #[test]
+    fn build_tool_list_excludes_interactive_commands() {
+        let login = CommandContract::new_for_test("dcx auth login", "auth", "Login");
+        let logout = CommandContract::new_for_test("dcx auth logout", "auth", "Logout");
+        let check = CommandContract::new_for_test("dcx auth check", "auth", "Check auth");
+
+        let contracts = vec![login, logout, check];
+        let (tools, _) = build_tool_list(&contracts);
+
+        let tool_names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
+        assert!(
+            !tool_names.contains(&"dcx_auth_login"),
+            "Interactive auth login must not appear in MCP"
+        );
+        assert!(
+            !tool_names.contains(&"dcx_auth_logout"),
+            "Interactive auth logout must not appear in MCP"
+        );
+        assert!(
+            tool_names.contains(&"dcx_auth_check"),
+            "Non-interactive auth check should be in MCP"
+        );
+    }
+
+    #[test]
+    fn execute_tool_rejects_unknown_tools() {
+        let lookup = HashMap::new();
+        let args = HashMap::new();
+        let (is_error, text) =
+            execute_tool("/nonexistent", "dcx_spanner_instances_list", &args, &lookup).unwrap();
+        assert!(is_error, "Unknown tool should return isError=true");
+        assert!(
+            text.contains("Unknown tool"),
+            "Error should mention unknown tool"
+        );
+    }
+
+    #[test]
+    fn build_input_schema_excludes_format_flag() {
+        let mut contract =
+            CommandContract::new_for_test("dcx datasets list", "bigquery", "List datasets");
+        contract.global_flags.push(FlagContract {
+            name: "--format".to_string(),
+            flag_type: "enum".to_string(),
+            required: false,
+            default: Some("table".to_string()),
+            description: "Output format".to_string(),
+            values: Some(vec!["json".into(), "table".into(), "text".into()]),
+            env: None,
+        });
+        contract.flags.push(FlagContract {
+            name: "--project-id".to_string(),
+            flag_type: "string".to_string(),
+            required: true,
+            default: None,
+            description: "GCP project".to_string(),
+            values: None,
+            env: None,
+        });
+
+        let schema = build_input_schema(&contract);
+        let props = schema["properties"].as_object().unwrap();
+        assert!(
+            !props.contains_key("format"),
+            "format flag should be excluded from MCP input schema"
+        );
+        assert!(
+            props.contains_key("project_id"),
+            "Other flags should still be present"
+        );
     }
 
     #[test]
