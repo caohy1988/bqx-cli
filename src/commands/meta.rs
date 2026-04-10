@@ -39,7 +39,37 @@ pub struct CommandContract {
     output: OutputContract,
     pub exit_codes: BTreeMap<String, String>,
     pub supports_dry_run: bool,
-    is_mutation: bool,
+    pub is_mutation: bool,
+}
+
+impl CommandContract {
+    /// Minimal constructor for tests.
+    #[doc(hidden)]
+    pub fn new_for_test(command: &str, domain: &str, synopsis: &str) -> Self {
+        Self {
+            contract_version: CONTRACT_VERSION,
+            command: command.to_string(),
+            domain: domain.to_string(),
+            synopsis: synopsis.to_string(),
+            flags: Vec::new(),
+            global_flags: Vec::new(),
+            constraints: Vec::new(),
+            output: OutputContract {
+                formats: vec!["json".into(), "table".into(), "text".into()],
+            },
+            exit_codes: std::collections::BTreeMap::from([("0".into(), "success".into())]),
+            supports_dry_run: false,
+            is_mutation: false,
+        }
+    }
+
+    /// Constructor for mutation commands in tests.
+    #[doc(hidden)]
+    pub fn new_mutation_for_test(command: &str, domain: &str, synopsis: &str) -> Self {
+        let mut c = Self::new_for_test(command, domain, synopsis);
+        c.is_mutation = true;
+        c
+    }
 }
 
 #[derive(Serialize, Clone)]

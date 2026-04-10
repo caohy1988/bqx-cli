@@ -4,8 +4,8 @@ use dcx::auth;
 use dcx::bigquery::discovery::{self, DiscoverySource};
 use dcx::bigquery::dynamic::{clap_tree, executor, model, service};
 use dcx::cli::{
-    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, MetaCommand, OutputFormat,
-    ProfilesCommand, ShellType, ViewsCommand,
+    AnalyticsCommand, AuthCommand, CaCommand, Cli, Command, JobsCommand, McpCommand, MetaCommand,
+    OutputFormat, ProfilesCommand, ShellType, ViewsCommand,
 };
 use dcx::commands;
 use dcx::config::{self, Config};
@@ -21,6 +21,7 @@ const STATIC_COMMANDS: &[&str] = &[
     "completions",
     "profiles",
     "meta",
+    "mcp",
 ];
 
 /// A loaded service with its generated commands and base URL.
@@ -485,6 +486,49 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         return;
     }
 
+    // MCP server doesn't need project/dataset config
+    if let Command::Mcp { ref command } = cli.command {
+        // Build the full augmented command tree (static + dynamic + namespace helpers).
+        let mut app = Cli::command();
+        for svc in services {
+            let global_params = svc.config.global_param_names();
+            let dynamic_clap = clap_tree::build_dynamic_commands(
+                &svc.commands,
+                &global_params,
+                svc.config.service_label,
+            );
+            if svc.config.namespace.is_empty() {
+                for sub in dynamic_clap {
+                    if !STATIC_COMMANDS.contains(&sub.get_name()) {
+                        app = app.subcommand(sub);
+                    }
+                }
+            } else {
+                let ns_cmd = clap::Command::new(svc.config.namespace)
+                    .about(format!(
+                        "{} operations (generated from API)",
+                        svc.config.service_label
+                    ))
+                    .subcommand_required(true)
+                    .arg_required_else_help(true)
+                    .subcommands(dynamic_clap);
+                let ns_cmd = commands::database_helpers::augment_namespace_command(
+                    svc.config.namespace,
+                    ns_cmd,
+                );
+                app = app.subcommand(ns_cmd);
+            }
+        }
+
+        let result = match command {
+            McpCommand::Serve => commands::mcp::run(&app),
+        };
+        if let Err(e) = result {
+            ErrorEnvelope::new(ErrorCode::InfraError, e.to_string(), 1).emit_and_exit();
+        }
+        return;
+    }
+
     // meta commands don't need project/dataset config
     if let Command::Meta { ref command } = cli.command {
         // Build the full augmented command tree (static + dynamic + namespace helpers).
@@ -797,7 +841,8 @@ async fn run_static(cli: Cli, services: &[LoadedService]) {
         | Command::GenerateSkills { .. }
         | Command::Completions { .. }
         | Command::Profiles { .. }
-        | Command::Meta { .. } => {
+        | Command::Meta { .. }
+        | Command::Mcp { .. } => {
             unreachable!()
         }
     };

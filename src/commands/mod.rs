@@ -5,5 +5,6 @@ pub mod database_helpers;
 pub mod generate_skills;
 pub mod jobs_query;
 pub mod looker;
+pub mod mcp;
 pub mod meta;
 pub mod profiles;
