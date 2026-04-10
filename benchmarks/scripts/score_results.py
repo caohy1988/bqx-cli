@@ -52,7 +52,11 @@ def summarize_task(task_id: str, cli: str, trials: list[dict]) -> dict:
             "max": max(values),
         }
 
-    success_count = sum(1 for t in warm_trials if t["exit_code"] == 0)
+    # Use the validation result if present; fall back to exit_code == 0.
+    success_count = sum(
+        1 for t in warm_trials
+        if t.get("validation", "pass" if t["exit_code"] == 0 else "fail") == "pass"
+    )
     total = len(warm_trials)
 
     return {

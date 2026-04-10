@@ -103,7 +103,7 @@ tasks:
         command: >-
           dcx jobs query
           --project-id {project}
-          --sql "SELECT word, SUM(word_count) AS total FROM \`bigquery-public-data.samples.shakespeare\` GROUP BY word ORDER BY total DESC LIMIT 10"
+          --query "SELECT word, SUM(word_count) AS total FROM \`bigquery-public-data.samples.shakespeare\` GROUP BY word ORDER BY total DESC LIMIT 10"
           --dry-run
           --format json
       - name: bq
@@ -125,7 +125,7 @@ tasks:
         command: >-
           dcx jobs query
           --project-id {project}
-          --sql "SELECT word, SUM(word_count) AS total FROM \`bigquery-public-data.samples.shakespeare\` GROUP BY word ORDER BY total DESC LIMIT 10"
+          --query "SELECT word, SUM(word_count) AS total FROM \`bigquery-public-data.samples.shakespeare\` GROUP BY word ORDER BY total DESC LIMIT 10"
           --format json
       - name: bq
         command: >-
@@ -145,7 +145,7 @@ tasks:
         command: >-
           dcx jobs query
           --project-id {project}
-          --sql "SELECT author.name, COUNT(*) AS commits FROM \`bigquery-public-data.github_repos.commits\` GROUP BY author.name ORDER BY commits DESC LIMIT 10"
+          --query "SELECT author.name, COUNT(*) AS commits FROM \`bigquery-public-data.github_repos.commits\` GROUP BY author.name ORDER BY commits DESC LIMIT 10"
           --format json
       - name: bq
         command: >-
@@ -169,7 +169,7 @@ tasks:
         command: >-
           dcx jobs query
           --project-id {project}
-          --sql "SELEKT * FORM shakespeare"
+          --query "SELEKT * FORM shakespeare"
           --format json
       - name: bq
         command: >-

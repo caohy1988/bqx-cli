@@ -74,6 +74,67 @@ resolve_placeholders() {
   echo "${cmd}"
 }
 
+# ── Validate a trial result against the task spec ────────────────────
+# Returns "pass" or "fail".
+validate_trial() {
+  local stdout_file="$1"
+  local exit_code="$2"
+  local validation_type="$3"
+  local validation_spec="$4"  # JSON string with validation fields
+
+  case "${validation_type}" in
+    exit_code_only)
+      local expect_nonzero
+      expect_nonzero="$(echo "${validation_spec}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('expected_exit_code_nonzero', False))" 2>/dev/null || echo "false")"
+      if [ "${expect_nonzero}" = "True" ] || [ "${expect_nonzero}" = "true" ]; then
+        [ "${exit_code}" -ne 0 ] && echo "pass" || echo "fail"
+      else
+        [ "${exit_code}" -eq 0 ] && echo "pass" || echo "fail"
+      fi
+      ;;
+    json_keys)
+      if [ "${exit_code}" -ne 0 ]; then
+        echo "fail"
+        return
+      fi
+      local expected_keys
+      expected_keys="$(echo "${validation_spec}" | python3 -c "import sys,json; print(' '.join(json.load(sys.stdin).get('expected_keys', [])))" 2>/dev/null || echo "")"
+      local all_found=true
+      for key in ${expected_keys}; do
+        if ! python3 -c "import sys,json; d=json.load(sys.stdin); assert '${key}' in d" < "${stdout_file}" 2>/dev/null; then
+          all_found=false
+          break
+        fi
+      done
+      ${all_found} && echo "pass" || echo "fail"
+      ;;
+    exact_json)
+      [ "${exit_code}" -eq 0 ] && echo "pass" || echo "fail"
+      ;;
+    semantic_sql_result)
+      # Semantic: command succeeded and stdout is valid JSON or non-empty.
+      if [ "${exit_code}" -eq 0 ] && [ -s "${stdout_file}" ]; then
+        echo "pass"
+      else
+        echo "fail"
+      fi
+      ;;
+    stderr_contains)
+      local pattern
+      pattern="$(echo "${validation_spec}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('pattern', ''))" 2>/dev/null || echo "")"
+      if grep -q "${pattern}" "${stdout_file%.stdout}.stderr" 2>/dev/null; then
+        echo "pass"
+      else
+        echo "fail"
+      fi
+      ;;
+    *)
+      # Unknown validation type — skip validation.
+      echo "skip"
+      ;;
+  esac
+}
+
 # ── Run a single command and capture metrics ─────────────────────────
 run_trial() {
   local task_id="$1"
@@ -81,6 +142,8 @@ run_trial() {
   local command="$3"
   local trial_num="$4"
   local trial_type="$5"  # cold or warm
+  local validation_type="$6"
+  local validation_spec="$7"
 
   local resolved
   resolved="$(resolve_placeholders "${command}")"
@@ -90,8 +153,11 @@ run_trial() {
   stderr_file="${RUN_DIR}/${task_id}.${cli_name}.${trial_type}${trial_num}.stderr"
 
   start_ns="$(python3 -c 'import time; print(int(time.time()*1000))')"
-  eval "${resolved}" >"${stdout_file}" 2>"${stderr_file}" || true
+  # Capture the real exit code — do not mask it with || true.
+  set +e
+  eval "${resolved}" >"${stdout_file}" 2>"${stderr_file}"
   exit_code=$?
+  set -e
   end_ns="$(python3 -c 'import time; print(int(time.time()*1000))')"
 
   local wall_clock_ms=$(( end_ns - start_ns ))
@@ -99,10 +165,15 @@ run_trial() {
   stdout_bytes="$(wc -c < "${stdout_file}" | tr -d ' ')"
   stderr_bytes="$(wc -c < "${stderr_file}" | tr -d ' ')"
 
+  # Validate the result against the task spec.
+  local validation_result
+  validation_result="$(validate_trial "${stdout_file}" "${exit_code}" "${validation_type}" "${validation_spec}")"
+
   # Append result row as NDJSON.
-  printf '{"task_id":"%s","cli":"%s","trial":%d,"trial_type":"%s","exit_code":%d,"wall_clock_ms":%d,"stdout_bytes":%d,"stderr_bytes":%d}\n' \
+  printf '{"task_id":"%s","cli":"%s","trial":%d,"trial_type":"%s","exit_code":%d,"wall_clock_ms":%d,"stdout_bytes":%d,"stderr_bytes":%d,"validation":"%s"}\n' \
     "${task_id}" "${cli_name}" "${trial_num}" "${trial_type}" \
     "${exit_code}" "${wall_clock_ms}" "${stdout_bytes}" "${stderr_bytes}" \
+    "${validation_result}" \
     >> "${RUN_DIR}/results.ndjson"
 }
 
@@ -123,6 +194,10 @@ for task_file in "${TASK_FILES[@]}"; do
     GOAL="$(yq -r ".tasks[${idx}].goal" "${task_file}")"
     VARIANT_COUNT="$(yq ".tasks[${idx}].cli_variants | length" "${task_file}")"
 
+    # Extract validation spec as JSON for the validate_trial function.
+    VALIDATION_TYPE="$(yq -r ".tasks[${idx}].validation.type // \"exit_code_only\"" "${task_file}")"
+    VALIDATION_SPEC="$(yq -o=json ".tasks[${idx}].validation" "${task_file}")"
+
     echo ""
     echo "── Task: ${TASK_ID} — ${GOAL}"
 
@@ -134,12 +209,12 @@ for task_file in "${TASK_FILES[@]}"; do
 
       # Cold trials.
       for ((t = 1; t <= COLD_TRIALS; t++)); do
-        run_trial "${TASK_ID}" "${CLI_NAME}" "${CLI_CMD}" "${t}" "cold"
+        run_trial "${TASK_ID}" "${CLI_NAME}" "${CLI_CMD}" "${t}" "cold" "${VALIDATION_TYPE}" "${VALIDATION_SPEC}"
       done
 
       # Warm trials.
       for ((t = 1; t <= WARM_TRIALS; t++)); do
-        run_trial "${TASK_ID}" "${CLI_NAME}" "${CLI_CMD}" "${t}" "warm"
+        run_trial "${TASK_ID}" "${CLI_NAME}" "${CLI_CMD}" "${t}" "warm" "${VALIDATION_TYPE}" "${VALIDATION_SPEC}"
       done
     done
   done
