@@ -25,7 +25,16 @@ $EDITOR manifest.yaml
 ./scripts/seed_spanner.sh YOUR_PROJECT_ID small
 
 # Profile for dcx-profiles-test task (optional but recommended)
-dcx profiles add --name bench --type bigquery --project-id YOUR_PROJECT_ID
+# Create a BigQuery profile YAML file manually:
+mkdir -p ~/.config/dcx/profiles
+cat > ~/.config/dcx/profiles/bench.yaml <<'PROF'
+name: bench
+source_type: bigquery
+project: YOUR_PROJECT_ID
+location: US
+PROF
+# Verify the profile is discoverable:
+dcx profiles validate --profile bench
 ```
 
 ### 3. Run Benchmarks

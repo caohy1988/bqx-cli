@@ -40,7 +40,7 @@ spanner_nonexistent_database: "does-not-exist-db-xyz"
 
 # ── Profiles ─────────────────────────────────────────────────────────
 # Profile name for the dcx-profiles-test differentiated task.
-# Create with: dcx profiles add --name bench --type bigquery --project-id YOUR_PROJECT_ID
+# Create ~/.config/dcx/profiles/bench.yaml (see benchmarks/README.md § Seed Data)
 benchmark_profile: "bench"
 
 # ── Auth ─────────────────────────────────────────────────────────────
