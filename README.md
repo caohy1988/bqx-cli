@@ -1081,7 +1081,7 @@ See [PHASE6_PLAN.md](PHASE6_PLAN.md) for the full plan.
 
 ### Testing Strategy
 
-636 tests across 21 test binaries:
+615 tests across 21 test binaries:
 
 - **Unit tests:** Core parsing, auth resolution, output formatting
 - **Integration tests:** Golden-file / snapshot tests comparing CLI output
