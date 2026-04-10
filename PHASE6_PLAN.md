@@ -1,8 +1,7 @@
 # Phase 6 Plan: Agent Contract Hardening and Bridge Layer (v0.5 to v0.6)
 
-Status: complete. `dcx` now ships the Phase 6 command contract, machine-safe
-runtime semantics, contract-driven skills/manifests, deterministic agent evals,
-and the MCP bridge.
+Status: implemented. All Phase 6 milestones (M1–M6) are merged on `main`.
+The v0.6 release has not been cut yet; `Cargo.toml` is still at 0.5.0.
 
 ## Goal
 

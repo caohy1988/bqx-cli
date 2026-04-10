@@ -1057,7 +1057,7 @@ detection.
 
 See [PHASE5_PLAN.md](PHASE5_PLAN.md) for the full plan.
 
-### Phase 6: Agent Contract Hardening and Bridge Layer (v0.6) — Complete
+### Phase 6: Agent Contract Hardening and Bridge Layer (v0.6) — Implemented
 
 - [x] Add `dcx meta commands` / `dcx meta describe ...` as a machine-readable
   command contract
@@ -1081,7 +1081,7 @@ See [PHASE6_PLAN.md](PHASE6_PLAN.md) for the full plan.
 
 ### Testing Strategy
 
-513 tests across 15 test binaries:
+636 tests across 21 test binaries:
 
 - **Unit tests:** Core parsing, auth resolution, output formatting
 - **Integration tests:** Golden-file / snapshot tests comparing CLI output
