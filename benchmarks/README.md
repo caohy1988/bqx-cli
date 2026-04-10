@@ -23,6 +23,9 @@ $EDITOR manifest.yaml
 
 # Spanner (creates instance + database + sample data)
 ./scripts/seed_spanner.sh YOUR_PROJECT_ID small
+
+# Profile for dcx-profiles-test task (optional but recommended)
+dcx profiles add --name bench --type bigquery --project-id YOUR_PROJECT_ID
 ```
 
 ### 3. Run Benchmarks

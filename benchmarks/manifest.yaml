@@ -38,6 +38,11 @@ spanner_database: "bench-music"
 spanner_nonexistent_instance: "does-not-exist-instance-xyz"
 spanner_nonexistent_database: "does-not-exist-db-xyz"
 
+# ── Profiles ─────────────────────────────────────────────────────────
+# Profile name for the dcx-profiles-test differentiated task.
+# Create with: dcx profiles add --name bench --type bigquery --project-id YOUR_PROJECT_ID
+benchmark_profile: "bench"
+
 # ── Auth ─────────────────────────────────────────────────────────────
 # Auth source used for the benchmark run (ADC, service-account, token).
 # Recorded for reproducibility; not substituted into commands.

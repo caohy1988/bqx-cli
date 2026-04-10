@@ -108,16 +108,48 @@ validate_trial() {
       done
       ${all_found} && echo "pass" || echo "fail"
       ;;
-    exact_json)
-      [ "${exit_code}" -eq 0 ] && echo "pass" || echo "fail"
-      ;;
-    semantic_sql_result)
-      # Semantic: command succeeded and stdout is valid JSON or non-empty.
-      if [ "${exit_code}" -eq 0 ] && [ -s "${stdout_file}" ]; then
+    json_parse)
+      # Validates that the command succeeded and stdout is parseable JSON.
+      if [ "${exit_code}" -ne 0 ]; then
+        echo "fail"
+        return
+      fi
+      if python3 -c "import sys,json; json.load(sys.stdin)" < "${stdout_file}" 2>/dev/null; then
         echo "pass"
       else
         echo "fail"
       fi
+      ;;
+    exact_json)
+      [ "${exit_code}" -eq 0 ] && echo "pass" || echo "fail"
+      ;;
+    semantic_sql_result)
+      # Semantic: exit 0, valid JSON, expected columns present, row count met.
+      if [ "${exit_code}" -ne 0 ]; then
+        echo "fail"
+        return
+      fi
+      python3 -c "
+import sys, json
+spec = json.loads('''${validation_spec}''')
+expected_cols = spec.get('expected_columns', [])
+min_rows = spec.get('min_rows', 0)
+data = json.load(sys.stdin)
+# Handle both array and object-wrapped results.
+rows = data if isinstance(data, list) else data.get('rows', data.get('items', [data]))
+if not isinstance(rows, list):
+    rows = [rows]
+if len(rows) < min_rows:
+    sys.exit(1)
+if expected_cols and rows:
+    keys = set()
+    for r in rows:
+        if isinstance(r, dict):
+            keys.update(r.keys())
+    for col in expected_cols:
+        if col not in keys:
+            sys.exit(1)
+" < "${stdout_file}" 2>/dev/null && echo "pass" || echo "fail"
       ;;
     stderr_contains)
       local pattern
@@ -194,9 +226,9 @@ for task_file in "${TASK_FILES[@]}"; do
     GOAL="$(yq -r ".tasks[${idx}].goal" "${task_file}")"
     VARIANT_COUNT="$(yq ".tasks[${idx}].cli_variants | length" "${task_file}")"
 
-    # Extract validation spec as JSON for the validate_trial function.
-    VALIDATION_TYPE="$(yq -r ".tasks[${idx}].validation.type // \"exit_code_only\"" "${task_file}")"
-    VALIDATION_SPEC="$(yq -o=json ".tasks[${idx}].validation" "${task_file}")"
+    # Extract task-level validation as fallback.
+    TASK_VALIDATION_TYPE="$(yq -r ".tasks[${idx}].validation.type // \"\"" "${task_file}")"
+    TASK_VALIDATION_SPEC="$(yq -o=json ".tasks[${idx}].validation // {}" "${task_file}")"
 
     echo ""
     echo "── Task: ${TASK_ID} — ${GOAL}"
@@ -205,16 +237,29 @@ for task_file in "${TASK_FILES[@]}"; do
       CLI_NAME="$(yq -r ".tasks[${idx}].cli_variants[${vidx}].name" "${task_file}")"
       CLI_CMD="$(yq -r ".tasks[${idx}].cli_variants[${vidx}].command" "${task_file}")"
 
+      # Per-variant validation takes precedence over task-level.
+      VARIANT_VALIDATION_TYPE="$(yq -r ".tasks[${idx}].cli_variants[${vidx}].validation.type // \"\"" "${task_file}")"
+      if [ -n "${VARIANT_VALIDATION_TYPE}" ]; then
+        V_TYPE="${VARIANT_VALIDATION_TYPE}"
+        V_SPEC="$(yq -o=json ".tasks[${idx}].cli_variants[${vidx}].validation" "${task_file}")"
+      elif [ -n "${TASK_VALIDATION_TYPE}" ]; then
+        V_TYPE="${TASK_VALIDATION_TYPE}"
+        V_SPEC="${TASK_VALIDATION_SPEC}"
+      else
+        V_TYPE="exit_code_only"
+        V_SPEC="{}"
+      fi
+
       echo "   ${CLI_NAME}: ${COLD_TRIALS} cold + ${WARM_TRIALS} warm trials"
 
       # Cold trials.
       for ((t = 1; t <= COLD_TRIALS; t++)); do
-        run_trial "${TASK_ID}" "${CLI_NAME}" "${CLI_CMD}" "${t}" "cold" "${VALIDATION_TYPE}" "${VALIDATION_SPEC}"
+        run_trial "${TASK_ID}" "${CLI_NAME}" "${CLI_CMD}" "${t}" "cold" "${V_TYPE}" "${V_SPEC}"
       done
 
       # Warm trials.
       for ((t = 1; t <= WARM_TRIALS; t++)); do
-        run_trial "${TASK_ID}" "${CLI_NAME}" "${CLI_CMD}" "${t}" "warm" "${VALIDATION_TYPE}" "${VALIDATION_SPEC}"
+        run_trial "${TASK_ID}" "${CLI_NAME}" "${CLI_CMD}" "${t}" "warm" "${V_TYPE}" "${V_SPEC}"
       done
     done
   done

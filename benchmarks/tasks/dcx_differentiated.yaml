@@ -77,10 +77,15 @@ tasks:
     track: differentiated
     system: dcx
     goal: Validate a profile against its configured source
+    note: >-
+      Requires a profile named {benchmark_profile} to exist in the local
+      dcx profiles config. The seed step documents how to create one.
+      If no profile is configured, this task will fail with exit 1,
+      which is a valid benchmark data point (setup cost).
     cli_variants:
       - name: dcx
         command: >-
-          dcx profiles test --profile default --format json
+          dcx profiles test --profile {benchmark_profile} --format json
     validation:
       type: exit_code_only
       expected_exit_code_nonzero: false
