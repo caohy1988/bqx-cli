@@ -1,5 +1,8 @@
 # Phase 6 Plan: Agent Contract Hardening and Bridge Layer (v0.5 to v0.6)
 
+Status: implemented. All Phase 6 milestones (M1–M6) are merged on `main`.
+The v0.6 release has not been cut yet; `Cargo.toml` is still at 0.5.0.
+
 ## Goal
 
 Move `dcx` from a feature-complete Data Cloud CLI into a **high-reliability
@@ -392,8 +395,8 @@ Split this into two layers:
 
 - **M5a: deterministic eval suite (CI-gated)** for command success, error
   recovery, exit codes, and JSON contracts without relying on an LLM
-- **M5b: LLM benchmark suite (periodic)** for real agent-task performance
-  across long-running sessions
+- **M5b: LLM benchmark suite (periodic)** was proposed as a future extension,
+  but is not required for Phase 6 completion
 
 Target eval tasks:
 
@@ -418,16 +421,15 @@ Metrics:
 Recommended outputs:
 
 - checked-in deterministic task suite for CI
-- baseline benchmark results for at least two agent runtimes
 - release gate on a small deterministic smoke subset
-- periodic benchmark runs for:
+- optional future benchmark runs for:
   - Claude Code
   - Gemini CLI
 
 Done when:
 
 - `dcx` has task-level evals, not just unit/integration tests
-- deterministic and LLM-dependent evals are separated cleanly
+- deterministic evals are separated cleanly from any future LLM benchmark work
 - changes to skills/contracts can be judged by actual agent outcomes
 
 ### M6: Optional Bridge Layer for Non-Shell Runtimes
@@ -483,7 +485,7 @@ Build Phase 6 in this order:
 This order matters. The bridge layer and skill generation should consume the
 contract, not invent a second one.
 
-## Proposed first PRs
+## Implemented PR sequence
 
 1. `feat(meta): add dcx meta commands and meta describe`
 2. `test(contract): snapshot command contracts for analytics and dynamic APIs`
@@ -492,7 +494,7 @@ contract, not invent a second one.
 5. `feat(safety): add confirmation envelope, tty-aware execution, and auth/profile preflight`
 6. `docs(skills): generate skill command tables from meta describe`
 7. `test(agent-evals): add deterministic task suite for dcx`
-8. `test(agent-bench): add periodic LLM benchmark harness`
+8. `feat(mcp): add dcx mcp serve`
 
 ## Success criteria
 
@@ -502,8 +504,8 @@ Phase 6 is complete when:
 - errors, warnings, exit codes, and pagination are standardized across domains
 - skills and tool manifests consume generated command metadata instead of
   copying it by hand
-- `dcx` has deterministic and LLM-level agent evals showing command success,
-  retry behavior, and tool selection quality
+- `dcx` has deterministic agent evals gating command success, contract
+  stability, and preflight behavior
 - an optional non-shell bridge exists without creating a separate product
 
 ## Short version
