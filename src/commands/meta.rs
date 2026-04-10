@@ -42,6 +42,28 @@ pub struct CommandContract {
     is_mutation: bool,
 }
 
+impl CommandContract {
+    /// Minimal constructor for tests.
+    #[doc(hidden)]
+    pub fn new_for_test(command: &str, domain: &str, synopsis: &str) -> Self {
+        Self {
+            contract_version: CONTRACT_VERSION,
+            command: command.to_string(),
+            domain: domain.to_string(),
+            synopsis: synopsis.to_string(),
+            flags: Vec::new(),
+            global_flags: Vec::new(),
+            constraints: Vec::new(),
+            output: OutputContract {
+                formats: vec!["json".into(), "table".into(), "text".into()],
+            },
+            exit_codes: std::collections::BTreeMap::from([("0".into(), "success".into())]),
+            supports_dry_run: false,
+            is_mutation: false,
+        }
+    }
+}
+
 #[derive(Serialize, Clone)]
 pub struct FlagConstraint {
     #[serde(rename = "type")]

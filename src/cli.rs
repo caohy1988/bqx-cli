@@ -100,6 +100,17 @@ pub enum Command {
         #[command(subcommand)]
         command: MetaCommand,
     },
+    /// Start MCP (Model Context Protocol) server on stdio
+    Mcp {
+        #[command(subcommand)]
+        command: McpCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum McpCommand {
+    /// Start the MCP server (reads JSON-RPC from stdin, writes to stdout)
+    Serve,
 }
 
 #[derive(Clone, ValueEnum)]
