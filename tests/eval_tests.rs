@@ -172,39 +172,107 @@ fn eval_meta_commands_includes_dynamic_bigquery() {
 // Task 2: Contract Completeness
 // ---------------------------------------------------------------------------
 
-/// `dcx meta describe` returns a full contract with flags, exit codes, and
-/// dry-run support for a known command.
+/// `dcx meta describe` returns a full contract with all required fields.
+/// Validates across multiple representative commands from different domains.
 #[test]
 fn eval_contract_describe_has_required_fields() {
-    let output = run_dcx(&["meta", "describe", "datasets", "list", "--format", "json"]);
-    assert!(output.status.success());
+    let commands_to_check = &[
+        ("datasets list", &["datasets", "list"]),
+        ("datasets get", &["datasets", "get"]),
+        ("tables list", &["tables", "list"]),
+        ("jobs query", &["jobs", "query"]),
+        ("analytics evaluate", &["analytics", "evaluate"]),
+        ("auth check", &["auth", "check"]),
+        ("meta commands", &["meta", "commands"]),
+    ];
 
-    let json = parse_json(&output);
-    assert_eq!(json["contract_version"], "1");
-    assert_eq!(json["command"], "dcx datasets list");
-    assert!(!json["synopsis"].as_str().unwrap().is_empty());
+    for (label, path) in commands_to_check {
+        let mut args: Vec<&str> = vec!["meta", "describe"];
+        args.extend(*path);
+        args.extend(&["--format", "json"]);
 
-    // Flags array is present and non-empty.
-    let flags = json["flags"].as_array().unwrap();
-    assert!(!flags.is_empty(), "flags should not be empty");
+        let output = run_dcx(&args);
+        assert!(
+            output.status.success(),
+            "{label}: meta describe failed: {}",
+            stderr(&output)
+        );
 
-    // Each flag has required fields.
-    for flag in flags {
-        assert!(flag["name"].as_str().unwrap().starts_with("--"));
-        assert!(!flag["type"].as_str().unwrap().is_empty());
-        assert!(flag.get("required").is_some());
+        let json = parse_json(&output);
+        let expected_cmd = format!("dcx {label}");
+
+        // Top-level required fields.
+        assert_eq!(
+            json["contract_version"], "1",
+            "{label}: wrong contract_version"
+        );
+        assert_eq!(
+            json["command"].as_str().unwrap(),
+            expected_cmd,
+            "{label}: wrong command"
+        );
+        assert!(json["domain"].as_str().is_some(), "{label}: missing domain");
+        assert!(
+            json["synopsis"].as_str().is_some(),
+            "{label}: missing synopsis"
+        );
+
+        // Flags array present with valid entries.
+        let flags = json["flags"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{label}: flags is not an array"));
+        for flag in flags {
+            let name = flag["name"].as_str().unwrap_or("");
+            assert!(
+                name.starts_with("--"),
+                "{label}: flag name should start with '--': {name}"
+            );
+            assert!(
+                !flag["type"].as_str().unwrap_or("").is_empty(),
+                "{label}: flag '{name}' has empty type"
+            );
+            assert!(
+                flag.get("required").is_some(),
+                "{label}: flag '{name}' missing required field"
+            );
+            assert!(
+                flag.get("description").is_some(),
+                "{label}: flag '{name}' missing description"
+            );
+        }
+
+        // Global flags array present.
+        assert!(
+            json["global_flags"].as_array().is_some(),
+            "{label}: missing global_flags"
+        );
+
+        // Exit codes map present with at least exit 0.
+        let exit_codes = json["exit_codes"]
+            .as_object()
+            .unwrap_or_else(|| panic!("{label}: exit_codes is not an object"));
+        assert!(exit_codes.contains_key("0"), "{label}: missing exit code 0");
+
+        // Output formats declared.
+        let formats = json["output"]["formats"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{label}: output.formats is not an array"));
+        assert!(
+            formats.len() >= 2,
+            "{label}: expected at least json+table formats, got {}",
+            formats.len()
+        );
+
+        // supports_dry_run and is_mutation declared.
+        assert!(
+            json.get("supports_dry_run").is_some(),
+            "{label}: missing supports_dry_run"
+        );
+        assert!(
+            json.get("is_mutation").is_some(),
+            "{label}: missing is_mutation"
+        );
     }
-
-    // Exit codes map is present.
-    let exit_codes = json["exit_codes"].as_object().unwrap();
-    assert!(exit_codes.contains_key("0"), "Missing exit code 0");
-
-    // Output formats declared.
-    let formats = json["output"]["formats"].as_array().unwrap();
-    assert!(formats.len() >= 2, "Expected at least json+table formats");
-
-    // supports_dry_run is declared.
-    assert!(json.get("supports_dry_run").is_some());
 }
 
 /// Every command in the surface has a describable contract.
@@ -703,16 +771,46 @@ fn eval_preflight_catches_missing_query() {
 // Task 10: Auth Preflight
 // ---------------------------------------------------------------------------
 
-/// `dcx auth status` works without credentials (reports not logged in).
+/// `dcx auth status` always exits 0 and writes credential info to stderr.
+/// With credentials it reports the source and token validity; without it
+/// reports "No active credentials found" with remediation steps.
 #[test]
-fn eval_auth_status_works_without_creds() {
+fn eval_auth_status_contract() {
     let output = run_dcx(&["auth", "status"]);
-    // Should succeed or fail gracefully — not crash.
-    let combined = format!("{}{}", stdout(&output), stderr(&output));
-    assert!(
-        !combined.is_empty(),
-        "auth status should produce some output"
+
+    // auth status always exits 0 regardless of credential state.
+    assert_eq!(
+        exit_code(&output),
+        0,
+        "auth status should always exit 0, got {}",
+        exit_code(&output)
     );
+
+    // Output goes to stderr (human-readable status), not stdout.
+    let err = stderr(&output);
+    assert!(!err.is_empty(), "auth status should write status to stderr");
+
+    // Must contain either credential source info or no-creds guidance.
+    let has_creds = err.contains("Active credential source:");
+    let no_creds = err.contains("No active credentials found");
+    assert!(
+        has_creds || no_creds,
+        "auth status should report credential state. Got: {err}"
+    );
+
+    if has_creds {
+        // When credentials exist, should also report token validity.
+        assert!(
+            err.contains("Token:"),
+            "auth status with creds should report token validity. Got: {err}"
+        );
+    } else {
+        // When no credentials, should suggest remediation.
+        assert!(
+            err.contains("dcx auth login"),
+            "auth status without creds should suggest 'dcx auth login'. Got: {err}"
+        );
+    }
 }
 
 /// `dcx auth check --format json` returns a structured response with stable
