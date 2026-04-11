@@ -161,7 +161,7 @@ dcx mcp serve
 # Auth
 dcx auth login                    # Interactive OAuth
 dcx auth status                   # Current auth state
-dcx auth check --format=json      # Preflight check (no API calls)
+dcx auth check --format=json      # Verify current credentials
 
 # Profiles
 dcx profiles list
@@ -265,7 +265,7 @@ and Codex.
 dcx generate-skills --output-dir=./skills
 
 # Gemini extension manifest
-# Packaged at extensions/gemini/manifest.json (17 tools)
+# Packaged at extensions/gemini/manifest.json (28 tools)
 dcx meta gemini-tools --format=json
 ```
 
@@ -328,7 +328,7 @@ Systematic benchmark suite comparing dcx against `bq` and `gcloud spanner`.
 
 | Track | Tasks | Key Result |
 |-------|-------|------------|
-| [BigQuery parity](docs/benchmark_results_bigquery.md) | 12 | **6.0x faster**, 100% vs 91% correctness |
+| [BigQuery parity](docs/benchmark_results_bigquery.md) | 11 validated | **6.0x faster**, 100% vs 91% correctness |
 | Spanner parity | 11 | 1.3–3.9x faster on error-handling tasks |
 | dcx differentiated | 8 | 7/8 pass, avg 141 ms |
 
@@ -405,7 +405,7 @@ dcx alloydb databases list --profile=alloydb-ops
 
 ## Implementation Status
 
-All 6 phases complete. Current version: 0.5.0.
+All 6 phases implemented. Current version: 0.5.0 (unreleased).
 
 | Phase | Version | What shipped |
 |-------|---------|-------------|
