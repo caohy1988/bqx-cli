@@ -241,19 +241,19 @@ Get responses include `project_id` at the top level.
 
 ### Token impact (Phase 1 + Phase 2 combined)
 
-| Task | Pretty (B) | Minified (B) | Compact (B) |
+| Task | Pretty (B) | Minified (B, measured) | Compact (B, est.) |
 |------|----------:|------------:|------------:|
-| datasets list (28) | 7,699 | ~5,300 | ~1,500 |
-| datasets get | 812 | ~540 | ~380 |
-| tables list (2) | 704 | ~470 | ~200 |
-| tables get | 1,272 | ~850 | ~320 |
-| dry-run | 350 | ~230 | ~230 |
-| query (10 rows) | 599 | ~340 | ~340 |
-| **Workflow total** | **11,436** | **~7,730** | **~2,970** |
-| **Est. tokens** | **~2,859** | **~1,933** | **~743** |
+| datasets list (28) | 7,699 | 5,531 | ~1,500 |
+| datasets get | 812 | 645 | ~380 |
+| tables list (2) | 704 | 518 | ~200 |
+| tables get | 1,272 | 986 | ~320 |
+| dry-run | 350 | 312 | ~312 |
+| query (10 rows) | 599 | 327 | ~327 |
+| **Workflow total** | **11,436** | **8,319** | **~3,039** |
+| **Est. tokens** | **~2,859** | **~2,080** | **~760** |
 
 Phase 1 alone: **27% reduction** (2,859 → 2,080 tokens, measured).
-Phase 1 + 2: **~74% reduction** (2,859 → ~743 tokens, estimated).
+Phase 1 + 2: **~73% reduction** (2,859 → ~760 tokens, estimated).
 
 ### Implementation scope (Phase 2)
 
