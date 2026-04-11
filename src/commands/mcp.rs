@@ -76,7 +76,8 @@ fn build_input_schema(contract: &CommandContract) -> Value {
     let mut required = Vec::new();
 
     for flag in contract.flags.iter().chain(contract.global_flags.iter()) {
-        // Skip --format: the MCP bridge always forces --format json.
+        // Skip --format: the MCP bridge forces the format flag.
+        // Default is json-minified; override with DCX_MCP_FORMAT=json.
         if flag.name == "--format" {
             continue;
         }
@@ -167,6 +168,14 @@ fn build_tool_list(contracts: &[CommandContract]) -> (Vec<Value>, HashMap<String
 // Tool execution
 // ---------------------------------------------------------------------------
 
+/// Resolve the output format for MCP tool calls.
+///
+/// Default: `json-minified` (~32% fewer tokens than pretty JSON).
+/// Override: set `DCX_MCP_FORMAT=json` for debugging.
+fn resolve_mcp_format() -> String {
+    std::env::var("DCX_MCP_FORMAT").unwrap_or_else(|_| "json-minified".to_string())
+}
+
 /// Execute a tool call by running the `dcx` binary as a subprocess.
 ///
 /// This ensures the MCP bridge has exactly the same contract, validation,
@@ -211,9 +220,9 @@ fn execute_tool(
         }
     }
 
-    // Always request JSON output.
+    let mcp_format = resolve_mcp_format();
     args.push("--format".to_string());
-    args.push("json".to_string());
+    args.push(mcp_format);
 
     let output = Command::new(dcx_bin)
         .args(&args)
@@ -597,5 +606,20 @@ mod tests {
         let resp = handle_tools_list(json!(1), &tools);
         let result = resp.result.unwrap();
         assert_eq!(result["tools"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn resolve_mcp_format_defaults_to_json_minified() {
+        // Clear the env var to test the default.
+        std::env::remove_var("DCX_MCP_FORMAT");
+        assert_eq!(resolve_mcp_format(), "json-minified");
+    }
+
+    #[test]
+    fn resolve_mcp_format_respects_env_override() {
+        std::env::set_var("DCX_MCP_FORMAT", "json");
+        assert_eq!(resolve_mcp_format(), "json");
+        // Clean up.
+        std::env::remove_var("DCX_MCP_FORMAT");
     }
 }
