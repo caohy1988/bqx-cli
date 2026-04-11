@@ -8,9 +8,15 @@ dry-run validation, and error handling.
 
 | Metric | dcx | bq |
 |--------|-----|-----|
-| **Average task p50** | 672 ms | 2,870 ms |
-| **Geometric mean speedup** | **5.5x faster** | baseline |
-| **Correctness (warm trials)** | 33/36 (92%) | 30/36 (83%) |
+| **Average task p50 (11 valid tasks)** | 571 ms | 2,748 ms |
+| **Geometric mean speedup** | **6.0x faster** | baseline |
+| **Correctness (warm trials)** | 33/33 (100%) | 30/33 (91%) |
+
+One task (`bq-error-permission-denied`) is excluded from the primary
+scorecard because it targets a public project and does not produce a
+permission error for either CLI — see [Correctness Notes](#correctness-notes).
+Including it: average p50 672 ms / 2,870 ms, geomean 5.5x, correctness
+33/36 (92%) / 30/36 (83%).
 
 Results were directionally stable across 3 warm trials per task; see the
 [scorecard p95s](../benchmarks/results/scorecards/20260410-171926-cdc4d94.md)
@@ -209,8 +215,10 @@ responses to a consistent envelope:
 `bq` returns raw API shapes that vary by command (JSON array, nested
 `datasets` key, free-text error strings on stdout). An agent using `bq` must
 carry per-command parsing logic in its prompt or tool definitions, which
-itself consumes tokens. `dcx`'s uniform shape means a single parsing
-instruction covers every command.
+itself consumes tokens. `dcx`'s uniform envelope covers every list command;
+get, query, dry-run, and error responses still have their own shapes, but
+the list normalization alone reduces the per-command parsing burden for the
+most common discovery operations.
 
 ### Error Output Token Cost
 
