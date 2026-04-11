@@ -267,6 +267,14 @@ and what `meta describe` / skills advertise.
 
 ## Validation
 
-After PR 1 + PR 2 merge, re-run the BigQuery benchmark track with
-`--format=json-minified` and measure actual token savings against the
-2,859-token baseline. Expected: ~1,933 tokens (32% reduction).
+**Completed.** Benchmark run `20260411-013709-b4c8ac5` measured actual
+token savings after PR 1 + PR 2 merged:
+
+| | dcx (json) | dcx (json-minified) | bq |
+|---|---:|---:|---:|
+| 6-step workflow bytes | 11,372 B | 8,150 B | 8,262 B |
+| Estimated tokens (÷4) | ~2,843 | **~2,037** | ~2,065 |
+| Reduction vs json | — | **28%** | — |
+
+Result: **28% reduction** (predicted 32%). dcx-minified now uses fewer
+tokens than bq (2,037 vs 2,065) — token parity achieved.

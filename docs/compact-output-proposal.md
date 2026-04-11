@@ -2,9 +2,9 @@
 
 ## Problem
 
-dcx outputs ~35% more tokens than `bq` in a typical 6-step agent workflow
-(2,859 vs 2,115 tokens). For agent-native tooling that bills per token, this
-matters. The bloat comes from three independent sources.
+dcx (pretty JSON) outputs ~35% more tokens than `bq` in a typical 6-step
+agent workflow (2,843 vs 2,065 tokens). For agent-native tooling that bills
+per token, this matters. The bloat comes from three independent sources.
 
 ### Source 1: Pretty-printed JSON (biggest contributor)
 
@@ -91,21 +91,24 @@ Adding `json-minified` as an explicit opt-in:
    offering the same via `json-minified` achieves parity without forcing
    it on existing users.
 
-### Token impact (Phase 1 only)
+### Token impact (Phase 1 — measured)
+
+Measured in benchmark run `20260411-013709-b4c8ac5` (3 warm trials per task):
 
 | Task | json (B) | json-minified (B) | Reduction |
 |------|----------:|------------:|----------:|
-| datasets list (28 items) | 7,699 | ~5,300 | 31% |
-| datasets get | 812 | ~540 | 33% |
-| tables list (2 items) | 704 | ~470 | 33% |
-| tables get | 1,272 | ~850 | 33% |
-| dry-run | 350 | ~230 | 34% |
-| query (10 rows) | 599 | ~340 | 43% |
-| **Workflow total** | **11,436** | **~7,730** | **32%** |
-| **Est. tokens** | **~2,859** | **~1,933** | **32%** |
+| datasets list (28 items) | 7,699 | 5,531 | 28% |
+| datasets get | 812 | 645 | 21% |
+| tables list (2 items) | 704 | 518 | 26% |
+| tables get | 1,272 | 986 | 22% |
+| dry-run | 350 | 312 | 11% |
+| query (10 rows) | 599 | 327 | 45% |
+| nested query | 748 | 476 | 36% |
+| **6-step workflow** | **11,372** | **8,150** | **28%** |
+| **Est. tokens** | **~2,843** | **~2,037** | **28%** |
 
-Phase 1 alone brings dcx from 35% above bq to ~9% below bq on tokens per
-workflow — a meaningful improvement with zero contract risk.
+Phase 1 brings dcx from 35% above bq to slightly *below* bq on tokens per
+workflow (2,037 vs 2,065) — token parity achieved with zero contract risk.
 
 ### MCP behavior (Phase 1)
 
@@ -118,7 +121,7 @@ MCP bridge (`dcx mcp serve`) adopts `json-minified` by default. Rationale:
 - Configurable via `DCX_MCP_FORMAT` env var if an MCP client needs pretty
   JSON for debugging (e.g. `DCX_MCP_FORMAT=json dcx mcp serve`).
 
-This means MCP output gets the 32% token reduction automatically without
+This means MCP output gets the 28% token reduction automatically without
 any client-side opt-in.
 
 ### Implementation scope
@@ -249,8 +252,8 @@ Get responses include `project_id` at the top level.
 | **Workflow total** | **11,436** | **~7,730** | **~2,970** |
 | **Est. tokens** | **~2,859** | **~1,933** | **~743** |
 
-Phase 1 alone: **32% reduction** (2,859 → 1,933 tokens).
-Phase 1 + 2: **74% reduction** (2,859 → 743 tokens).
+Phase 1 alone: **28% reduction** (2,843 → 2,037 tokens, measured).
+Phase 1 + 2: **~74% reduction** (2,843 → ~743 tokens, estimated).
 
 ### Implementation scope (Phase 2)
 
