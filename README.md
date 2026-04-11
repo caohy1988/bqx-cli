@@ -108,7 +108,7 @@ dcx profiles validate --profile=bench # validate source profiles
 ## Output Format
 
 All commands default to structured JSON. `--format` controls output.
-Use `--format=json-minified` for agent/CI pipelines — same schema, 28%
+Use `--format=json-minified` for agent/CI pipelines — same schema, 27%
 fewer tokens ([benchmarked](docs/benchmark_results_bigquery.md)).
 
 ```bash
@@ -165,7 +165,7 @@ Protocol) server over stdio, using JSON-RPC 2.0.
 
 - Domain filtering via `MCP_DOMAINS` env var
 - Mutations and interactive commands excluded
-- Output defaults to `json-minified` (~28% fewer tokens); override with
+- Output defaults to `json-minified` (~27% fewer tokens); override with
   `DCX_MCP_FORMAT=json` for debugging
 
 ```bash
@@ -260,7 +260,7 @@ Systematic benchmark suite comparing dcx against `bq` and `gcloud spanner`.
 
 | Track | Tasks | Key Result |
 |-------|-------|------------|
-| [BigQuery parity](docs/benchmark_results_bigquery.md) | 12 tasks × 3 CLIs | **4.8x faster** (minified), 28% fewer tokens |
+| [BigQuery parity](docs/benchmark_results_bigquery.md) | 12 tasks × 3 CLIs | **4.8x faster** (minified), 27% fewer tokens |
 | Spanner parity | 11 | 1.3–3.9x faster on error-handling tasks |
 | dcx differentiated | 8 | 7/8 pass, avg 141 ms |
 

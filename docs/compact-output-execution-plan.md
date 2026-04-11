@@ -141,7 +141,7 @@ Add one line to the Output Format section:
 
 ```markdown
 Use `--format=json-minified` for agent/CI pipelines — same schema,
-~32% fewer tokens.
+28% fewer tokens (benchmarked).
 ```
 
 **13. Benchmark doc**
@@ -175,7 +175,7 @@ section noting that `json-minified` closes the token gap.
 
 ## PR 2: MCP bridge defaults to `json-minified`
 
-**Goal:** MCP consumers get the 32% token reduction automatically.
+**Goal:** MCP consumers get the 27% token reduction automatically.
 
 ### Changes
 
@@ -272,9 +272,9 @@ token savings after PR 1 + PR 2 merged:
 
 | | dcx (json) | dcx (json-minified) | bq |
 |---|---:|---:|---:|
-| 6-step workflow bytes | 11,372 B | 8,150 B | 8,262 B |
-| Estimated tokens (÷4) | ~2,843 | **~2,037** | ~2,065 |
-| Reduction vs json | — | **28%** | — |
+| 6-step workflow bytes | 11,436 B | 8,319 B | 8,461 B |
+| Estimated tokens (÷4) | ~2,859 | **~2,080** | ~2,115 |
+| Reduction vs json | — | **27%** | — |
 
-Result: **28% reduction** (predicted 32%). dcx-minified now uses fewer
-tokens than bq (2,037 vs 2,065) — token parity achieved.
+Result: **27% reduction** (predicted 32%). dcx-minified now uses fewer
+tokens than bq (2,080 vs 2,115) — token parity achieved.

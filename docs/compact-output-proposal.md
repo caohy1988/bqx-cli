@@ -3,7 +3,7 @@
 ## Problem
 
 dcx (pretty JSON) outputs ~35% more tokens than `bq` in a typical 6-step
-agent workflow (2,843 vs 2,065 tokens). For agent-native tooling that bills
+agent workflow (2,859 vs 2,115 tokens). For agent-native tooling that bills
 per token, this matters. The bloat comes from three independent sources.
 
 ### Source 1: Pretty-printed JSON (biggest contributor)
@@ -104,11 +104,11 @@ Measured in benchmark run `20260411-013709-b4c8ac5` (3 warm trials per task):
 | dry-run | 350 | 312 | 11% |
 | query (10 rows) | 599 | 327 | 45% |
 | nested query | 748 | 476 | 36% |
-| **6-step workflow** | **11,372** | **8,150** | **28%** |
-| **Est. tokens** | **~2,843** | **~2,037** | **28%** |
+| **6-step workflow** | **11,436** | **8,319** | **27%** |
+| **Est. tokens** | **~2,859** | **~2,080** | **27%** |
 
 Phase 1 brings dcx from 35% above bq to slightly *below* bq on tokens per
-workflow (2,037 vs 2,065) — token parity achieved with zero contract risk.
+workflow (2,080 vs 2,115) — token parity achieved with zero contract risk.
 
 ### MCP behavior (Phase 1)
 
@@ -121,7 +121,7 @@ MCP bridge (`dcx mcp serve`) adopts `json-minified` by default. Rationale:
 - Configurable via `DCX_MCP_FORMAT` env var if an MCP client needs pretty
   JSON for debugging (e.g. `DCX_MCP_FORMAT=json dcx mcp serve`).
 
-This means MCP output gets the 28% token reduction automatically without
+This means MCP output gets the 27% token reduction automatically without
 any client-side opt-in.
 
 ### Implementation scope
@@ -252,8 +252,8 @@ Get responses include `project_id` at the top level.
 | **Workflow total** | **11,436** | **~7,730** | **~2,970** |
 | **Est. tokens** | **~2,859** | **~1,933** | **~743** |
 
-Phase 1 alone: **28% reduction** (2,843 → 2,037 tokens, measured).
-Phase 1 + 2: **~74% reduction** (2,843 → ~743 tokens, estimated).
+Phase 1 alone: **27% reduction** (2,859 → 2,080 tokens, measured).
+Phase 1 + 2: **~74% reduction** (2,859 → ~743 tokens, estimated).
 
 ### Implementation scope (Phase 2)
 
@@ -279,8 +279,8 @@ Estimated: 400-600 lines of new code + test updates.
 ## Recommendation
 
 1. **Ship Phase 1 now.** `--format=json-minified` is low-risk (additive,
-   no default change), gets 32% token savings for opt-in callers, and
-   gives MCP the 32% reduction automatically. The main work is adding the
+   no default change), gets 27% token savings for opt-in callers (measured),
+   and gives MCP the reduction automatically. The main work is adding the
    new `OutputFormat` variant and snapshot tests.
 
 2. **Design Phase 2 after Phase 1 ships.** The compact schema needs real

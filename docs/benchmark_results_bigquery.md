@@ -9,11 +9,11 @@ reads, SQL queries, dry-run validation, and error handling.
 | Metric | dcx | dcx (minified) | bq |
 |--------|-----|----------------|-----|
 | **Average task p50 (warm)** | 648 ms | 613 ms | 2,939 ms |
-| **Geometric mean speedup** | **4.5x faster** | **4.8x faster** | baseline |
+| **Avg p50 ratio** | **4.5x faster** | **4.8x faster** | baseline |
 | **Correctness (warm trials)** | 33/36 (92%) | 33/36 (92%) | 30/36 (83%) |
-| **6-step workflow tokens** | ~2,843 | **~2,037** | ~2,065 |
+| **6-step workflow tokens** | ~2,859 | **~2,080** | ~2,115 |
 
-`--format=json-minified` reduces output tokens by **28%** compared to
+`--format=json-minified` reduces output tokens by **27%** compared to
 pretty JSON, bringing dcx below `bq`'s token cost while preserving the
 same schema and envelope structure. No latency penalty — minified output
 is slightly faster due to reduced serialization and I/O.
@@ -181,12 +181,12 @@ agent retries 2–3 times (common with self-correction), the gap widens to
 
 | | dcx (json) | dcx (json-minified) | bq |
 |---|---:|---:|---:|
-| Total output bytes | 11,372 B | 8,150 B | 8,262 B |
-| Estimated tokens (÷4) | ~2,843 | **~2,037** | ~2,065 |
-| vs dcx (json) | baseline | **−28%** | −27% |
+| Total output bytes | 11,436 B | 8,319 B | 8,461 B |
+| Estimated tokens (÷4) | ~2,859 | **~2,080** | ~2,115 |
+| vs dcx (json) | baseline | **−27%** | −26% |
 
 `--format=json-minified` closes the token gap entirely: dcx-minified uses
-**~2,037 tokens** vs bq's **~2,065 tokens** — effectively equivalent, with
+**~2,080 tokens** vs bq's **~2,115 tokens** — effectively equivalent, with
 dcx providing a more consistent envelope structure.
 
 ## Token Efficiency
@@ -207,7 +207,7 @@ window. This section estimates token cost using the approximation
 | Aggregate query | 599 B (~150 tok) | 327 B (~82 tok) | 302 B (~76 tok) | **45%** |
 | Nested query | 748 B (~187 tok) | 476 B (~119 tok) | 451 B (~113 tok) | **36%** |
 
-**Average reduction with `json-minified`: 28%** across read/query tasks.
+**Average reduction with `json-minified`: 27%** across read/query tasks.
 
 Tasks with more data (list datasets, query results) see the largest absolute
 savings. Dry-run sees only 11% reduction because its output is already small
@@ -291,8 +291,8 @@ For `bq` CLI:
 For `dcx`:
 
 - **Token parity achieved.** With `--format=json-minified`, dcx output
-  tokens (~2,037) are now below `bq` (~2,065) for the standard 6-step
-  exploration workflow. The 28% reduction from Phase 1 closes the gap that
+  tokens (~2,080) are now below `bq` (~2,115) for the standard 6-step
+  exploration workflow. The 27% reduction from Phase 1 closes the gap that
   existed with pretty JSON output.
 - **Further reduction possible.** Phase 2 (typed compact schemas) can strip
   redundant API fields (kind, selfLink, etag) and hoist projectId to the
