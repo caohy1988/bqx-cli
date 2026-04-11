@@ -168,12 +168,24 @@ fn build_tool_list(contracts: &[CommandContract]) -> (Vec<Value>, HashMap<String
 // Tool execution
 // ---------------------------------------------------------------------------
 
-/// Resolve the output format for MCP tool calls.
+/// Allowed values for `DCX_MCP_FORMAT`.
+const MCP_ALLOWED_FORMATS: &[&str] = &["json", "json-minified"];
+
+/// Resolve and validate the output format for MCP tool calls.
 ///
 /// Default: `json-minified` (~32% fewer tokens than pretty JSON).
 /// Override: set `DCX_MCP_FORMAT=json` for debugging.
-fn resolve_mcp_format() -> String {
-    std::env::var("DCX_MCP_FORMAT").unwrap_or_else(|_| "json-minified".to_string())
+///
+/// Returns an error if the env var is set to an unsupported value.
+fn resolve_mcp_format() -> Result<String> {
+    match std::env::var("DCX_MCP_FORMAT") {
+        Ok(val) if MCP_ALLOWED_FORMATS.contains(&val.as_str()) => Ok(val),
+        Ok(val) => anyhow::bail!(
+            "Invalid DCX_MCP_FORMAT={val:?}. Allowed values: {}",
+            MCP_ALLOWED_FORMATS.join(", ")
+        ),
+        Err(_) => Ok("json-minified".to_string()),
+    }
 }
 
 /// Execute a tool call by running the `dcx` binary as a subprocess.
@@ -185,6 +197,7 @@ fn execute_tool(
     tool_name_str: &str,
     arguments: &HashMap<String, Value>,
     cmd_lookup: &HashMap<String, Vec<String>>,
+    mcp_format: &str,
 ) -> Result<(bool, String)> {
     // Look up the CLI args for this tool name. Reject unknown tools —
     // the lookup table is the single source of truth for the allowed surface.
@@ -220,9 +233,8 @@ fn execute_tool(
         }
     }
 
-    let mcp_format = resolve_mcp_format();
     args.push("--format".to_string());
-    args.push(mcp_format);
+    args.push(mcp_format.to_string());
 
     let output = Command::new(dcx_bin)
         .args(&args)
@@ -247,6 +259,10 @@ fn execute_tool(
 
 /// Run the MCP server on stdio.
 pub fn run(app: &clap::Command) -> Result<()> {
+    // Validate DCX_MCP_FORMAT once at startup so a bad value is rejected
+    // immediately rather than causing every tool call to fail.
+    let mcp_format = resolve_mcp_format()?;
+
     let contracts = meta::collect_all(app);
     let (tools, cmd_lookup) = build_tool_list(&contracts);
 
@@ -315,7 +331,9 @@ pub fn run(app: &clap::Command) -> Result<()> {
         let response = match request.method.as_str() {
             "initialize" => handle_initialize(id),
             "tools/list" => handle_tools_list(id, &tools),
-            "tools/call" => handle_tools_call(id, &request.params, &dcx_bin, &cmd_lookup),
+            "tools/call" => {
+                handle_tools_call(id, &request.params, &dcx_bin, &cmd_lookup, &mcp_format)
+            }
             "ping" => JsonRpcResponse {
                 jsonrpc: "2.0",
                 id,
@@ -373,6 +391,7 @@ fn handle_tools_call(
     params: &Value,
     dcx_bin: &str,
     cmd_lookup: &HashMap<String, Vec<String>>,
+    mcp_format: &str,
 ) -> JsonRpcResponse {
     let name = params["name"].as_str().unwrap_or("");
     let arguments: HashMap<String, Value> = params["arguments"]
@@ -380,7 +399,7 @@ fn handle_tools_call(
         .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
         .unwrap_or_default();
 
-    match execute_tool(dcx_bin, name, &arguments, cmd_lookup) {
+    match execute_tool(dcx_bin, name, &arguments, cmd_lookup, mcp_format) {
         Ok((is_error, text)) => JsonRpcResponse {
             jsonrpc: "2.0",
             id,
@@ -547,8 +566,14 @@ mod tests {
     fn execute_tool_rejects_unknown_tools() {
         let lookup = HashMap::new();
         let args = HashMap::new();
-        let (is_error, text) =
-            execute_tool("/nonexistent", "dcx_spanner_instances_list", &args, &lookup).unwrap();
+        let (is_error, text) = execute_tool(
+            "/nonexistent",
+            "dcx_spanner_instances_list",
+            &args,
+            &lookup,
+            "json-minified",
+        )
+        .unwrap();
         assert!(is_error, "Unknown tool should return isError=true");
         assert!(
             text.contains("Unknown tool"),
@@ -610,16 +635,25 @@ mod tests {
 
     #[test]
     fn resolve_mcp_format_defaults_to_json_minified() {
-        // Clear the env var to test the default.
         std::env::remove_var("DCX_MCP_FORMAT");
-        assert_eq!(resolve_mcp_format(), "json-minified");
+        assert_eq!(resolve_mcp_format().unwrap(), "json-minified");
     }
 
     #[test]
     fn resolve_mcp_format_respects_env_override() {
         std::env::set_var("DCX_MCP_FORMAT", "json");
-        assert_eq!(resolve_mcp_format(), "json");
-        // Clean up.
+        assert_eq!(resolve_mcp_format().unwrap(), "json");
+        std::env::remove_var("DCX_MCP_FORMAT");
+    }
+
+    #[test]
+    fn resolve_mcp_format_rejects_invalid_value() {
+        std::env::set_var("DCX_MCP_FORMAT", "not-a-format");
+        let err = resolve_mcp_format().unwrap_err();
+        assert!(
+            err.to_string().contains("Invalid DCX_MCP_FORMAT"),
+            "Error should mention invalid value: {err}"
+        );
         std::env::remove_var("DCX_MCP_FORMAT");
     }
 }
