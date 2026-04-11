@@ -1,0 +1,890 @@
+[
+  {
+    "task_id": "bq-dataset-list",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 966,
+      "p95": 971,
+      "mean": 934,
+      "min": 865,
+      "max": 971
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 1345,
+      "p95": 1345,
+      "mean": 1345,
+      "min": 1345,
+      "max": 1345
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 7699,
+      "p95": 7699,
+      "mean": 7699,
+      "min": 7699,
+      "max": 7699
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-dataset-list",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 3005,
+      "p95": 3035,
+      "mean": 2994,
+      "min": 2942,
+      "max": 3035
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 2991,
+      "p95": 2991,
+      "mean": 2991,
+      "min": 2991,
+      "max": 2991
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 5501,
+      "p95": 5501,
+      "mean": 5501,
+      "min": 5501,
+      "max": 5501
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-dataset-get",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 725,
+      "p95": 739,
+      "mean": 681,
+      "min": 579,
+      "max": 739
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 641,
+      "p95": 641,
+      "mean": 641,
+      "min": 641,
+      "max": 641
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 812,
+      "p95": 812,
+      "mean": 812,
+      "min": 812,
+      "max": 812
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-dataset-get",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 2814,
+      "p95": 2855,
+      "mean": 2790.6666666666665,
+      "min": 2703,
+      "max": 2855
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 2656,
+      "p95": 2656,
+      "mean": 2656,
+      "min": 2656,
+      "max": 2656
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 650,
+      "p95": 650,
+      "mean": 650,
+      "min": 650,
+      "max": 650
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-table-list",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 581,
+      "p95": 721,
+      "mean": 627,
+      "min": 579,
+      "max": 721
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 630,
+      "p95": 630,
+      "mean": 630,
+      "min": 630,
+      "max": 630
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 704,
+      "p95": 704,
+      "mean": 704,
+      "min": 704,
+      "max": 704
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-table-list",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 2725,
+      "p95": 2739,
+      "mean": 2719.3333333333335,
+      "min": 2694,
+      "max": 2739
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 3501,
+      "p95": 3501,
+      "mean": 3501,
+      "min": 3501,
+      "max": 3501
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 488,
+      "p95": 488,
+      "mean": 488,
+      "min": 488,
+      "max": 488
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-table-get",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 572,
+      "p95": 643,
+      "mean": 593.3333333333334,
+      "min": 565,
+      "max": 643
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 572,
+      "p95": 572,
+      "mean": 572,
+      "min": 572,
+      "max": 572
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 1272,
+      "p95": 1272,
+      "mean": 1272,
+      "min": 1272,
+      "max": 1272
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-table-get",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 2607,
+      "p95": 2664,
+      "mean": 2623,
+      "min": 2598,
+      "max": 2664
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 2724,
+      "p95": 2724,
+      "mean": 2724,
+      "min": 2724,
+      "max": 2724
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 203,
+      "p95": 203,
+      "mean": 203,
+      "min": 203,
+      "max": 203
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-dryrun-aggregate",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 90,
+      "p95": 91,
+      "mean": 89.66666666666667,
+      "min": 88,
+      "max": 91
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 90,
+      "p95": 90,
+      "mean": 90,
+      "min": 90,
+      "max": 90
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 350,
+      "p95": 350,
+      "mean": 350,
+      "min": 350,
+      "max": 350
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-dryrun-aggregate",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 2990,
+      "p95": 3023,
+      "mean": 2996.6666666666665,
+      "min": 2977,
+      "max": 3023
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 3099,
+      "p95": 3099,
+      "mean": 3099,
+      "min": 3099,
+      "max": 3099
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 1317,
+      "p95": 1317,
+      "mean": 1317,
+      "min": 1317,
+      "max": 1317
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-query-aggregate",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 856,
+      "p95": 972,
+      "mean": 891.3333333333334,
+      "min": 846,
+      "max": 972
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 879,
+      "p95": 879,
+      "mean": 879,
+      "min": 879,
+      "max": 879
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 599,
+      "p95": 599,
+      "mean": 599,
+      "min": 599,
+      "max": 599
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-query-aggregate",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 3528,
+      "p95": 3529,
+      "mean": 3497.3333333333335,
+      "min": 3435,
+      "max": 3529
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 3250,
+      "p95": 3250,
+      "mean": 3250,
+      "min": 3250,
+      "max": 3250
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 302,
+      "p95": 302,
+      "mean": 302,
+      "min": 302,
+      "max": 302
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-query-nested",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 973,
+      "p95": 1106,
+      "mean": 983,
+      "min": 870,
+      "max": 1106
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 928,
+      "p95": 928,
+      "mean": 928,
+      "min": 928,
+      "max": 928
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 748,
+      "p95": 748,
+      "mean": 748,
+      "min": 748,
+      "max": 748
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-query-nested",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 3201,
+      "p95": 3412,
+      "mean": 3261.3333333333335,
+      "min": 3171,
+      "max": 3412
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 3195,
+      "p95": 3195,
+      "mean": 3195,
+      "min": 3195,
+      "max": 3195
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 451,
+      "p95": 451,
+      "mean": 451,
+      "min": 451,
+      "max": 451
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-error-malformed-sql",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 593,
+      "p95": 603,
+      "mean": 581.6666666666666,
+      "min": 549,
+      "max": 603
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 568,
+      "p95": 568,
+      "mean": 568,
+      "min": 568,
+      "max": 568
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 174,
+      "p95": 174,
+      "mean": 174,
+      "min": 174,
+      "max": 174
+    }
+  },
+  {
+    "task_id": "bq-error-malformed-sql",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 2687,
+      "p95": 2743,
+      "mean": 2704,
+      "min": 2682,
+      "max": 2743
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 2801,
+      "p95": 2801,
+      "mean": 2801,
+      "min": 2801,
+      "max": 2801
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 170,
+      "p95": 170,
+      "mean": 170,
+      "min": 170,
+      "max": 170
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-error-not-found",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 646,
+      "p95": 889,
+      "mean": 722,
+      "min": 631,
+      "max": 889
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 649,
+      "p95": 649,
+      "mean": 649,
+      "min": 649,
+      "max": 649
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 187,
+      "p95": 187,
+      "mean": 187,
+      "min": 187,
+      "max": 187
+    }
+  },
+  {
+    "task_id": "bq-error-not-found",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 2823,
+      "p95": 2833,
+      "mean": 2786.6666666666665,
+      "min": 2704,
+      "max": 2833
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 2787,
+      "p95": 2787,
+      "mean": 2787,
+      "min": 2787,
+      "max": 2787
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 106,
+      "p95": 106,
+      "mean": 106,
+      "min": 106,
+      "max": 106
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-error-auth-failure",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 185,
+      "p95": 185,
+      "mean": 182,
+      "min": 176,
+      "max": 185
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 182,
+      "p95": 182,
+      "mean": 182,
+      "min": 182,
+      "max": 182
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 326,
+      "p95": 326,
+      "mean": 326,
+      "min": 326,
+      "max": 326
+    }
+  },
+  {
+    "task_id": "bq-error-auth-failure",
+    "cli": "bq",
+    "success_rate": 0.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 2979,
+      "p95": 3251,
+      "mean": 3062,
+      "min": 2956,
+      "max": 3251
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 3015,
+      "p95": 3015,
+      "mean": 3015,
+      "min": 3015,
+      "max": 3015
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 5501,
+      "p95": 5501,
+      "mean": 5501,
+      "min": 5501,
+      "max": 5501
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-error-invalid-flag",
+    "cli": "dcx",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 91,
+      "p95": 93,
+      "mean": 91.66666666666667,
+      "min": 91,
+      "max": 93
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 93,
+      "p95": 93,
+      "mean": 93,
+      "min": 93,
+      "max": 93
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 143,
+      "p95": 143,
+      "mean": 143,
+      "min": 143,
+      "max": 143
+    }
+  },
+  {
+    "task_id": "bq-error-invalid-flag",
+    "cli": "bq",
+    "success_rate": 1.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 871,
+      "p95": 873,
+      "mean": 866,
+      "min": 854,
+      "max": 873
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 866,
+      "p95": 866,
+      "mean": 866,
+      "min": 866,
+      "max": 866
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 101,
+      "p95": 101,
+      "mean": 101,
+      "min": 101,
+      "max": 101
+    }
+  },
+  {
+    "task_id": "bq-error-permission-denied",
+    "cli": "dcx",
+    "success_rate": 0.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 1784,
+      "p95": 1794,
+      "mean": 1766.6666666666667,
+      "min": 1722,
+      "max": 1794
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 1782,
+      "p95": 1782,
+      "mean": 1782,
+      "min": 1782,
+      "max": 1782
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 22266,
+      "p95": 22266,
+      "mean": 22266,
+      "min": 22266,
+      "max": 22266
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  },
+  {
+    "task_id": "bq-error-permission-denied",
+    "cli": "bq",
+    "success_rate": 0.0,
+    "warm_wall_clock": {
+      "count": 3,
+      "p50": 4215,
+      "p95": 4355,
+      "mean": 4188,
+      "min": 3994,
+      "max": 4355
+    },
+    "cold_wall_clock": {
+      "count": 1,
+      "p50": 4076,
+      "p95": 4076,
+      "mean": 4076,
+      "min": 4076,
+      "max": 4076
+    },
+    "warm_stdout_bytes": {
+      "count": 3,
+      "p50": 15797,
+      "p95": 15797,
+      "mean": 15797,
+      "min": 15797,
+      "max": 15797
+    },
+    "warm_stderr_bytes": {
+      "count": 3,
+      "p50": 0,
+      "p95": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    }
+  }
+]
