@@ -6,7 +6,7 @@
 dcx analytics get-trace \
   --session-id <session-id> \
   [--trace-id <trace-id>] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 ## Flags
@@ -15,7 +15,7 @@ dcx analytics get-trace \
 |------|-------------|
 | `--session-id` | Session ID to retrieve (required unless `--trace-id` is used) |
 | `--trace-id` | Alias for `--session-id`; warns that dedicated trace-id lookup is planned |
-| `--format` | `json` (default), `table`, or `text` |
+| `--format` | `json` (default), `json-minified`, `table`, or `text` |
 
 ## Getting a session ID
 

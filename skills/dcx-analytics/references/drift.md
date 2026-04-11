@@ -12,7 +12,7 @@ dcx analytics drift \
   [--agent-id <name>] \
   [--min-coverage <ratio>] \
   [--exit-code] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 ### Required flags

@@ -694,10 +694,10 @@ fn eval_dynamic_command_help() {
 // Task 8: Format Support
 // ---------------------------------------------------------------------------
 
-/// All three format values are accepted for dry-run commands.
+/// All four format values are accepted for dry-run commands.
 #[test]
 fn eval_all_formats_accepted() {
-    for format in &["json", "table", "text"] {
+    for format in &["json", "json-minified", "table", "text"] {
         let output = run_dcx(&[
             "jobs",
             "query",
@@ -717,7 +717,7 @@ fn eval_all_formats_accepted() {
 /// `meta commands` supports all formats.
 #[test]
 fn eval_meta_commands_all_formats() {
-    for format in &["json", "table", "text"] {
+    for format in &["json", "json-minified", "table", "text"] {
         let output = run_dcx(&["meta", "commands", "--format", format]);
         assert!(
             output.status.success(),
