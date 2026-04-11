@@ -12,7 +12,7 @@ dcx analytics evaluate \
   [--exit-code] \
   [--criterion <name>] \
   [--strict] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 ## Required flags
@@ -32,7 +32,7 @@ dcx analytics evaluate \
 | `--exit-code` | — | Return exit code 1 if any session fails (for CI) |
 | `--criterion` | `correctness` | Accepted for SDK CLI parity; no effect on code evaluators (applies to llm-judge only) |
 | `--strict` | — | Accepted for SDK CLI parity; no effect on code evaluators (applies to llm-judge only) |
-| `--format` | `json` | `json`, `table`, or `text` |
+| `--format` | `json` | `json`, `json-minified`, `table`, or `text` |
 
 ## Evaluator definitions
 

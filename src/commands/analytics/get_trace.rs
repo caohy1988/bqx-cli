@@ -198,7 +198,7 @@ fn render_trace_output(trace: &TraceResult, config: &Config) -> Result<()> {
                 .collect();
             output::render_rows_as_table(&columns, &rows)?;
         }
-        OutputFormat::Json => {
+        OutputFormat::Json | OutputFormat::JsonMinified => {
             output::render(trace, &config.format)?;
         }
     }

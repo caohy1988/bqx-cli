@@ -414,7 +414,7 @@ fn render_insights(result: &InsightsResult, config: &Config) -> Result<()> {
             ];
             output::render_rows_as_table(&columns, &rows)?;
         }
-        OutputFormat::Json => {
+        OutputFormat::Json | OutputFormat::JsonMinified => {
             output::render(result, &config.format)?;
         }
     }

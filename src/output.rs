@@ -10,6 +10,10 @@ pub fn render<T: Serialize>(value: &T, format: &OutputFormat) -> Result<()> {
             let json = serde_json::to_string_pretty(value)?;
             println!("{json}");
         }
+        OutputFormat::JsonMinified => {
+            let json = serde_json::to_string(value)?;
+            println!("{json}");
+        }
         OutputFormat::Table => {
             let json = serde_json::to_value(value)?;
             render_value_as_table(&json)?;

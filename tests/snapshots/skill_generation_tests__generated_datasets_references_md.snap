@@ -17,7 +17,7 @@ dcx datasets get \
   [--access-policy-version <ACCESS_POLICY_VERSION>] \
   [--dataset-view <DATASET_VIEW>] \
   [--dry-run] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 | Flag | Required | Description |
@@ -38,7 +38,7 @@ dcx datasets list \
   [--filter <FILTER>] \
   [--max-results <MAX_RESULTS>] \
   [--dry-run] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 | Flag | Required | Description |

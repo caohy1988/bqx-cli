@@ -17,7 +17,7 @@ dcx routines get \
   --routine-id <ROUTINE_ID> \
   [--read-mask <READ_MASK>] \
   [--dry-run] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 | Flag | Required | Description |
@@ -39,7 +39,7 @@ dcx routines list \
   [--max-results <MAX_RESULTS>] \
   [--read-mask <READ_MASK>] \
   [--dry-run] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 | Flag | Required | Description |

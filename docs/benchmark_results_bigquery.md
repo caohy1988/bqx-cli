@@ -205,6 +205,10 @@ get schema → dry-run → execute query):
 However, both totals are small — under 3K tokens per full exploration, a
 fraction of a typical 128K-token context window.
 
+**`--format=json-minified`** eliminates pretty-print whitespace, bringing
+the estimated workflow total from ~2,859 to ~1,933 tokens (~32% reduction),
+which is slightly below `bq`'s 2,115 tokens. Same schema, same fields.
+
 The tradeoff is **parseability vs compactness**. `dcx` normalizes all list
 responses to a consistent envelope:
 

@@ -201,6 +201,9 @@ fn render_dry_run(request: &DynamicRequest, format: &OutputFormat) -> Result<()>
         OutputFormat::Json => {
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
+        OutputFormat::JsonMinified => {
+            println!("{}", serde_json::to_string(&output)?);
+        }
         OutputFormat::Table | OutputFormat::Text => {
             println!("{} {}", request.http_method, url);
         }
@@ -260,18 +263,23 @@ fn render_response(
     is_list: bool,
 ) -> Result<()> {
     match format {
-        OutputFormat::Json => {
+        OutputFormat::Json | OutputFormat::JsonMinified => {
+            let serialize = if *format == OutputFormat::JsonMinified {
+                serde_json::to_string
+            } else {
+                serde_json::to_string_pretty
+            };
             // Normalize list responses into a stable pagination wrapper.
             // Only apply to methods that actually support pagination to avoid
             // misclassifying get responses that contain top-level arrays.
             if is_list {
                 if let Some(normalized) = normalize_list_response(body, service_label) {
-                    println!("{}", serde_json::to_string_pretty(&normalized)?);
+                    println!("{}", serialize(&normalized)?);
                 } else {
-                    println!("{}", serde_json::to_string_pretty(body)?);
+                    println!("{}", serialize(body)?);
                 }
             } else {
-                println!("{}", serde_json::to_string_pretty(body)?);
+                println!("{}", serialize(body)?);
             }
         }
         OutputFormat::Table | OutputFormat::Text => {
@@ -290,6 +298,9 @@ fn render_page_all_response(body: &serde_json::Value, format: &OutputFormat) -> 
     match format {
         OutputFormat::Json => {
             println!("{}", serde_json::to_string_pretty(body)?);
+        }
+        OutputFormat::JsonMinified => {
+            println!("{}", serde_json::to_string(body)?);
         }
         OutputFormat::Table | OutputFormat::Text => {
             if let Some(items) = body.get("items").and_then(|v| v.as_array()) {

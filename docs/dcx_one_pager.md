@@ -85,7 +85,7 @@ description: Run raw data cloud SQL queries via dcx  CLI.
 - "dry-run this data cloud query"
 
 ## Core workflow
-  dcx  jobs query --query "<SQL>" [--dry-run] [--format json|table|text]
+  dcx  jobs query --query "<SQL>" [--dry-run] [--format json|json-minified|table|text]
 
 ## Flags
 | Flag         | Description                    |

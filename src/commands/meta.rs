@@ -120,7 +120,7 @@ pub fn run_commands(app: &clap::Command, format: &OutputFormat) -> Result<()> {
             .collect(),
     };
     match format {
-        OutputFormat::Json => output::render(&list, format),
+        OutputFormat::Json | OutputFormat::JsonMinified => output::render(&list, format),
         OutputFormat::Table | OutputFormat::Text => {
             let cols = vec!["Command".into(), "Domain".into(), "Synopsis".into()];
             let rows: Vec<Vec<String>> = list
@@ -142,7 +142,7 @@ pub fn run_describe(app: &clap::Command, path: &[String], format: &OutputFormat)
     let contracts = collect_all(app);
     match contracts.into_iter().find(|c| c.command == target) {
         Some(contract) => match format {
-            OutputFormat::Json => output::render(&contract, format),
+            OutputFormat::Json | OutputFormat::JsonMinified => output::render(&contract, format),
             OutputFormat::Table | OutputFormat::Text => {
                 print_describe_text(&contract);
                 Ok(())
@@ -157,7 +157,7 @@ pub fn run_gemini_tools(app: &clap::Command, format: &OutputFormat) -> Result<()
     let contracts = collect_all(app);
     let manifest = generate_gemini_manifest(&contracts);
     match format {
-        OutputFormat::Json => output::render(&manifest, format),
+        OutputFormat::Json | OutputFormat::JsonMinified => output::render(&manifest, format),
         OutputFormat::Table | OutputFormat::Text => {
             // Pretty-print tool listing
             println!(
@@ -736,7 +736,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
 
         // ── auth check: structured preflight, exit 0/3 ────────────
         "auth" if second == "check" => RuntimeBehavior {
-            formats: vec!["json", "table", "text"],
+            formats: vec!["json", "json-minified", "table", "text"],
             exit_codes: exit_codes(&[("0", "success"), ("3", "authentication error")]),
             relevant_globals: AUTH_FORMAT_GLOBALS,
             constraints: vec![],
@@ -754,7 +754,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
 
         // ── profiles test: structural + auth verification, exit 0/1 ──
         "profiles" if second == "test" => RuntimeBehavior {
-            formats: vec!["json", "table", "text"],
+            formats: vec!["json", "json-minified", "table", "text"],
             exit_codes: exit_codes(&[("0", "success"), ("1", "validation or auth error")]),
             relevant_globals: AUTH_FORMAT_GLOBALS,
             constraints: vec![],
@@ -763,7 +763,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
 
         // ── utility / admin: format-only, early return with exit 1 ──
         "generate-skills" | "profiles" | "meta" => RuntimeBehavior {
-            formats: vec!["json", "table", "text"],
+            formats: vec!["json", "json-minified", "table", "text"],
             exit_codes: exit_codes(&[("0", "success"), ("1", "error")]),
             relevant_globals: &["--format"],
             constraints: vec![],
@@ -772,7 +772,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
 
         // ── analytics evaluate / drift: SDK-aligned exit codes ──────
         "analytics" if second == "evaluate" || second == "drift" => RuntimeBehavior {
-            formats: vec!["json", "table", "text"],
+            formats: vec!["json", "json-minified", "table", "text"],
             exit_codes: exit_codes(&[
                 ("0", "success"),
                 ("1", "evaluation failure (with --exit-code)"),
@@ -785,7 +785,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
 
         // ── analytics get-trace: one-of-required constraint ─────────
         "analytics" if second == "get-trace" => RuntimeBehavior {
-            formats: vec!["json", "table", "text"],
+            formats: vec!["json", "json-minified", "table", "text"],
             exit_codes: exit_codes(&[
                 ("0", "success"),
                 ("1", "validation error"),
@@ -804,7 +804,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
 
         // ── ca ask: --profile is mutually exclusive with --agent/--tables
         "ca" if second == "ask" => RuntimeBehavior {
-            formats: vec!["json", "table", "text"],
+            formats: vec!["json", "json-minified", "table", "text"],
             exit_codes: exit_codes(&[
                 ("0", "success"),
                 ("1", "validation error"),
@@ -823,7 +823,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
 
         // ── namespace helpers: profile-based ──────────────────────
         _ if is_namespace_helper(path) => RuntimeBehavior {
-            formats: vec!["json", "table", "text"],
+            formats: vec!["json", "json-minified", "table", "text"],
             exit_codes: exit_codes(&[
                 ("0", "success"),
                 ("2", "infrastructure error"),
@@ -840,7 +840,7 @@ fn runtime_behavior(path: &[&str]) -> RuntimeBehavior {
         // Pagination flags (--page-token, --page-all) are added by extract_contract
         // based on the _paginated marker, not by runtime_behavior.
         _ => RuntimeBehavior {
-            formats: vec!["json", "table", "text"],
+            formats: vec!["json", "json-minified", "table", "text"],
             exit_codes: exit_codes(&[
                 ("0", "success"),
                 ("1", "validation error"),
@@ -916,7 +916,7 @@ mod tests {
                     .long("format")
                     .global(true)
                     .default_value("json")
-                    .value_parser(["json", "table", "text"])
+                    .value_parser(["json", "json-minified", "table", "text"])
                     .help("Output format"),
             )
             .arg(

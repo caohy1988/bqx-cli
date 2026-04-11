@@ -560,6 +560,8 @@ pub enum AuthCommand {
 #[derive(Clone, PartialEq, Eq, ValueEnum)]
 pub enum OutputFormat {
     Json,
+    #[value(name = "json-minified")]
+    JsonMinified,
     Table,
     Text,
 }

@@ -16,7 +16,7 @@ dcx models get \
   --dataset-id <DATASET_ID> \
   --model-id <MODEL_ID> \
   [--dry-run] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 | Flag | Required | Description |
@@ -35,7 +35,7 @@ dcx models list \
   --dataset-id <DATASET_ID> \
   [--max-results <MAX_RESULTS>] \
   [--dry-run] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 | Flag | Required | Description |

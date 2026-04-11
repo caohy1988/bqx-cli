@@ -51,7 +51,7 @@ Cross-source command matrix for dcx v0.5.0.
 
 ## Output Modes
 
-All commands support `--format json|table|text`. Default is `json`.
+All commands support `--format json|json-minified|table|text`. Default is `json`.
 
 | Format | Best for |
 |--------|----------|

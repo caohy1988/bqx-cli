@@ -33,7 +33,7 @@ pub fn run(
 
     if skills.is_empty() {
         match format {
-            OutputFormat::Json => {
+            OutputFormat::Json | OutputFormat::JsonMinified => {
                 println!("{}", json!({"generated": [], "count": 0}));
             }
             OutputFormat::Table | OutputFormat::Text => {
@@ -46,15 +46,17 @@ pub fn run(
     let written = generator::write_skills(Path::new(output_dir), &skills)?;
 
     match format {
-        OutputFormat::Json => {
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&json!({
-                    "generated": written,
-                    "count": written.len(),
-                    "output_dir": output_dir,
-                }))?
-            );
+        OutputFormat::Json | OutputFormat::JsonMinified => {
+            let output = json!({
+                "generated": written,
+                "count": written.len(),
+                "output_dir": output_dir,
+            });
+            if *format == OutputFormat::JsonMinified {
+                println!("{}", serde_json::to_string(&output)?);
+            } else {
+                println!("{}", serde_json::to_string_pretty(&output)?);
+            }
         }
         OutputFormat::Table | OutputFormat::Text => {
             println!("Generated {} skill(s) in {}:", written.len(), output_dir);

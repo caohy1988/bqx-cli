@@ -107,7 +107,9 @@ dcx profiles validate --profile=bench # validate source profiles
 
 ## Output Format
 
-All commands default to structured JSON. `--format` controls output:
+All commands default to structured JSON. `--format` controls output.
+Use `--format=json-minified` for agent/CI pipelines — same schema, ~32%
+fewer tokens.
 
 ```bash
 dcx analytics evaluate --evaluator=latency --threshold=5000 --last=1h
