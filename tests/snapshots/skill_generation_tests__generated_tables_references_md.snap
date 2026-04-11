@@ -18,7 +18,7 @@ dcx tables get \
   [--selected-fields <SELECTED_FIELDS>] \
   [--view <VIEW>] \
   [--dry-run] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 | Flag | Required | Description |
@@ -39,7 +39,7 @@ dcx tables list \
   --dataset-id <DATASET_ID> \
   [--max-results <MAX_RESULTS>] \
   [--dry-run] \
-  [--format json|table|text]
+  [--format json|json-minified|table|text]
 ```
 
 | Flag | Required | Description |

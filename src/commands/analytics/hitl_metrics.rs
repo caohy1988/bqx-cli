@@ -303,7 +303,7 @@ fn render_hitl_metrics(result: &HitlMetricsResult, config: &Config) -> Result<()
                 .collect();
             output::render_rows_as_table(&columns, &rows)?;
         }
-        OutputFormat::Json => {
+        OutputFormat::Json | OutputFormat::JsonMinified => {
             output::render(result, &config.format)?;
         }
     }

@@ -166,7 +166,7 @@ fn render_views_create(result: &ViewsCreateResult, config: &Config) -> Result<()
             println!();
             output::render_rows_as_table(&columns, &rows)?;
         }
-        OutputFormat::Json => {
+        OutputFormat::Json | OutputFormat::JsonMinified => {
             output::render(result, &config.format)?;
         }
     }
@@ -326,7 +326,7 @@ fn render_view_create(result: &ViewCreateResult, config: &Config) -> Result<()> 
             ]];
             output::render_rows_as_table(&columns, &rows)?;
         }
-        OutputFormat::Json => {
+        OutputFormat::Json | OutputFormat::JsonMinified => {
             output::render(result, &config.format)?;
         }
     }

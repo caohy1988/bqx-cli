@@ -574,7 +574,7 @@ fn render_categorical_eval(result: &CategoricalEvalResult, config: &Config) -> R
             println!();
             output::render_rows_as_table(&columns, &rows)?;
         }
-        OutputFormat::Json => {
+        OutputFormat::Json | OutputFormat::JsonMinified => {
             output::render(result, &config.format)?;
         }
     }

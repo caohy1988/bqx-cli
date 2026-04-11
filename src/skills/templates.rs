@@ -201,6 +201,7 @@ fn build_thin_skill_md(
     out.push_str("## Decision rules\n\n");
     out.push_str("- Use `--dry-run` to preview the API request\n");
     out.push_str("- Use `--format table` for visual scanning, `--format json` for piping\n");
+    out.push_str("- Use `--format json-minified` for agent pipelines (same schema, ~32% fewer tokens)\n");
     if commands.iter().any(|c| c.action == "list") {
         out.push_str(&format!(
             "- Use `{group} list` to discover available {group}\n"
@@ -287,7 +288,7 @@ fn build_references_md(
         if contract.map(|c| c.supports_dry_run).unwrap_or(true) {
             usage.push_str(" \\\n  [--dry-run]");
         }
-        usage.push_str(" \\\n  [--format json|table|text]\n```\n\n");
+        usage.push_str(" \\\n  [--format json|json-minified|table|text]\n```\n\n");
         out.push_str(&usage);
 
         // Flags table.

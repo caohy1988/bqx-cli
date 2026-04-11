@@ -214,7 +214,7 @@ fn render_categorical_views(result: &CategoricalViewsResult, config: &Config) ->
             println!();
             output::render_rows_as_table(&columns, &rows)?;
         }
-        OutputFormat::Json => {
+        OutputFormat::Json | OutputFormat::JsonMinified => {
             output::render(result, &config.format)?;
         }
     }
