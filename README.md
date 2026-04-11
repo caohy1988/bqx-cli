@@ -165,7 +165,8 @@ Protocol) server over stdio, using JSON-RPC 2.0.
 
 - Domain filtering via `MCP_DOMAINS` env var
 - Mutations and interactive commands excluded
-- Format flag forced to JSON
+- Output defaults to `json-minified` (~32% fewer tokens); override with
+  `DCX_MCP_FORMAT=json` for debugging
 
 ```bash
 # Start MCP server
